@@ -1,0 +1,18 @@
+{
+    "project_name":       "bootloader",
+    "project_path":       "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader/subproject",
+    "build_dir":          "C:/Users/ajayv/Desktop/workspace/TestIDF/build/bootloader",
+    "config_file":        "C:/Users/ajayv/Desktop/workspace/TestIDF/sdkconfig",
+    "config_defaults":    "",
+    "app_elf":            "bootloader.elf",
+    "app_bin":            "bootloader.bin",
+    "git_revision":       "v4.0-dirty",
+    "phy_data_partition": "",
+    "monitor_baud" : "115200",
+    "config_environment" : {
+        "COMPONENT_KCONFIGS" : "C:/Users/ajayv/Desktop/esp-idf-2/components/efuse/Kconfig;C:/Users/ajayv/Desktop/esp-idf-2/components/esp32/Kconfig;C:/Users/ajayv/Desktop/esp-idf-2/components/esp_common/Kconfig;C:/Users/ajayv/Desktop/esp-idf-2/components/log/Kconfig;C:/Users/ajayv/Desktop/esp-idf-2/components/spi_flash/Kconfig",
+        "COMPONENT_KCONFIGS_PROJBUILD" : "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader/Kconfig.projbuild;C:/Users/ajayv/Desktop/esp-idf-2/components/esptool_py/Kconfig.projbuild;C:/Users/ajayv/Desktop/esp-idf-2/components/partition_table/Kconfig.projbuild"
+    },
+    "build_components" : [ "bootloader", "bootloader_support", "efuse", "esp32", "esp_common", "esp_rom", "esptool_py", "log", "main", "micro-ecc", "partition_table", "soc", "spi_flash", "xtensa", "" ],
+    "build_component_paths" : [ "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader", "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader_support", "C:/Users/ajayv/Desktop/esp-idf-2/components/efuse", "C:/Users/ajayv/Desktop/esp-idf-2/components/esp32", "C:/Users/ajayv/Desktop/esp-idf-2/components/esp_common", "C:/Users/ajayv/Desktop/esp-idf-2/components/esp_rom", "C:/Users/ajayv/Desktop/esp-idf-2/components/esptool_py", "C:/Users/ajayv/Desktop/esp-idf-2/components/log", "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader/subproject/main", "C:/Users/ajayv/Desktop/esp-idf-2/components/bootloader/subproject/components/micro-ecc", "C:/Users/ajayv/Desktop/esp-idf-2/components/partition_table", "C:/Users/ajayv/Desktop/esp-idf-2/components/soc", "C:/Users/ajayv/Desktop/esp-idf-2/components/spi_flash", "C:/Users/ajayv/Desktop/esp-idf-2/components/xtensa", "" ]
+}
