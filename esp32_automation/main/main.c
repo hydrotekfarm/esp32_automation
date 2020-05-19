@@ -61,8 +61,8 @@ static bool ec_calibration = false;
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-	const char TAG = "Event_Handler";
-	pESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n", event_base, event_id);
+	const char * TAG = "Event_Handler";
+	ESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n", event_base, event_id);
 	if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
 		ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
 		ESP_LOGI(TAG, "got IP:%s", ip4addr_ntoa(&event->ip_info.ip));
@@ -86,7 +86,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 }
 
 static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
-	const char TAG = "MQTT_Event_Handler";
+	const char * TAG = "MQTT_Event_Handler";
 	switch(event_id){
 	case MQTT_EVENT_CONNECTED:
 		xTaskNotifyGive(publish_task_handle);
@@ -105,7 +105,8 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 		ESP_LOGI(TAG, "Published\n");
 		break;
 	case MQTT_EVENT_DATA:
-		if(event_data == "Calibrate_EC"){
+		//if event data = ec_calibration = true
+		if(true){
 			ec_calibration = true;
 		}
 		break;
@@ -139,7 +140,7 @@ void publish_data(void * parameter){
 }
 
 void measure_temperature(void * parameter){
-	const char TAG = "Temperature_Task";
+	const char * TAG = "Temperature_Task";
 	ds18x20_addr_t ds18b20_address[1];
 	int sensor_count = 0;
 
@@ -171,7 +172,7 @@ void measure_temperature(void * parameter){
 
 
 void measure_ec(void * parameter){
-	const char TAG = "EC_Task";
+	const char * TAG = "EC_Task";
 	ec_begin();
 
 	for(;;){
@@ -268,7 +269,7 @@ void app_main(void)
 		port_setup();
 		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF);
 		if (error != ESP_OK) {
-			ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
+			ESP_LOGE(_TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
 		}
 
 		xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
