@@ -7,11 +7,10 @@
 
 #include "ec_sensor.h"
 #include <esp_log.h>
-#include <driver/gpio.h>
-#include <driver/adc.h>
 #include <esp_err.h>
 #include <nvs_flash.h>
 #include <nvs.h>
+#include <math.h>
 
 #define DEFAULT_VREF    1100
 #define MULTIPLIER      1000000
@@ -37,7 +36,6 @@ esp_err_t ec_begin(){
 
 	int32_t TempKValueLow = MULTIPLIER;
 	error = nvs_get_i32(my_handle, "KValueLow", &TempKValueLow);
-	ESP_LOGD(TAG, "KValueLow set to 1. Calibration must take place");
 	if(error == ESP_ERR_NVS_NOT_FOUND){
 		nvs_set_i32(my_handle, "KValueLow", TempKValueLow);
 		nvs_commit(my_handle);
@@ -60,6 +58,8 @@ esp_err_t ec_begin(){
 	_KValueLow = (float) TempKValueLow / (float) MULTIPLIER;
 	_KValueHigh = (float) TempKValueHigh / (float) MULTIPLIER;
 	_KValue = _KValueLow;
+	ESP_LOGI(TAG, "KValueLow = %f  TempKValueLow = %d \n", _KValueLow, TempKValueLow);
+	ESP_LOGI(TAG, "KValueHigh = %f  TempKValueHigh = %d \n", _KValueHigh, TempKValueHigh);
 	return ESP_OK;
 }
 
@@ -71,8 +71,10 @@ float readEC(float voltage, float temperature){
 	valueTemp = _rawEC * _KValue;
 	if(valueTemp > 2.5){
 		_KValue = _KValueHigh;
+		ESP_LOGI(TAG, "KValueHigh: %f\n", _KValueHigh);
 	}else if(valueTemp < 2.0){
 		_KValue = _KValueLow;
+		ESP_LOGI(TAG, "KValueLow: %f\n", _KValueLow);
 	}
 	adjustedEC = (_rawEC * _KValue) / (1.0+0.0185*(temperature-25.0));
 
@@ -110,20 +112,20 @@ esp_err_t calibrateEC(){
 			return error;
 		}
 		if((_rawEC>0.9)&&(_rawEC<1.9)){
-			_KValueLow =  KValueTemp;
-			KValueTemp = KValueTemp * MULTIPLIER;
+			KValueTemp = round(KValueTemp * MULTIPLIER);
+			_KValueLow =  KValueTemp / MULTIPLIER;
 			error = nvs_set_i32(my_handle, "KValueLow", KValueTemp);
 			nvs_commit(my_handle);
 			if(error != ESP_OK){
 				ESP_LOGD(TAG, "error: %d", error);
 			}
-			ESP_LOGI(TAG, "Calibration success! KValueLow: %f\n", KValueTemp);
+			ESP_LOGI(TAG, "Calibration success! KValueLow: %f   KValueTemp: %f\n", _KValueLow, KValueTemp);
 		}else if((_rawEC>9)&&(_rawEC<16.8)){
-			_KValueHigh =  KValueTemp;
-			KValueTemp = KValueTemp * MULTIPLIER;
+			KValueTemp = round(KValueTemp * MULTIPLIER);
+			_KValueHigh =  KValueTemp / MULTIPLIER;
 			nvs_set_i32(my_handle, "KValueHigh", KValueTemp);
 			nvs_commit(my_handle);
-			ESP_LOGI(TAG, "Calibration success! KValueHigh: %f\n", KValueTemp);
+			ESP_LOGI(TAG, "Calibration success! KValueHigh: %f   KValueTemp: %f\n", _KValueHigh, KValueTemp);
 
 		}
 		nvs_close(my_handle);
