@@ -22,6 +22,7 @@
 #include "ec_sensor.h"
 #include "ds18x20.h"
 #include "ph_sensor.h"
+#include "ultrasonic.h"
 
 static const char *_TAG = "Main";
 
@@ -57,7 +58,6 @@ static bool temperature_active = true;
 static bool ec_active = true;
 
 static bool ec_calibration = false;
-
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
