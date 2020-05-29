@@ -39,6 +39,10 @@ static EventGroupHandle_t sensor_event_group;
 #define EC_TASK_PRIORITY 2
 #define TEMPERATURE_TASK_PRIORITY 3
 
+#define MAX_DISTANCE_CM 500
+#define ULTRASONIC_TRIGGER_GPIO 18
+#define ULTRASONIC_ECHO_GPIO 17
+
 #define RETRYMAX 5
 #define DEFAULT_VREF 1100
 static int retryNumber = 0;
@@ -53,6 +57,7 @@ static TaskHandle_t temperature_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
 static TaskHandle_t ph_task_handle = NULL;
+static TaskHandle_t ultrasonic_task_handle = NULL;
 
 static bool temperature_active = true;
 static bool ec_active = true;
@@ -223,6 +228,25 @@ void measure_ph(void * parameter){
 	}
 }
 
+void measure_distance (void * parameter) {
+	const char * TAG = "ULTRASONIC_TAG";
+	ultrasonic_sensor_t sensor = {
+			.trigger_pin = ULTRASONIC_TRIGGER_GPIO,
+			.echo_pin = ULTRASONIC_ECHO_GPIO
+	};
+
+	ultrasonic_init(&sensor);
+	printf("Ultrasonic initialized\n");
+
+	for(;;) {
+		uint32_t distance;
+		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
+		printf("Distance: %d cm\n", distance);
+
+		vTaskDelay(pdMS_TO_TICKS(2000));
+	}
+}
+
 void port_setup(){
 	// ADC 1 setup
 	adc1_config_width(ADC_WIDTH_BIT_12);
@@ -255,8 +279,8 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = {
 			.sta = {
-					.ssid = "MySpectrumWiFic0-2G",
-					.password = "bluebrain782"
+					.ssid = "LeawoodGuest",
+					.password = "guest,123"
 			},
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -272,9 +296,10 @@ void app_main(void)
 			ESP_LOGE(_TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
 		}
 
-		xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
+		/*xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);*/
+		xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, 3, &ultrasonic_task_handle, 1);
 
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 	}
