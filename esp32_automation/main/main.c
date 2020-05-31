@@ -165,12 +165,12 @@ void measure_temperature(void * parameter){
 			} else if(error == ESP_ERR_INVALID_CRC){
 				ESP_LOGE(TAG, "Invalid CRC, Try Again\n");
 			} else {
-				printf("Unknown Error\n");
+				ESP_LOGE(TAG, "Unknown Error\n");
 			}
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		}
 		while(!temperature_active){
-			vTaskDelay(5000);
+			vTaskDelay(pdMS_TO_TICKS(5000));
 		}
 	}
 }
@@ -192,7 +192,7 @@ void measure_ec(void * parameter){
 			ESP_LOGI(TAG, "EC: %f\n", ec);
 			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		} else if(!ec_active && !ec_calibration){
-			vTaskDelay(5000);
+			vTaskDelay(pdMS_TO_TICKS(5000));
 		} else if(ec_calibration){
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));
 			for(int i = 0; i < 20; i++){
@@ -203,8 +203,8 @@ void measure_ec(void * parameter){
 				adc_reading /= 64;
 				float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 				ec = readEC(voltage, _temp);
-				printf("ec: %f\n", ec);
-				printf("\n\n");
+				ESP_LOGE(TAG, "ec: %f\n", ec);
+				ESP_LOGE(TAG, "\n\n");
 				vTaskDelay(pdMS_TO_TICKS(2000));
 			}
 			esp_err_t error = calibrateEC();
@@ -236,12 +236,12 @@ void measure_distance (void * parameter) {
 	};
 
 	ultrasonic_init(&sensor);
-	printf("Ultrasonic initialized\n");
+	ESP_LOGE(TAG, "Ultrasonic initialized\n");
 
 	for(;;) {
 		uint32_t distance;
 		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
-		printf("Distance: %d cm\n", distance);
+		ESP_LOGE(TAG, "Distance: %d cm\n", distance);
 
 		vTaskDelay(pdMS_TO_TICKS(2000));
 	}
@@ -304,8 +304,8 @@ void app_main(void)
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 	}
 	else if((eventBits & WIFI_FAIL_BIT) != 0){
-		printf("WIFI Connection Failed\n");
+		ESP_LOGE("", "WIFI Connection Failed\n");
 	} else {
-		printf("Unexpected Event\n");
+		ESP_LOGE("", "Unexpected Event\n");
 	}
 }
