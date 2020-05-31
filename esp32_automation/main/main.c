@@ -241,7 +241,20 @@ void measure_distance (void * parameter) {
 	for(;;) {
 		uint32_t distance;
 		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
-		ESP_LOGE(TAG, "Distance: %d cm\n", distance);
+
+		switch(res) {
+			case ESP_ERR_ULTRASONIC_PING:
+				ESP_LOGE(TAG, "Device is in invalid state");
+				break;
+			case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
+				ESP_LOGE(TAG, "Device not found");
+				break;
+			case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
+				ESP_LOGE(TAG, "Distance is too large");
+				break;
+			default:
+				ESP_LOGE(TAG, "Distance: %d cm\n", distance);
+		}
 
 		vTaskDelay(pdMS_TO_TICKS(2000));
 	}
