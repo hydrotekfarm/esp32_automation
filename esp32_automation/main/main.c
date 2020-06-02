@@ -38,6 +38,7 @@ static EventGroupHandle_t sensor_event_group;
 
 #define EC_TASK_PRIORITY 2
 #define TEMPERATURE_TASK_PRIORITY 3
+#define ULTRASONIC_TASK_PRIORITY 1
 
 #define MAX_DISTANCE_CM 500
 #define ULTRASONIC_TRIGGER_GPIO 18
@@ -45,12 +46,14 @@ static EventGroupHandle_t sensor_event_group;
 
 #define RETRYMAX 5
 #define DEFAULT_VREF 1100
+
 static int retryNumber = 0;
 
 static esp_adc_cal_characteristics_t *adc_chars;
 
 static float _temp = 0;
 static float ec = 0;
+static uint16_t _distance = 0;
 
 
 static TaskHandle_t temperature_task_handle = NULL;
@@ -61,7 +64,6 @@ static TaskHandle_t ultrasonic_task_handle = NULL;
 
 static bool temperature_active = true;
 static bool ec_active = true;
-
 static bool ec_calibration = false;
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
@@ -79,8 +81,8 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 		retryNumber = 0;
 
 	}
-	else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED){
-		if(retryNumber < RETRYMAX){
+	else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+		if(retryNumber < RETRYMAX) {
 			esp_wifi_connect();
 			retryNumber++;
 		} else {
@@ -90,7 +92,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 	}
 }
 
-static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
+static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 	const char * TAG = "MQTT_Event_Handler";
 	switch(event_id){
 	case MQTT_EVENT_CONNECTED:
@@ -111,7 +113,7 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 		break;
 	case MQTT_EVENT_DATA:
 		//if event data = ec_calibration = true
-		if(true){
+		if(true) {
 			ec_calibration = true;
 		}
 		break;
@@ -127,24 +129,32 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 	}
 }
 
-void publish_data(void * parameter){
+void publish_data(void * parameter) {
+	const char * TAG = "Publisher";
+
 	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "192.168.1.16",
+			.host = "70.94.9.135",
 			.port = 1883
 	};
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
 	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
-	for(;;){
+	for(;;) {
 		char temperature[8];
 		snprintf(temperature, sizeof(temperature), "%.4f", _temp);
-		esp_mqtt_client_publish(client, "sen", temperature, 0, 1, 0);
-		vTaskDelay(pdMS_TO_TICKS(200));
+		esp_mqtt_client_publish(client, "temperature", temperature, 0, 1, 0);
+
+		char distance[8];
+		snprintf(distance, sizeof(distance), "%d", _distance);
+		esp_mqtt_client_publish(client, "distance", distance, 0, 1, 0);
+		ESP_LOGI(TAG, "publishing data");
+
+		vTaskDelay(pdMS_TO_TICKS(2000));
 	}
 }
 
-void measure_temperature(void * parameter){
+void measure_temperature(void * parameter) {
 	const char * TAG = "Temperature_Task";
 	ds18x20_addr_t ds18b20_address[1];
 	int sensor_count = 0;
@@ -180,8 +190,8 @@ void measure_ec(void * parameter){
 	const char * TAG = "EC_Task";
 	ec_begin();
 
-	for(;;){
-		if(ec_active){
+	for(;;) {
+		if(ec_active) {
 			uint32_t adc_reading = 0;
 			for (int i = 0; i < 64; i++) {
 				adc_reading += adc1_get_raw(ADC_CHANNEL_0);
@@ -191,9 +201,9 @@ void measure_ec(void * parameter){
 			ec = readEC(voltage, _temp);
 			ESP_LOGI(TAG, "EC: %f\n", ec);
 			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
-		} else if(!ec_active && !ec_calibration){
+		} else if(!ec_active && !ec_calibration) {
 			vTaskDelay(pdMS_TO_TICKS(5000));
-		} else if(ec_calibration){
+		} else if(ec_calibration) {
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));
 			for(int i = 0; i < 20; i++){
 				uint32_t adc_reading = 0;
@@ -217,10 +227,10 @@ void measure_ec(void * parameter){
 	}
 }
 
-void measure_ph(void * parameter){
+void measure_ph(void * parameter) {
 	EventBits_t returnBits;
-	for(;;){
-		vTaskDelay(pdMS_TO_TICKS(2000));
+	for(;;) {
+		vTaskDelay(pdMS_TO_TICKS(10000));
 		returnBits = xEventGroupSync(sensor_event_group, DELAY_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		if((returnBits & ALL_SYNC_BITS) == ALL_SYNC_BITS){
 			ESP_LOGI("PH_Task", "Completed");
@@ -236,10 +246,10 @@ void measure_distance (void * parameter) {
 	};
 
 	ultrasonic_init(&sensor);
-	ESP_LOGE(TAG, "Ultrasonic initialized\n");
+	ESP_LOGI(TAG, "Ultrasonic initialized\n");
 
 	for(;;) {
-		uint32_t distance;
+		uint16_t distance;
 		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
 		switch(res) {
@@ -254,6 +264,7 @@ void measure_distance (void * parameter) {
 				break;
 			default:
 				ESP_LOGE(TAG, "Distance: %d cm\n", distance);
+				_distance = distance;
 		}
 
 		vTaskDelay(pdMS_TO_TICKS(2000));
@@ -312,7 +323,7 @@ void app_main(void)
 		/*xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);*/
-		xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, 3, &ultrasonic_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 	}
