@@ -129,6 +129,12 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 	}
 }
 
+void add_sensor_data(esp_mqtt_client_handle_t client, char topic[], float value) {
+	char data[8];
+	snprintf(data, sizeof(data), "%.2f", value);
+	esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+}
+
 void publish_data(void * parameter) {
 	const char * TAG = "Publisher";
 
@@ -141,13 +147,9 @@ void publish_data(void * parameter) {
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
 	for(;;) {
-		char temperature[8];
-		snprintf(temperature, sizeof(temperature), "%.4f", _temp);
-		esp_mqtt_client_publish(client, "temperature", temperature, 0, 1, 0);
+		add_sensor_data(client, "temperature", _temp);
 
-		char distance[8];
-		snprintf(distance, sizeof(distance), "%d", _distance);
-		esp_mqtt_client_publish(client, "distance", distance, 0, 1, 0);
+		add_sensor_data(client, "distance", _distance);
 		ESP_LOGI(TAG, "publishing data");
 
 		vTaskDelay(pdMS_TO_TICKS(2000));
