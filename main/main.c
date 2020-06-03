@@ -22,6 +22,7 @@
 #include "ec_sensor.h"
 #include "ds18x20.h"
 #include "ph_sensor.h"
+#include "ultrasonic.h"
 
 static const char *_TAG = "Main";
 
@@ -37,27 +38,33 @@ static EventGroupHandle_t sensor_event_group;
 
 #define EC_TASK_PRIORITY 2
 #define TEMPERATURE_TASK_PRIORITY 3
+#define ULTRASONIC_TASK_PRIORITY 1
+
+#define MAX_DISTANCE_CM 500
+#define ULTRASONIC_TRIGGER_GPIO 18
+#define ULTRASONIC_ECHO_GPIO 17
 
 #define RETRYMAX 5
 #define DEFAULT_VREF 1100
+
 static int retryNumber = 0;
 
 static esp_adc_cal_characteristics_t *adc_chars;
 
 static float _temp = 0;
 static float ec = 0;
+static float _distance = 0;
 
 
 static TaskHandle_t temperature_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
 static TaskHandle_t ph_task_handle = NULL;
+static TaskHandle_t ultrasonic_task_handle = NULL;
 
 static bool temperature_active = true;
 static bool ec_active = true;
-
 static bool ec_calibration = false;
-
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
@@ -74,8 +81,8 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 		retryNumber = 0;
 
 	}
-	else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED){
-		if(retryNumber < RETRYMAX){
+	else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+		if(retryNumber < RETRYMAX) {
 			esp_wifi_connect();
 			retryNumber++;
 		} else {
@@ -85,7 +92,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 	}
 }
 
-static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
+static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 	const char * TAG = "MQTT_Event_Handler";
 	switch(event_id){
 	case MQTT_EVENT_CONNECTED:
@@ -106,7 +113,7 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 		break;
 	case MQTT_EVENT_DATA:
 		//if event data = ec_calibration = true
-		if(true){
+		if(true) {
 			ec_calibration = true;
 		}
 		break;
@@ -122,24 +129,42 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 	}
 }
 
-void publish_data(void * parameter){
+void add_sensor_data(esp_mqtt_client_handle_t client, char topic[], float value) {
+	// Convert sensor data to string
+	char data[8];
+	snprintf(data, sizeof(data), "%.2f", value);
+
+	// Publish string using mqtt client
+	esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+}
+
+void publish_data(void * parameter) {
+	const char * TAG = "Publisher";
+
+	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "192.168.1.16",
+			.host = "70.94.9.135",
 			.port = 1883
 	};
+
+	// Create and initialize mqtt client
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
 	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
-	for(;;){
-		char temperature[8];
-		snprintf(temperature, sizeof(temperature), "%.4f", _temp);
-		esp_mqtt_client_publish(client, "sen", temperature, 0, 1, 0);
-		vTaskDelay(pdMS_TO_TICKS(200));
+
+	for(;;) {
+		// Publish sensor data
+		add_sensor_data(client, "temperature", _temp);
+		add_sensor_data(client, "distance", _distance);
+		ESP_LOGI(TAG, "publishing data");
+
+		// Publish data every 20 sec
+		vTaskDelay(pdMS_TO_TICKS(20000));
 	}
 }
 
-void measure_temperature(void * parameter){
+void measure_temperature(void * parameter) {
 	const char * TAG = "Temperature_Task";
 	ds18x20_addr_t ds18b20_address[1];
 	int sensor_count = 0;
@@ -160,12 +185,12 @@ void measure_temperature(void * parameter){
 			} else if(error == ESP_ERR_INVALID_CRC){
 				ESP_LOGE(TAG, "Invalid CRC, Try Again\n");
 			} else {
-				printf("Unknown Error\n");
+				ESP_LOGE(TAG, "Unknown Error\n");
 			}
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		}
 		while(!temperature_active){
-			vTaskDelay(5000);
+			vTaskDelay(pdMS_TO_TICKS(5000));
 		}
 	}
 }
@@ -175,8 +200,8 @@ void measure_ec(void * parameter){
 	const char * TAG = "EC_Task";
 	ec_begin();
 
-	for(;;){
-		if(ec_active){
+	for(;;) {
+		if(ec_active) {
 			uint32_t adc_reading = 0;
 			for (int i = 0; i < 64; i++) {
 				adc_reading += adc1_get_raw(ADC_CHANNEL_0);
@@ -186,9 +211,9 @@ void measure_ec(void * parameter){
 			ec = readEC(voltage, _temp);
 			ESP_LOGI(TAG, "EC: %f\n", ec);
 			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
-		} else if(!ec_active && !ec_calibration){
-			vTaskDelay(5000);
-		} else if(ec_calibration){
+		} else if(!ec_active && !ec_calibration) {
+			vTaskDelay(pdMS_TO_TICKS(5000));
+		} else if(ec_calibration) {
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));
 			for(int i = 0; i < 20; i++){
 				uint32_t adc_reading = 0;
@@ -198,8 +223,8 @@ void measure_ec(void * parameter){
 				adc_reading /= 64;
 				float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 				ec = readEC(voltage, _temp);
-				printf("ec: %f\n", ec);
-				printf("\n\n");
+				ESP_LOGE(TAG, "ec: %f\n", ec);
+				ESP_LOGE(TAG, "\n\n");
 				vTaskDelay(pdMS_TO_TICKS(2000));
 			}
 			esp_err_t error = calibrateEC();
@@ -212,14 +237,54 @@ void measure_ec(void * parameter){
 	}
 }
 
-void measure_ph(void * parameter){
+void measure_ph(void * parameter) {
 	EventBits_t returnBits;
-	for(;;){
-		vTaskDelay(pdMS_TO_TICKS(2000));
+	for(;;) {
+		vTaskDelay(pdMS_TO_TICKS(10000));
 		returnBits = xEventGroupSync(sensor_event_group, DELAY_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		if((returnBits & ALL_SYNC_BITS) == ALL_SYNC_BITS){
 			ESP_LOGI("PH_Task", "Completed");
 		}
+	}
+}
+
+void measure_distance (void * parameter) {
+	const char * TAG = "ULTRASONIC_TAG";
+
+	// Setting sensor ports and initializing
+	ultrasonic_sensor_t sensor = {
+			.trigger_pin = ULTRASONIC_TRIGGER_GPIO,
+			.echo_pin = ULTRASONIC_ECHO_GPIO
+	};
+
+	ultrasonic_init(&sensor);
+	ESP_LOGI(TAG, "Ultrasonic initialized\n");
+
+	for(;;) {
+		// Measures distance and returns error code
+		float distance;
+		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
+
+		// TODO check if value is beyond acceptable margin of error and react appropriately
+
+		// React appropriately to error code
+		switch(res) {
+			case ESP_ERR_ULTRASONIC_PING:
+				ESP_LOGE(TAG, "Device is in invalid state");
+				break;
+			case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
+				ESP_LOGE(TAG, "Device not found");
+				break;
+			case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
+				ESP_LOGE(TAG, "Distance is too large");
+				break;
+			default:
+				ESP_LOGE(TAG, "Distance: %f cm\n", distance);
+				_distance = distance;
+		}
+
+		// Measure in 10 sec increments
+		vTaskDelay(pdMS_TO_TICKS(10000));
 	}
 }
 
@@ -255,8 +320,8 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = {
 			.sta = {
-					.ssid = "MySpectrumWiFic0-2G",
-					.password = "bluebrain782"
+					.ssid = "XXXXXXXXXX",
+					.password = "xxxxxx"
 			},
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -275,12 +340,13 @@ void app_main(void)
 		xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 	}
 	else if((eventBits & WIFI_FAIL_BIT) != 0){
-		printf("WIFI Connection Failed\n");
+		ESP_LOGE("", "WIFI Connection Failed\n");
 	} else {
-		printf("Unexpected Event\n");
+		ESP_LOGE("", "Unexpected Event\n");
 	}
 }
