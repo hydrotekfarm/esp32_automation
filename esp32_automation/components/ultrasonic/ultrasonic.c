@@ -49,7 +49,7 @@ esp_err_t ultrasonic_init(const ultrasonic_sensor_t *dev)
     return gpio_set_level(dev->trigger_pin, 0);
 }
 
-esp_err_t ultrasonic_measure_cm(const ultrasonic_sensor_t *dev, uint32_t max_distance, uint32_t *distance)
+esp_err_t ultrasonic_measure_cm(const ultrasonic_sensor_t *dev, uint32_t max_distance, float *distance)
 {
     CHECK_ARG(dev && distance);
 
@@ -86,7 +86,7 @@ esp_err_t ultrasonic_measure_cm(const ultrasonic_sensor_t *dev, uint32_t max_dis
     }
     PORT_EXIT_CRITICAL;
 
-    *distance = (time - echo_start) / ROUNDTRIP;
+    *distance = (float)(time - echo_start) / (float)ROUNDTRIP;
 
     return ESP_OK;
 }

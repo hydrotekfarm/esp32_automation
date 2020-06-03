@@ -48,7 +48,7 @@ esp_err_t ultrasonic_init(const ultrasonic_sensor_t *dev);
  * @param distance Distance in centimeters or ULTRASONIC_ERROR_xxx if error occured
  * @return `ESP_OK` on success
  */
-esp_err_t ultrasonic_measure_cm(const ultrasonic_sensor_t *dev, uint32_t max_distance, uint32_t *distance);
+esp_err_t ultrasonic_measure_cm(const ultrasonic_sensor_t *dev, uint32_t max_distance, float *distance);
 
 #ifdef __cplusplus
 }

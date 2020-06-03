@@ -53,7 +53,7 @@ static esp_adc_cal_characteristics_t *adc_chars;
 
 static float _temp = 0;
 static float ec = 0;
-static uint16_t _distance = 0;
+static float _distance = 0;
 
 
 static TaskHandle_t temperature_task_handle = NULL;
@@ -251,7 +251,7 @@ void measure_distance (void * parameter) {
 	ESP_LOGI(TAG, "Ultrasonic initialized\n");
 
 	for(;;) {
-		uint16_t distance;
+		float distance;
 		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
 		switch(res) {
@@ -265,7 +265,7 @@ void measure_distance (void * parameter) {
 				ESP_LOGE(TAG, "Distance is too large");
 				break;
 			default:
-				ESP_LOGE(TAG, "Distance: %d cm\n", distance);
+				ESP_LOGE(TAG, "Distance: %.2f cm\n", distance);
 				_distance = distance;
 		}
 
