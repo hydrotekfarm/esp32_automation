@@ -130,29 +130,37 @@ static void mqtt_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 }
 
 void add_sensor_data(esp_mqtt_client_handle_t client, char topic[], float value) {
+	// Convert sensor data to string
 	char data[8];
 	snprintf(data, sizeof(data), "%.2f", value);
+
+	// Publish string using mqtt client
 	esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 }
 
 void publish_data(void * parameter) {
 	const char * TAG = "Publisher";
 
+	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
 			.host = "70.94.9.135",
 			.port = 1883
 	};
+
+	// Create and initialize mqtt client
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
 	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
-	for(;;) {
-		add_sensor_data(client, "temperature", _temp);
 
+	for(;;) {
+		// Publish sensor data
+		add_sensor_data(client, "temperature", _temp);
 		add_sensor_data(client, "distance", _distance);
 		ESP_LOGI(TAG, "publishing data");
 
-		vTaskDelay(pdMS_TO_TICKS(2000));
+		// Publish data every 20 sec
+		vTaskDelay(pdMS_TO_TICKS(20000));
 	}
 }
 
@@ -242,6 +250,8 @@ void measure_ph(void * parameter) {
 
 void measure_distance (void * parameter) {
 	const char * TAG = "ULTRASONIC_TAG";
+
+	// Setting sensor ports and initializing
 	ultrasonic_sensor_t sensor = {
 			.trigger_pin = ULTRASONIC_TRIGGER_GPIO,
 			.echo_pin = ULTRASONIC_ECHO_GPIO
@@ -251,9 +261,13 @@ void measure_distance (void * parameter) {
 	ESP_LOGI(TAG, "Ultrasonic initialized\n");
 
 	for(;;) {
+		// Measures distance and returns error code
 		float distance;
 		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
+		// TODO check if value is beyond acceptable margin of error and react appropriately
+
+		// React appropriately to error code
 		switch(res) {
 			case ESP_ERR_ULTRASONIC_PING:
 				ESP_LOGE(TAG, "Device is in invalid state");
@@ -265,11 +279,12 @@ void measure_distance (void * parameter) {
 				ESP_LOGE(TAG, "Distance is too large");
 				break;
 			default:
-				ESP_LOGE(TAG, "Distance: %.2f cm\n", distance);
+				ESP_LOGE(TAG, "Distance: %f cm\n", distance);
 				_distance = distance;
 		}
 
-		vTaskDelay(pdMS_TO_TICKS(2000));
+		// Measure in 10 sec increments
+		vTaskDelay(pdMS_TO_TICKS(10000));
 	}
 }
 
@@ -305,8 +320,8 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = {
 			.sta = {
-					.ssid = "LeawoodGuest",
-					.password = "guest,123"
+					.ssid = "XXXXXXXXXX",
+					.password = "xxxxxx"
 			},
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -322,9 +337,9 @@ void app_main(void)
 			ESP_LOGE(_TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
 		}
 
-		/*xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);*/
+		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, 4, &ph_task_handle, 1);
 		xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
