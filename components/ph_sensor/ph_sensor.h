@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-esp_err_t beginPH();
+esp_err_t ph_begin();
 
 /**
  * @brief Read KValueHigh and KValueLow from Non Volatile Storage
@@ -28,9 +28,9 @@ esp_err_t beginPH();
  * 			It will return any other esp_err_t if read or write failed
  */
 
-esp_err_t readPH(float voltage);
+float readPH(float voltage);
 
-esp_err_t calibratePH(float voltage);
+esp_err_t calibratePH();
 
 #ifdef __cplusplus
 }

@@ -15,10 +15,11 @@
 static int32_t  _neutralVoltage = 1500.0;
 static int32_t  _acidVoltage = 2032.44;
 static float  _phValue = 0;
+static float _voltage = 0;
 
 static const char *TAG = "DF_Robot_PH_Sensor";
 
-esp_err_t beginPH(){
+esp_err_t ph_begin(){
 	esp_err_t error;
 	nvs_handle_t my_handle;
 	error = nvs_open("storage", NVS_READWRITE, &my_handle);
@@ -28,7 +29,6 @@ esp_err_t beginPH(){
 
 	int32_t TempAcidVoltage = _acidVoltage;
 	error = nvs_get_i32(my_handle, "AcidVoltage", &TempAcidVoltage);
-	ESP_LOGI(TAG, "KValueLow set to 1. Calibration must take place");
 	if(error == ESP_ERR_NVS_NOT_FOUND){
 		nvs_set_i32(my_handle, "AcidVoltage", TempAcidVoltage);
 		nvs_commit(my_handle);
@@ -55,33 +55,37 @@ esp_err_t beginPH(){
 	return ESP_OK;
 }
 
-esp_err_t readPH(float voltage){
+float readPH(float voltage){
+	_voltage = voltage;
 	float slope = (7.0-4.0)/((_neutralVoltage-1500.0)/3.0 - (_acidVoltage-1500.0)/3.0);
 	float intercept =  7.0 - slope*(_neutralVoltage-1500.0)/3.0;
 	_phValue = slope*(voltage-1500.0)/3.0+intercept;
 	return _phValue;
 }
 
-esp_err_t calibratePH(float voltage){
+esp_err_t calibratePH(){
 	esp_err_t error;
 	nvs_handle_t my_handle;
 	error = nvs_open("storage", NVS_READWRITE, &my_handle);
 	if(error != ESP_OK){
 		return error;
 	}
-	voltage = (int32_t) round(voltage);
-	if((voltage>1322)&&(voltage<1678)){
+	ESP_LOGI(TAG, "Voltage Used: %f", _voltage);
+	_voltage = (int32_t) round(_voltage);
+	if((_voltage>1322)&&(_voltage<1678)){
 		ESP_LOGI(TAG, "PH: 7.0 Solution Identified");
-		_neutralVoltage =  voltage;
-		error = nvs_set_i32(my_handle, "NeutralVoltage", voltage);
+		_neutralVoltage =  _voltage;
+		error = nvs_set_i32(my_handle, "NeutralVoltage", _voltage);
+		ESP_LOGI(TAG, "Neutral Voltage set to %d", _neutralVoltage);
 		nvs_commit(my_handle);
 		if(error != ESP_OK){
 			ESP_LOGD(TAG, "error unable to store neutral voltage into NVS: %d", error);
 		}
-	}else if((voltage>1854)&&(voltage<2210)){
+	}else if((_voltage>1854)&&(_voltage<2210)){
 		ESP_LOGI(TAG, "PH: 4.0 Solution Identified");
-		_acidVoltage =  voltage;
-		error = nvs_set_i32(my_handle, "AcidVoltage", voltage);
+		_acidVoltage =  _voltage;
+		error = nvs_set_i32(my_handle, "AcidVoltage", _voltage);
+		ESP_LOGI(TAG, "Acid Voltage set to %d", _acidVoltage);
 		nvs_commit(my_handle);
 		if(error != ESP_OK){
 			ESP_LOGD(TAG, "error unable to store neutral voltage into NVS: %d", error);
