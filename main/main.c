@@ -41,15 +41,18 @@ static EventGroupHandle_t sensor_event_group;
 #define ALL_SYNC_BITS ( TEMPERATURE_COMPLETED_BIT | EC_COMPLETED_BIT | DELAY_COMPLETED_BIT | PH_COMPLETED_BIT)
 
 // Core 1 Task Priorities
-#define ULTRASONIC_TASK_PRIORITY 1
-#define PH_TASK_PRIORITY 2
-#define EC_TASK_PRIORITY 3
-#define TEMPERATURE_TASK_PRIORITY 4
-#define SYNC_TASK_PRIORITY 5
+#define BME_TASK_PRIORITY 1
+#define ULTRASONIC_TASK_PRIORITY 2
+#define PH_TASK_PRIORITY 3
+#define EC_TASK_PRIORITY 4
+#define TEMPERATURE_TASK_PRIORITY 5
+#define SYNC_TASK_PRIORITY 6
 
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
+#define BME_SCL_GPIO 16                 // GPIO 16
+#define BME_SCL_GPIO 17                 // GPIO 17
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
@@ -64,16 +67,19 @@ static int retryNumber = 0;  // WiFi Reconnection Attempts
 static esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
 // Sensor Measurement Variables
-static float _temp = 0;
+static float _water_temp = 0;
 static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
+static float _air_temp = 0;
+static float humidity = 0;
 
 // Task Handles
 static TaskHandle_t temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
 static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
+static TaskHandle_t bme_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 
@@ -176,7 +182,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 	for (;;) {
 		// Publish sensor data
-		add_sensor_data(client, "temperature", _temp);
+		add_sensor_data(client, "temperature", _water_temp);
 		add_sensor_data(client, "distance", _distance);
 		ESP_LOGI(TAG, "publishing data");
 
@@ -205,10 +211,10 @@ void measure_temperature(void *parameter) {		// Water Temperature Measurement Ta
 		while (temperature_active) {		// Water Temperature Sensor is Active
 			// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
 			esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
-					ds18b20_address[0], &_temp);
+					ds18b20_address[0], &_water_temp);
 			// Error Management
 			if (error == ESP_OK) {
-				ESP_LOGI(TAG, "temperature: %f\n", _temp);
+				ESP_LOGI(TAG, "temperature: %f\n", _water_temp);
 			} else if (error == ESP_ERR_INVALID_RESPONSE) {
 				ESP_LOGE(TAG, "Temperature Sensor Not Connected\n");
 			} else if (error == ESP_ERR_INVALID_CRC) {
@@ -240,7 +246,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			}
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			_ec = readEC(voltage, _temp);	// Calculate EC from voltage reading
+			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
 			// Sync with other sensor tasks
 			//Wait up to 10 seconds to let other tasks end
@@ -259,7 +265,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 				adc_reading /= 64;
 				float voltage = esp_adc_cal_raw_to_voltage(adc_reading,
 						adc_chars);
-				_ec = readEC(voltage, _temp);
+				_ec = readEC(voltage, _water_temp);
 				ESP_LOGE(TAG, "ec: %f\n", _ec);
 				ESP_LOGE(TAG, "\n\n");
 				vTaskDelay(pdMS_TO_TICKS(2000));
@@ -381,6 +387,10 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 	}
 }
 
+void measure_bme(void * parameter) {
+
+}
+
 void port_setup() {								// ADC Port Setup Method
 	// ADC 1 setup
 	adc1_config_width(ADC_WIDTH_BIT_12);
@@ -416,8 +426,8 @@ void app_main(void) {							// Main Method
 		esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 		ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 		wifi_config_t wifi_config = { .sta = {
-				.ssid = "MySpectrumWiFic0-2G",
-				.password = "bluebrain782" },
+				.ssid = "LeawoodGuest",
+				.password = "guest,123" },
 		};
 		ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 		ESP_ERROR_CHECK(esp_wifi_start());
@@ -443,11 +453,12 @@ void app_main(void) {							// Main Method
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 
 			// Create core 1 tasks
-			xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
+			/*xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
 			xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
+			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1); */
+			xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, &bme_task_handle, 1);
 
 		} else if ((eventBits & WIFI_FAIL_BIT) != 0) {
 			ESP_LOGE("", "WIFI Connection Failed\n");
