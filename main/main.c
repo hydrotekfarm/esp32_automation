@@ -23,6 +23,7 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
+#include "bme280.h"
 
 static const char *_TAG = "Main";
 
@@ -426,6 +427,8 @@ void app_main(void) {							// Main Method
 		eventBits = xEventGroupWaitBits(wifi_event_group,
 		WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,
 		portMAX_DELAY);
+
+
 		if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 			sensor_event_group = xEventGroupCreate();
 
