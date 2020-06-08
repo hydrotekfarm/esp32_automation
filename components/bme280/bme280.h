@@ -1,19 +1,19 @@
 /**
- * @file bme680.h
- * @defgroup bme680 bme680
+ * @file bme280.h
+ * @defgroup bme280 bme280
  * @{
  *
- * ESP-IDF driver for BME680 digital environmental sensor
+ * ESP-IDF driver for BME280 digital environmental sensor
  *
- * Forked from <https://github.com/gschorcht/bme680-esp-idf>
+ * Forked from <https://github.com/gschorcht/bme280-esp-idf>
  *
  * Copyright (C) 2017 Gunar Schorcht <https://github.com/gschorcht>\n
  * Copyright (C) 2019 Ruslan V. Uss <https://github.com/UncleRus>
  *
  * BSD Licensed as described in the file LICENSE
  */
-#ifndef __BME680_H__
-#define __BME680_H__
+#ifndef __BME280_H__
+#define __BME280_H__
 
 #include <stdbool.h>
 #include <i2cdev.h>
@@ -23,13 +23,13 @@
 extern "C" {
 #endif
 
-#define BME680_I2C_ADDR_0 0x76
-#define BME680_I2C_ADDR_1 0x77
+#define BME280_I2C_ADDR_0 0x76
+#define BME280_I2C_ADDR_1 0x77
 
-#define BME680_HEATER_TEMP_MIN         200  //!< min. 200 degree Celsius
-#define BME680_HEATER_TEMP_MAX         400  //!< max. 200 degree Celsius
-#define BME680_HEATER_PROFILES         10   //!< max. 10 heater profiles 0 ... 9
-#define BME680_HEATER_NOT_USED         -1   //!< heater not used profile
+#define BME280_HEATER_TEMP_MIN         200  //!< min. 200 degree Celsius
+#define BME280_HEATER_TEMP_MAX         400  //!< max. 200 degree Celsius
+#define BME280_HEATER_PROFILES         10   //!< max. 10 heater profiles 0 ... 9
+#define BME280_HEATER_NOT_USED         -1   //!< heater not used profile
 
 /**
  * Fixed point sensor values (fixed THPG values)
@@ -40,7 +40,7 @@ typedef struct
     uint32_t pressure;       //!< barometric pressure in Pascal (Invalid value 0)
     uint32_t humidity;       //!< relative humidity in % * 1000 (Invalid value 0)
     uint32_t gas_resistance; //!< gas resistance in Ohm         (Invalid value 0)
-} bme680_values_fixed_t;
+} bme280_values_fixed_t;
 
 /**
  * Floating point sensor values (real THPG values)
@@ -51,33 +51,33 @@ typedef struct
     float pressure;       //!< barometric pressure in hPascal (Invalid value 0.0)
     float humidity;       //!< relative humidity in %         (Invalid value 0.0)
     float gas_resistance; //!< gas resistance in Ohm          (Invalid value 0.0)
-} bme680_values_float_t;
+} bme280_values_float_t;
 
 /**
  * Filter size
  */
 typedef enum {
-    BME680_IIR_SIZE_0 = 0, //!< Filter is not used
-    BME680_IIR_SIZE_1,
-    BME680_IIR_SIZE_3,
-    BME680_IIR_SIZE_7,
-    BME680_IIR_SIZE_15,
-    BME680_IIR_SIZE_31,
-    BME680_IIR_SIZE_63,
-    BME680_IIR_SIZE_127
-} bme680_filter_size_t;
+    BME280_IIR_SIZE_0 = 0, //!< Filter is not used
+    BME280_IIR_SIZE_1,
+    BME280_IIR_SIZE_3,
+    BME280_IIR_SIZE_7,
+    BME280_IIR_SIZE_15,
+    BME280_IIR_SIZE_31,
+    BME280_IIR_SIZE_63,
+    BME280_IIR_SIZE_127
+} bme280_filter_size_t;
 
 /**
  * Oversampling rate
  */
 typedef enum {
-    BME680_OSR_NONE = 0, //!< Measurement is skipped, output values are invalid
-    BME680_OSR_1X,       //!< Default oversampling rates
-    BME680_OSR_2X,
-    BME680_OSR_4X,
-    BME680_OSR_8X,
-    BME680_OSR_16X
-} bme680_oversampling_rate_t;
+    BME280_OSR_NONE = 0, //!< Measurement is skipped, output values are invalid
+    BME280_OSR_1X,       //!< Default oversampling rates
+    BME280_OSR_2X,
+    BME280_OSR_4X,
+    BME280_OSR_8X,
+    BME280_OSR_16X
+} bme280_oversampling_rate_t;
 
 /**
  * @brief Sensor parameters that configure the TPHG measurement cycle
@@ -89,17 +89,17 @@ typedef enum {
  */
 typedef struct
 {
-    bme680_oversampling_rate_t osr_temperature; //!< T oversampling rate (default `BME680_OSR_1X`)
-    bme680_oversampling_rate_t osr_pressure;    //!< P oversampling rate (default `BME680_OSR_1X`)
-    bme680_oversampling_rate_t osr_humidity;    //!< H oversampling rate (default `BME680_OSR_1X`)
-    bme680_filter_size_t filter_size;           //!< IIR filter size (default `BME680_IIR_SIZE_3`)
+    bme280_oversampling_rate_t osr_temperature; //!< T oversampling rate (default `BME280_OSR_1X`)
+    bme280_oversampling_rate_t osr_pressure;    //!< P oversampling rate (default `BME280_OSR_1X`)
+    bme280_oversampling_rate_t osr_humidity;    //!< H oversampling rate (default `BME280_OSR_1X`)
+    bme280_filter_size_t filter_size;           //!< IIR filter size (default `BME280_IIR_SIZE_3`)
 
     int8_t heater_profile;                      //!< Heater profile used (default 0)
     uint16_t heater_temperature[10];            //!< Heater temperature for G (default 320)
     uint16_t heater_duration[10];               //!< Heater duration for G (default 150)
 
     int8_t ambient_temperature;                 //!< Ambient temperature for G (default 25)
-} bme680_settings_t;
+} bme280_settings_t;
 
 /**
  * @brief   Data structure for calibration parameters
@@ -140,10 +140,10 @@ typedef struct
     uint8_t  res_heat_range;
     int8_t   res_heat_val;
     int8_t   range_sw_err;
-} bme680_calib_data_t;
+} bme280_calib_data_t;
 
 /**
- * BME680 sensor device data structure type
+ * BME280 sensor device data structure type
  */
 typedef struct
 {
@@ -152,9 +152,9 @@ typedef struct
     bool meas_started;              //!< Indicates whether measurement started
     uint8_t meas_status;            //!< Last sensor status (for internal use only)
 
-    bme680_settings_t settings;     //!< Sensor settings
-    bme680_calib_data_t calib_data; //!< Calibration data of the sensor
-} bme680_t;
+    bme280_settings_t settings;     //!< Sensor settings
+    bme280_calib_data_t calib_data; //!< Calibration data of the sensor
+} bme280_t;
 
 /**
  * @brief Initialize device descriptor
@@ -166,7 +166,7 @@ typedef struct
  * @param scl_gpio GPIO pin for SCL
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_init_desc(bme680_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio);
+esp_err_t bme280_init_desc(bme280_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio);
 
 /**
  * @brief Free device descriptor
@@ -174,10 +174,10 @@ esp_err_t bme680_init_desc(bme680_t *dev, uint8_t addr, i2c_port_t port, gpio_nu
  * @param dev Device descriptor
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_free_desc(bme680_t *dev);
+esp_err_t bme280_free_desc(bme280_t *dev);
 
 /**
- * @brief   Initialize a BME680 sensor
+ * @brief   Initialize a BME280 sensor
  *
  * The function initializes the sensor device data structure, probes the
  * sensor, soft resets the sensor, and configures the sensor with the
@@ -192,7 +192,7 @@ esp_err_t bme680_free_desc(bme680_t *dev);
  * @param dev Device descriptor
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_init_sensor(bme680_t *dev);
+esp_err_t bme280_init_sensor(bme280_t *dev);
 
 /**
  * @brief   Force one single TPHG measurement
@@ -203,12 +203,12 @@ esp_err_t bme680_init_sensor(bme680_t *dev);
  *
  * Once the TPHG measurement is started, the user task has to wait for the
  * results. The duration of the TPHG measurement can be determined with
- * function *bme680_get_measurement_duration*.
+ * function *bme280_get_measurement_duration*.
  *
  * @param dev Device descriptor
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_force_measurement(bme680_t *dev);
+esp_err_t bme280_force_measurement(bme280_t *dev);
 
 /**
  * @brief   Get estimated duration of a TPHG measurement
@@ -229,7 +229,7 @@ esp_err_t bme680_force_measurement(bme680_t *dev);
  * @param[out] duration Duration of TPHG measurement cycle in ticks or 0 on error
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_get_measurement_duration(const bme680_t *dev, uint32_t *duration);
+esp_err_t bme280_get_measurement_duration(const bme280_t *dev, uint32_t *duration);
 
 /**
  * @brief   Get the measurement status
@@ -241,7 +241,7 @@ esp_err_t bme680_get_measurement_duration(const bme680_t *dev, uint32_t *duratio
  * @param[out] busy true if measurement is still running or false otherwise
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_is_measuring(bme680_t *dev, bool *busy);
+esp_err_t bme280_is_measuring(bme280_t *dev, bool *busy);
 
 /**
  * @brief   Get results of a measurement in fixed point representation
@@ -254,7 +254,7 @@ esp_err_t bme680_is_measuring(bme680_t *dev, bool *busy);
  * @param[out] results pointer to a data structure that is filled with results
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_get_results_fixed(bme680_t *dev, bme680_values_fixed_t *results);
+esp_err_t bme280_get_results_fixed(bme280_t *dev, bme280_values_fixed_t *results);
 
 /**
  * @brief   Get results of a measurement in floating point representation
@@ -267,15 +267,15 @@ esp_err_t bme680_get_results_fixed(bme680_t *dev, bme680_values_fixed_t *results
  * @param[out] results pointer to a data structure that is filled with results
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_get_results_float(bme680_t *dev, bme680_values_float_t *results);
+esp_err_t bme280_get_results_float(bme280_t *dev, bme280_values_float_t *results);
 
 /**
  * @brief   Start a measurement, wait and return the results (fixed point)
  *
  * This function is a combination of functions above. For convenience it
- * starts a TPHG measurement using ::bme680_force_measurement(), then it waits
+ * starts a TPHG measurement using ::bme280_force_measurement(), then it waits
  * the measurement duration for the results using `vTaskDelay()` and finally it
- * returns the results using function ::bme680_get_results_fixed().
+ * returns the results using function ::bme280_get_results_fixed().
  *
  * Note: Since the calling task is delayed using function `vTaskDelay()`, this
  * function must not be used when it is called from a software timer callback
@@ -285,15 +285,15 @@ esp_err_t bme680_get_results_float(bme680_t *dev, bme680_values_float_t *results
  * @param[out] results pointer to a data structure that is filled with results
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_measure_fixed(bme680_t *dev, bme680_values_fixed_t *results);
+esp_err_t bme280_measure_fixed(bme280_t *dev, bme280_values_fixed_t *results);
 
 /**
  * @brief   Start a measurement, wait and return the results (floating point)
  *
  * This function is a combination of functions above. For convenience it
- * starts a TPHG measurement using ::bme680_force_measurement(), then it waits
+ * starts a TPHG measurement using ::bme280_force_measurement(), then it waits
  * the measurement duration for the results using `vTaskDelay` and finally it
- * returns the results using function ::bme680_get_results_float().
+ * returns the results using function ::bme280_get_results_float().
  *
  * Note: Since the calling task is delayed using function `vTaskDelay()`, this
  * function must not be used when it is called from a software timer callback
@@ -303,20 +303,20 @@ esp_err_t bme680_measure_fixed(bme680_t *dev, bme680_values_fixed_t *results);
  * @param[out] results pointer to a data structure that is filled with results
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_measure_float(bme680_t *dev, bme680_values_float_t *results);
+esp_err_t bme280_measure_float(bme280_t *dev, bme280_values_float_t *results);
 
 /**
  * @brief   Set the oversampling rates for measurements
  *
- * The BME680 sensor allows to define individual oversampling rates for
+ * The BME280 sensor allows to define individual oversampling rates for
  * the measurements of temperature, pressure and humidity. Using an
  * oversampling rate of *osr*, the resolution of raw sensor data can be
  * increased by ld(*osr*) bits.
  *
  * Possible oversampling rates are 1x (default), 2x, 4x, 8x, 16x, see type
- * ::bme680_oversampling_rate_t. The default oversampling rate is 1.
+ * ::bme280_oversampling_rate_t. The default oversampling rate is 1.
  *
- * Please note: Use ::BME680_OSR_NONE to skip the corresponding measurement.
+ * Please note: Use ::BME280_OSR_NONE to skip the corresponding measurement.
  *
  * @param dev Device descriptor
  * @param osr_t oversampling rate for temperature measurements
@@ -324,8 +324,8 @@ esp_err_t bme680_measure_float(bme680_t *dev, bme680_values_float_t *results);
  * @param osr_h oversampling rate for humidity measurements
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_t osr_t,
-        bme680_oversampling_rate_t osr_p, bme680_oversampling_rate_t osr_h);
+esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_t osr_t,
+        bme280_oversampling_rate_t osr_p, bme280_oversampling_rate_t osr_h);
 
 /**
  * @brief   Set the size of the IIR filter
@@ -340,7 +340,7 @@ esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_
  * inside the sensor does not fluctuate rapidly and does not require such a
  * low pass filtering.
  *
- * The default filter size is 3 (::BME680_IIR_SIZE_3).
+ * The default filter size is 3 (::BME280_IIR_SIZE_3).
  *
  * Please note: If the size of the filter is 0, the filter is not used.
  *
@@ -348,7 +348,7 @@ esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_
  * @param size IIR filter size
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size);
+esp_err_t bme280_set_filter_size(bme280_t *dev, bme280_filter_size_t size);
 
 /**
  * @brief   Set a heater profile for gas measurements
@@ -360,7 +360,7 @@ esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size);
  *
  * This function sets the parameters for one of the heater profiles 0 ... 9.
  * To activate the gas measurement with this profile, use function
- * ::bme680_use_heater_profile(), see below.
+ * ::bme280_use_heater_profile(), see below.
  *
  * Please note: According to the data sheet, a target temperatures of between
  * 200 and 400 degrees Celsius are typical and about 20 to 30 ms are necessary
@@ -372,20 +372,20 @@ esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size);
  * @param duration heating duration in milliseconds
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_set_heater_profile(bme680_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration);
+esp_err_t bme280_set_heater_profile(bme280_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration);
 
 /**
  * @brief   Activate gas measurement with a given heater profile
  *
  * The function activates the gas measurement with one of the heater
  * profiles 0 ... 9 or deactivates the gas measurement completely when
- * -1 or ::BME680_HEATER_NOT_USED is used as heater profile.
+ * -1 or ::BME280_HEATER_NOT_USED is used as heater profile.
  *
  * Parameters of the activated heater profile have to be set before with
- * function ::bme680_set_heater_profile() otherwise the function fails.
+ * function ::bme280_set_heater_profile() otherwise the function fails.
  *
  * If several heater profiles have been defined with function
- * ::bme680_set_heater_profile(), a sequence of gas measurements with different
+ * ::bme280_set_heater_profile(), a sequence of gas measurements with different
  * heater parameters can be realized by a sequence of activations of different
  * heater profiles for successive TPHG measurements using this function.
  *
@@ -393,7 +393,7 @@ esp_err_t bme680_set_heater_profile(bme680_t *dev, uint8_t profile, uint16_t tem
  * @param profile 0 ... 9 to activate or -1 to deactivate gas measure
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_use_heater_profile(bme680_t *dev, int8_t profile);
+esp_err_t bme280_use_heater_profile(bme280_t *dev, int8_t profile);
 
 /**
  * @brief   Set ambient temperature
@@ -408,10 +408,10 @@ esp_err_t bme680_use_heater_profile(bme680_t *dev, int8_t profile);
  * @param temperature ambient temperature in degree Celsius
  * @return `ESP_OK` on success
  */
-esp_err_t bme680_set_ambient_temperature(bme680_t *dev, int16_t temperature);
+esp_err_t bme280_set_ambient_temperature(bme280_t *dev, int16_t temperature);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __BME680_H__ */
+#endif /* __BME280_H__ */

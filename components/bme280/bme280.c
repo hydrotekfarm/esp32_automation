@@ -1,7 +1,7 @@
 /**
- * ESP-IDF driver for BME680 digital environmental sensor
+ * ESP-IDF driver for BME280 digital environmental sensor
  *
- * Forked from <https://github.com/gschorcht/bme680-esp-idf>
+ * Forked from <https://github.com/gschorcht/bme280-esp-idf>
  *
  * Copyright (C) 2017 Gunar Schorcht <https://github.com/gschorcht>\n
  * Copyright (C) 2019 Ruslan V. Uss <https://github.com/UncleRus>
@@ -19,163 +19,163 @@
 #define I2C_FREQ_HZ 1000000 // Up to 3.4MHz, but esp-idf only supports 1MHz
 
 // modes: unfortunatly, only SLEEP_MODE and FORCED_MODE are documented
-#define BME680_SLEEP_MODE           0x00    // low power sleeping
-#define BME680_FORCED_MODE          0x01    // perform one TPHG cycle (field data 0 filled)
-#define BME680_PARALLEL_MODE        0x02    // no information what it does :-(
-#define BME680_SQUENTUAL_MODE       0x02    // no information what it does (field data 0+1+2 filled)
+#define BME280_SLEEP_MODE           0x00    // low power sleeping
+#define BME280_FORCED_MODE          0x01    // perform one TPHG cycle (field data 0 filled)
+#define BME280_PARALLEL_MODE        0x02    // no information what it does :-(
+#define BME280_SQUENTUAL_MODE       0x02    // no information what it does (field data 0+1+2 filled)
 
 // register addresses
-#define BME680_REG_RES_HEAT_VAL     0x00
-#define BME680_REG_RES_HEAT_RANGE   0x02
-#define BME680_REG_RANGE_SW_ERROR   0x06
+#define BME280_REG_RES_HEAT_VAL     0x00
+#define BME280_REG_RES_HEAT_RANGE   0x02
+#define BME280_REG_RANGE_SW_ERROR   0x06
 
-#define BME680_REG_IDAC_HEAT_BASE   0x50    // 10 regsrs idac_heat_0 ... idac_heat_9
-#define BME680_REG_RES_HEAT_BASE    0x5a    // 10 registers res_heat_0 ... res_heat_9
-#define BME680_REG_GAS_WAIT_BASE    0x64    // 10 registers gas_wait_0 ... gas_wait_9
-#define BME680_REG_CTRL_GAS_0       0x70
-#define BME680_REG_CTRL_GAS_1       0x71
-#define BME680_REG_CTRL_HUM         0x72
-#define BME680_REG_STATUS           0x73
-#define BME680_REG_CTRL_MEAS        0x74
-#define BME680_REG_CONFIG           0x75
-#define BME680_REG_ID               0xd0
-#define BME680_REG_RESET            0xe0
+#define BME280_REG_IDAC_HEAT_BASE   0x50    // 10 regsrs idac_heat_0 ... idac_heat_9
+#define BME280_REG_RES_HEAT_BASE    0x5a    // 10 registers res_heat_0 ... res_heat_9
+#define BME280_REG_GAS_WAIT_BASE    0x64    // 10 registers gas_wait_0 ... gas_wait_9
+#define BME280_REG_CTRL_GAS_0       0x70
+#define BME280_REG_CTRL_GAS_1       0x71
+#define BME280_REG_CTRL_HUM         0x72
+#define BME280_REG_STATUS           0x73
+#define BME280_REG_CTRL_MEAS        0x74
+#define BME280_REG_CONFIG           0x75
+#define BME280_REG_ID               0xd0
+#define BME280_REG_RESET            0xe0
 
 // field data 0 registers
-#define BME680_REG_MEAS_STATUS_0    0x1d
-#define BME680_REG_MEAS_INDEX_0     0x1e
-#define BME680_REG_PRESS_MSB_0      0x1f
-#define BME680_REG_PRESS_LSB_0      0x20
-#define BME680_REG_PRESS_XLSB_0     0x21
-#define BME680_REG_TEMP_MSB_0       0x22
-#define BME680_REG_TEMP_LSB_0       0x23
-#define BME680_REG_TEMP_XLSB_0      0x24
-#define BME680_REG_HUM_MSB_0        0x25
-#define BME680_REG_HUM_LSB_0        0x26
-#define BME680_REG_GAS_R_MSB_0      0x2a
-#define BME680_REG_GAS_R_LSB_0      0x2b
+#define BME280_REG_MEAS_STATUS_0    0x1d
+#define BME280_REG_MEAS_INDEX_0     0x1e
+#define BME280_REG_PRESS_MSB_0      0x1f
+#define BME280_REG_PRESS_LSB_0      0x20
+#define BME280_REG_PRESS_XLSB_0     0x21
+#define BME280_REG_TEMP_MSB_0       0x22
+#define BME280_REG_TEMP_LSB_0       0x23
+#define BME280_REG_TEMP_XLSB_0      0x24
+#define BME280_REG_HUM_MSB_0        0x25
+#define BME280_REG_HUM_LSB_0        0x26
+#define BME280_REG_GAS_R_MSB_0      0x2a
+#define BME280_REG_GAS_R_LSB_0      0x2b
 
 // field data 1 registers (not documented, used in SEQUENTIAL_MODE)
-#define BME680_REG_MEAS_STATUS_1    0x2e
-#define BME680_REG_MEAS_INDEX_1     0x2f
+#define BME280_REG_MEAS_STATUS_1    0x2e
+#define BME280_REG_MEAS_INDEX_1     0x2f
 
 // field data 2 registers (not documented, used in SEQUENTIAL_MODE)
-#define BME680_REG_MEAS_STATUS_2    0x3f
-#define BME680_REG_MEAS_INDEX_2     0x40
+#define BME280_REG_MEAS_STATUS_2    0x3f
+#define BME280_REG_MEAS_INDEX_2     0x40
 
 // field data addresses
-#define BME680_REG_RAW_DATA_0       BME680_REG_MEAS_STATUS_0    // 0x1d ... 0x2b
-#define BME680_REG_RAW_DATA_1       BME680_REG_MEAS_STATUS_1    // 0x2e ... 0x3c
-#define BME680_REG_RAW_DATA_2       BME680_REG_MEAS_STATUS_2    // 0x40 ... 0x4d
-#define BME680_REG_RAW_DATA_LEN     (BME680_REG_GAS_R_LSB_0 - BME680_REG_MEAS_STATUS_0 + 1)
+#define BME280_REG_RAW_DATA_0       BME280_REG_MEAS_STATUS_0    // 0x1d ... 0x2b
+#define BME280_REG_RAW_DATA_1       BME280_REG_MEAS_STATUS_1    // 0x2e ... 0x3c
+#define BME280_REG_RAW_DATA_2       BME280_REG_MEAS_STATUS_2    // 0x40 ... 0x4d
+#define BME280_REG_RAW_DATA_LEN     (BME280_REG_GAS_R_LSB_0 - BME280_REG_MEAS_STATUS_0 + 1)
 
 // calibration data registers
-#define BME680_REG_CD1_ADDR         0x89    // 25 byte calibration data
-#define BME680_REG_CD1_LEN          25
-#define BME680_REG_CD2_ADDR         0xe1    // 16 byte calibration data
-#define BME680_REG_CD2_LEN          16
-#define BME680_REG_CD3_ADDR         0x00    //  8 byte device specific calibration data
-#define BME680_REG_CD3_LEN          8
+#define BME280_REG_CD1_ADDR         0x89    // 25 byte calibration data
+#define BME280_REG_CD1_LEN          25
+#define BME280_REG_CD2_ADDR         0xe1    // 16 byte calibration data
+#define BME280_REG_CD2_LEN          16
+#define BME280_REG_CD3_ADDR         0x00    //  8 byte device specific calibration data
+#define BME280_REG_CD3_LEN          8
 
 // register structure definitions
-#define BME680_NEW_DATA_BITS        0x80    // BME680_REG_MEAS_STATUS<7>
-#define BME680_NEW_DATA_SHIFT       7       // BME680_REG_MEAS_STATUS<7>
-#define BME680_GAS_MEASURING_BITS   0x40    // BME680_REG_MEAS_STATUS<6>
-#define BME680_GAS_MEASURING_SHIFT  6       // BME680_REG_MEAS_STATUS<6>
-#define BME680_MEASURING_BITS       0x20    // BME680_REG_MEAS_STATUS<5>
-#define BME680_MEASURING_SHIFT      5       // BME680_REG_MEAS_STATUS<5>
-#define BME680_GAS_MEAS_INDEX_BITS  0x0f    // BME680_REG_MEAS_STATUS<3:0>
-#define BME680_GAS_MEAS_INDEX_SHIFT 0       // BME680_REG_MEAS_STATUS<3:0>
+#define BME280_NEW_DATA_BITS        0x80    // BME280_REG_MEAS_STATUS<7>
+#define BME280_NEW_DATA_SHIFT       7       // BME280_REG_MEAS_STATUS<7>
+#define BME280_GAS_MEASURING_BITS   0x40    // BME280_REG_MEAS_STATUS<6>
+#define BME280_GAS_MEASURING_SHIFT  6       // BME280_REG_MEAS_STATUS<6>
+#define BME280_MEASURING_BITS       0x20    // BME280_REG_MEAS_STATUS<5>
+#define BME280_MEASURING_SHIFT      5       // BME280_REG_MEAS_STATUS<5>
+#define BME280_GAS_MEAS_INDEX_BITS  0x0f    // BME280_REG_MEAS_STATUS<3:0>
+#define BME280_GAS_MEAS_INDEX_SHIFT 0       // BME280_REG_MEAS_STATUS<3:0>
 
-#define BME680_GAS_R_LSB_BITS       0xc0    // BME680_REG_GAS_R_LSB<7:6>
-#define BME680_GAS_R_LSB_SHIFT      6       // BME680_REG_GAS_R_LSB<7:6>
-#define BME680_GAS_VALID_BITS       0x20    // BME680_REG_GAS_R_LSB<5>
-#define BME680_GAS_VALID_SHIFT      5       // BME680_REG_GAS_R_LSB<5>
-#define BME680_HEAT_STAB_R_BITS     0x10    // BME680_REG_GAS_R_LSB<4>
-#define BME680_HEAT_STAB_R_SHIFT    4       // BME680_REG_GAS_R_LSB<4>
-#define BME680_GAS_RANGE_R_BITS     0x0f    // BME680_REG_GAS_R_LSB<3:0>
-#define BME680_GAS_RANGE_R_SHIFT    0       // BME680_REG_GAS_R_LSB<3:0>
+#define BME280_GAS_R_LSB_BITS       0xc0    // BME280_REG_GAS_R_LSB<7:6>
+#define BME280_GAS_R_LSB_SHIFT      6       // BME280_REG_GAS_R_LSB<7:6>
+#define BME280_GAS_VALID_BITS       0x20    // BME280_REG_GAS_R_LSB<5>
+#define BME280_GAS_VALID_SHIFT      5       // BME280_REG_GAS_R_LSB<5>
+#define BME280_HEAT_STAB_R_BITS     0x10    // BME280_REG_GAS_R_LSB<4>
+#define BME280_HEAT_STAB_R_SHIFT    4       // BME280_REG_GAS_R_LSB<4>
+#define BME280_GAS_RANGE_R_BITS     0x0f    // BME280_REG_GAS_R_LSB<3:0>
+#define BME280_GAS_RANGE_R_SHIFT    0       // BME280_REG_GAS_R_LSB<3:0>
 
-#define BME680_HEAT_OFF_BITS        0x04    // BME680_REG_CTRL_GAS_0<3>
-#define BME680_HEAT_OFF_SHIFT       3       // BME680_REG_CTRL_GAS_0<3>
+#define BME280_HEAT_OFF_BITS        0x04    // BME280_REG_CTRL_GAS_0<3>
+#define BME280_HEAT_OFF_SHIFT       3       // BME280_REG_CTRL_GAS_0<3>
 
-#define BME680_RUN_GAS_BITS         0x10    // BME680_REG_CTRL_GAS_1<4>
-#define BME680_RUN_GAS_SHIFT        4       // BME680_REG_CTRL_GAS_1<4>
-#define BME680_NB_CONV_BITS         0x0f    // BME680_REG_CTRL_GAS_1<3:0>
-#define BME680_NB_CONV_SHIFT        0       // BME680_REG_CTRL_GAS_1<3:0>
+#define BME280_RUN_GAS_BITS         0x10    // BME280_REG_CTRL_GAS_1<4>
+#define BME280_RUN_GAS_SHIFT        4       // BME280_REG_CTRL_GAS_1<4>
+#define BME280_NB_CONV_BITS         0x0f    // BME280_REG_CTRL_GAS_1<3:0>
+#define BME280_NB_CONV_SHIFT        0       // BME280_REG_CTRL_GAS_1<3:0>
 
-#define BME680_SPI_3W_INT_EN_BITS   0x40    // BME680_REG_CTRL_HUM<6>
-#define BME680_SPI_3W_INT_EN_SHIFT  6       // BME680_REG_CTRL_HUM<6>
-#define BME680_OSR_H_BITS           0x07    // BME680_REG_CTRL_HUM<2:0>
-#define BME680_OSR_H_SHIFT          0       // BME680_REG_CTRL_HUM<2:0>
+#define BME280_SPI_3W_INT_EN_BITS   0x40    // BME280_REG_CTRL_HUM<6>
+#define BME280_SPI_3W_INT_EN_SHIFT  6       // BME280_REG_CTRL_HUM<6>
+#define BME280_OSR_H_BITS           0x07    // BME280_REG_CTRL_HUM<2:0>
+#define BME280_OSR_H_SHIFT          0       // BME280_REG_CTRL_HUM<2:0>
 
-#define BME680_OSR_T_BITS           0xe0    // BME680_REG_CTRL_MEAS<7:5>
-#define BME680_OSR_T_SHIFT          5       // BME680_REG_CTRL_MEAS<7:5>
-#define BME680_OSR_P_BITS           0x1c    // BME680_REG_CTRL_MEAS<4:2>
-#define BME680_OSR_P_SHIFT          2       // BME680_REG_CTRL_MEAS<4:2>
-#define BME680_MODE_BITS            0x03    // BME680_REG_CTRL_MEAS<1:0>
-#define BME680_MODE_SHIFT           0       // BME680_REG_CTRL_MEAS<1:0>
+#define BME280_OSR_T_BITS           0xe0    // BME280_REG_CTRL_MEAS<7:5>
+#define BME280_OSR_T_SHIFT          5       // BME280_REG_CTRL_MEAS<7:5>
+#define BME280_OSR_P_BITS           0x1c    // BME280_REG_CTRL_MEAS<4:2>
+#define BME280_OSR_P_SHIFT          2       // BME280_REG_CTRL_MEAS<4:2>
+#define BME280_MODE_BITS            0x03    // BME280_REG_CTRL_MEAS<1:0>
+#define BME280_MODE_SHIFT           0       // BME280_REG_CTRL_MEAS<1:0>
 
-#define BME680_FILTER_BITS          0x1c    // BME680_REG_CONFIG<4:2>
-#define BME680_FILTER_SHIFT         2       // BME680_REG_CONFIG<4:2>
-#define BME680_SPI_3W_EN_BITS       0x01    // BME680_REG_CONFIG<0>
-#define BME680_SPI_3W_EN_SHIFT      0       // BME680_REG_CONFIG<0>
+#define BME280_FILTER_BITS          0x1c    // BME280_REG_CONFIG<4:2>
+#define BME280_FILTER_SHIFT         2       // BME280_REG_CONFIG<4:2>
+#define BME280_SPI_3W_EN_BITS       0x01    // BME280_REG_CONFIG<0>
+#define BME280_SPI_3W_EN_SHIFT      0       // BME280_REG_CONFIG<0>
 
-#define BME680_SPI_MEM_PAGE_BITS    0x10    // BME680_REG_STATUS<4>
-#define BME680_SPI_MEM_PAGE_SHIFT   4       // BME680_REG_STATUS<4>
+#define BME280_SPI_MEM_PAGE_BITS    0x10    // BME280_REG_STATUS<4>
+#define BME280_SPI_MEM_PAGE_SHIFT   4       // BME280_REG_STATUS<4>
 
-#define BME680_GAS_WAIT_BITS        0x3f    // BME680_REG_GAS_WAIT+x<5:0>
-#define BME680_GAS_WAIT_SHIFT       0       // BME680_REG_GAS_WAIT+x<5:0>
-#define BME680_GAS_WAIT_MULT_BITS   0xc0    // BME680_REG_GAS_WAIT+x<7:6>
-#define BME680_GAS_WAIT_MULT_SHIFT  6       // BME680_REG_GAS_WAIT+x<7:6>
+#define BME280_GAS_WAIT_BITS        0x3f    // BME280_REG_GAS_WAIT+x<5:0>
+#define BME280_GAS_WAIT_SHIFT       0       // BME280_REG_GAS_WAIT+x<5:0>
+#define BME280_GAS_WAIT_MULT_BITS   0xc0    // BME280_REG_GAS_WAIT+x<7:6>
+#define BME280_GAS_WAIT_MULT_SHIFT  6       // BME280_REG_GAS_WAIT+x<7:6>
 
 // commands
-#define BME680_RESET_CMD            0xb6    // BME680_REG_RESET<7:0>
-#define BME680_RESET_PERIOD         5       // reset time in ms
+#define BME280_RESET_CMD            0xb6    // BME280_REG_RESET<7:0>
+#define BME280_RESET_PERIOD         5       // reset time in ms
 
-#define BME680_RHR_BITS             0x30    // BME680_REG_RES_HEAT_RANGE<5:4>
-#define BME680_RHR_SHIFT            4       // BME680_REG_RES_HEAT_RANGE<5:4>
-#define BME680_RSWE_BITS            0xf0    // BME680_REG_RANGE_SW_ERROR<7:4>
-#define BME680_RSWE_SHIFT           4       // BME680_REG_RANGE_SW_ERROR<7:4>
+#define BME280_RHR_BITS             0x30    // BME280_REG_RES_HEAT_RANGE<5:4>
+#define BME280_RHR_SHIFT            4       // BME280_REG_RES_HEAT_RANGE<5:4>
+#define BME280_RSWE_BITS            0xf0    // BME280_REG_RANGE_SW_ERROR<7:4>
+#define BME280_RSWE_SHIFT           4       // BME280_REG_RANGE_SW_ERROR<7:4>
 
 // calibration data are stored in a calibration data map
-#define BME680_CDM_SIZE (BME680_REG_CD1_LEN + BME680_REG_CD2_LEN + BME680_REG_CD3_LEN)
-#define BME680_CDM_OFF1 0
-#define BME680_CDM_OFF2 BME680_REG_CD1_LEN
-#define BME680_CDM_OFF3 BME680_CDM_OFF2 + BME680_REG_CD2_LEN
+#define BME280_CDM_SIZE (BME280_REG_CD1_LEN + BME280_REG_CD2_LEN + BME280_REG_CD3_LEN)
+#define BME280_CDM_OFF1 0
+#define BME280_CDM_OFF2 BME280_REG_CD1_LEN
+#define BME280_CDM_OFF3 BME280_CDM_OFF2 + BME280_REG_CD2_LEN
 
 // calibration parameter offsets in calibration data map
 // calibration data from 0x89
-#define BME680_CDM_T2   1
-#define BME680_CDM_T3   3
-#define BME680_CDM_P1   5
-#define BME680_CDM_P2   7
-#define BME680_CDM_P3   9
-#define BME680_CDM_P4   11
-#define BME680_CDM_P5   13
-#define BME680_CDM_P7   15
-#define BME680_CDM_P6   16
-#define BME680_CDM_P8   19
-#define BME680_CDM_P9   21
-#define BME680_CDM_P10  23
+#define BME280_CDM_T2   1
+#define BME280_CDM_T3   3
+#define BME280_CDM_P1   5
+#define BME280_CDM_P2   7
+#define BME280_CDM_P3   9
+#define BME280_CDM_P4   11
+#define BME280_CDM_P5   13
+#define BME280_CDM_P7   15
+#define BME280_CDM_P6   16
+#define BME280_CDM_P8   19
+#define BME280_CDM_P9   21
+#define BME280_CDM_P10  23
 // calibration data from 0e1
-#define BME680_CDM_H2   25
-#define BME680_CDM_H1   26
-#define BME680_CDM_H3   28
-#define BME680_CDM_H4   29
-#define BME680_CDM_H5   30
-#define BME680_CDM_H6   31
-#define BME680_CDM_H7   32
-#define BME680_CDM_T1   33
-#define BME680_CDM_GH2  35
-#define BME680_CDM_GH1  37
-#define BME680_CDM_GH3  38
+#define BME280_CDM_H2   25
+#define BME280_CDM_H1   26
+#define BME280_CDM_H3   28
+#define BME280_CDM_H4   29
+#define BME280_CDM_H5   30
+#define BME280_CDM_H6   31
+#define BME280_CDM_H7   32
+#define BME280_CDM_T1   33
+#define BME280_CDM_GH2  35
+#define BME280_CDM_GH1  37
+#define BME280_CDM_GH3  38
 // device specific calibration data from 0x00
-#define BME680_CDM_RHV  41      // 0x00 - res_heat_val
-#define BME680_CDM_RHR  43      // 0x02 - res_heat_range
-#define BME680_CDM_RSWE 45      // 0x04 - range_sw_error
+#define BME280_CDM_RHV  41      // 0x00 - res_heat_val
+#define BME280_CDM_RHR  43      // 0x02 - res_heat_range
+#define BME280_CDM_RSWE 45      // 0x04 - range_sw_error
 
-static const char *TAG = "BME680";
+static const char *TAG = "BME280";
 
 #define CHECK(x) do { esp_err_t __; if ((__ = x) != ESP_OK) return __; } while (0)
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
@@ -205,7 +205,7 @@ typedef struct
     uint8_t gas_index;      // heater profile used (0 ... 9)
     uint8_t meas_index;
 
-} bme680_raw_data_t;
+} bme280_raw_data_t;
 
 #define lsb_msb_to_type(t,b,o) (t)(((t)b[o+1] << 8) | b[o])
 #define lsb_to_type(t,b,o)     (t)(b[o])
@@ -213,17 +213,17 @@ typedef struct
                                               ((bit << bitname##_SHIFT) & bitname##_BITS) )
 #define bme_get_reg_bit(byte, bitname)      ( (byte & bitname##_BITS) >> bitname##_SHIFT )
 
-static inline esp_err_t read_reg_8_nolock(bme680_t *dev, uint8_t reg, uint8_t *data)
+static inline esp_err_t read_reg_8_nolock(bme280_t *dev, uint8_t reg, uint8_t *data)
 {
     return i2c_dev_read_reg(&dev->i2c_dev, reg, data, 1);
 }
 
-static inline esp_err_t write_reg_8_nolock(bme680_t *dev, uint8_t reg, uint8_t data)
+static inline esp_err_t write_reg_8_nolock(bme280_t *dev, uint8_t reg, uint8_t data)
 {
     return i2c_dev_write_reg(&dev->i2c_dev, reg, &data, 1);
 }
 
-static esp_err_t read_reg_8(bme680_t *dev, uint8_t reg, uint8_t *data)
+static esp_err_t read_reg_8(bme280_t *dev, uint8_t reg, uint8_t *data)
 {
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
     I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, reg, data));
@@ -232,14 +232,14 @@ static esp_err_t read_reg_8(bme680_t *dev, uint8_t reg, uint8_t *data)
     return ESP_OK;
 }
 
-static esp_err_t bme680_set_mode(bme680_t *dev, uint8_t mode)
+static esp_err_t bme280_set_mode(bme280_t *dev, uint8_t mode)
 {
     uint8_t reg;
 
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME680_REG_CTRL_MEAS, &reg));
-    reg = bme_set_reg_bit(reg, BME680_MODE, mode);
-    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_CTRL_MEAS, reg));
+    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, &reg));
+    reg = bme_set_reg_bit(reg, BME280_MODE, mode);
+    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, reg));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
     return ESP_OK;
@@ -248,12 +248,12 @@ static esp_err_t bme680_set_mode(bme680_t *dev, uint8_t mode)
 #define msb_lsb_xlsb_to_20bit(t,b,o) (t)((t) b[o] << 12 | (t) b[o+1] << 4 | b[o+2] >> 4)
 #define msb_lsb_to_type(t,b,o)       (t)(((t)b[o] << 8) | b[o+1])
 
-#define BME680_RAW_P_OFF BME680_REG_PRESS_MSB_0-BME680_REG_MEAS_STATUS_0
-#define BME680_RAW_T_OFF (BME680_RAW_P_OFF + BME680_REG_TEMP_MSB_0 - BME680_REG_PRESS_MSB_0)
-#define BME680_RAW_H_OFF (BME680_RAW_T_OFF + BME680_REG_HUM_MSB_0 - BME680_REG_TEMP_MSB_0)
-#define BME680_RAW_G_OFF (BME680_RAW_H_OFF + BME680_REG_GAS_R_MSB_0 - BME680_REG_HUM_MSB_0)
+#define BME280_RAW_P_OFF BME280_REG_PRESS_MSB_0-BME280_REG_MEAS_STATUS_0
+#define BME280_RAW_T_OFF (BME280_RAW_P_OFF + BME280_REG_TEMP_MSB_0 - BME280_REG_PRESS_MSB_0)
+#define BME280_RAW_H_OFF (BME280_RAW_T_OFF + BME280_REG_HUM_MSB_0 - BME280_REG_TEMP_MSB_0)
+#define BME280_RAW_G_OFF (BME280_RAW_H_OFF + BME280_REG_GAS_R_MSB_0 - BME280_REG_HUM_MSB_0)
 
-static esp_err_t bme680_get_raw_data(bme680_t *dev, bme680_raw_data_t *raw_data)
+static esp_err_t bme280_get_raw_data(bme280_t *dev, bme280_raw_data_t *raw_data)
 {
     if (!dev->meas_started)
     {
@@ -261,16 +261,16 @@ static esp_err_t bme680_get_raw_data(bme680_t *dev, bme680_raw_data_t *raw_data)
         return ESP_ERR_INVALID_STATE;
     }
 
-    uint8_t raw[BME680_REG_RAW_DATA_LEN] = { 0 };
+    uint8_t raw[BME280_REG_RAW_DATA_LEN] = { 0 };
 
-    if (!(dev->meas_status & BME680_NEW_DATA_BITS))
+    if (!(dev->meas_status & BME280_NEW_DATA_BITS))
     {
         // read maesurment status from sensor
-        CHECK(read_reg_8(dev, BME680_REG_MEAS_STATUS_0, &dev->meas_status));
+        CHECK(read_reg_8(dev, BME280_REG_MEAS_STATUS_0, &dev->meas_status));
         // test whether there are new data
-        if (!(dev->meas_status & BME680_NEW_DATA_BITS))
+        if (!(dev->meas_status & BME280_NEW_DATA_BITS))
         {
-            if (dev->meas_status & BME680_MEASURING_BITS)
+            if (dev->meas_status & BME280_MEASURING_BITS)
             {
                 ESP_LOGW(TAG, "Measurement is still running");
                 return ESP_ERR_INVALID_STATE;
@@ -281,24 +281,24 @@ static esp_err_t bme680_get_raw_data(bme680_t *dev, bme680_raw_data_t *raw_data)
     }
 
     dev->meas_started = false;
-    raw_data->gas_index = dev->meas_status & BME680_GAS_MEAS_INDEX_BITS;
+    raw_data->gas_index = dev->meas_status & BME280_GAS_MEAS_INDEX_BITS;
 
     // if there are new data, read raw data from sensor
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME680_REG_RAW_DATA_0, raw, BME680_REG_RAW_DATA_LEN));
+    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_RAW_DATA_0, raw, BME280_REG_RAW_DATA_LEN));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
-    raw_data->gas_valid     = bme_get_reg_bit(raw[BME680_RAW_G_OFF + 1], BME680_GAS_VALID);
-    raw_data->heater_stable = bme_get_reg_bit(raw[BME680_RAW_G_OFF + 1], BME680_HEAT_STAB_R);
+    raw_data->gas_valid     = bme_get_reg_bit(raw[BME280_RAW_G_OFF + 1], BME280_GAS_VALID);
+    raw_data->heater_stable = bme_get_reg_bit(raw[BME280_RAW_G_OFF + 1], BME280_HEAT_STAB_R);
 
-    raw_data->temperature    = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME680_RAW_T_OFF);
-    raw_data->pressure       = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME680_RAW_P_OFF);
-    raw_data->humidity       = msb_lsb_to_type(uint16_t, raw, BME680_RAW_H_OFF);
-    raw_data->gas_resistance = ((uint16_t) raw[BME680_RAW_G_OFF] << 2) | raw[BME680_RAW_G_OFF + 1] >> 6;
-    raw_data->gas_range      = raw[BME680_RAW_G_OFF + 1] & BME680_GAS_RANGE_R_BITS;
+    raw_data->temperature    = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME280_RAW_T_OFF);
+    raw_data->pressure       = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME280_RAW_P_OFF);
+    raw_data->humidity       = msb_lsb_to_type(uint16_t, raw, BME280_RAW_H_OFF);
+    raw_data->gas_resistance = ((uint16_t) raw[BME280_RAW_G_OFF] << 2) | raw[BME280_RAW_G_OFF + 1] >> 6;
+    raw_data->gas_range      = raw[BME280_RAW_G_OFF + 1] & BME280_GAS_RANGE_R_BITS;
 
     /*
-     * BME680_REG_MEAS_STATUS_1, BME680_REG_MEAS_STATUS_2
+     * BME280_REG_MEAS_STATUS_1, BME280_REG_MEAS_STATUS_2
      * These data are not documented and it is not really clear when they are filled
      */
     ESP_LOGD(TAG, "Raw data: %d %d %d %d %d", raw_data->temperature, raw_data->pressure,
@@ -311,9 +311,9 @@ static esp_err_t bme680_get_raw_data(bme680_t *dev, bme680_raw_data_t *raw_data)
  * @brief   Calculate temperature from raw temperature value
  * @ref     BME280 datasheet, page 50
  */
-static int16_t bme680_convert_temperature(bme680_t *dev, uint32_t raw_temperature)
+static int16_t bme280_convert_temperature(bme280_t *dev, uint32_t raw_temperature)
 {
-    bme680_calib_data_t *cd = &dev->calib_data;
+    bme280_calib_data_t *cd = &dev->calib_data;
 
     int64_t var1;
     int64_t var2;
@@ -332,16 +332,16 @@ static int16_t bme680_convert_temperature(bme680_t *dev, uint32_t raw_temperatur
  * @brief       Calculate pressure from raw pressure value
  * @copyright   Copyright (C) 2017 - 2018 Bosch Sensortec GmbH
  *
- * The algorithm was extracted from the original Bosch Sensortec BME680 driver
+ * The algorithm was extracted from the original Bosch Sensortec BME280 driver
  * published as open source. Divisions and multiplications by potences of 2
  * were replaced by shift operations for effeciency reasons.
  *
- * @ref         [BME680_diver](https://github.com/BoschSensortec/BME680_driver)
+ * @ref         [BME280_diver](https://github.com/BoschSensortec/BME280_driver)
  * @ref         BME280 datasheet, page 50
  */
-static uint32_t bme680_convert_pressure(bme680_t *dev, uint32_t raw_pressure)
+static uint32_t bme280_convert_pressure(bme280_t *dev, uint32_t raw_pressure)
 {
-    bme680_calib_data_t *cd = &dev->calib_data;
+    bme280_calib_data_t *cd = &dev->calib_data;
 
     int32_t var1;
     int32_t var2;
@@ -374,15 +374,15 @@ static uint32_t bme680_convert_pressure(bme680_t *dev, uint32_t raw_pressure)
  * @brief       Calculate humidty from raw humidity data
  * @copyright   Copyright (C) 2017 - 2018 Bosch Sensortec GmbH
  *
- * The algorithm was extracted from the original Bosch Sensortec BME680 driver
+ * The algorithm was extracted from the original Bosch Sensortec BME280 driver
  * published as open source. Divisions and multiplications by potences of 2
  * were replaced by shift operations for effeciency reasons.
  *
- * @ref         [BME680_diver](https://github.com/BoschSensortec/BME680_driver)
+ * @ref         [BME280_diver](https://github.com/BoschSensortec/BME280_driver)
  */
-static uint32_t bme680_convert_humidity(bme680_t *dev, uint16_t raw_humidity)
+static uint32_t bme280_convert_humidity(bme280_t *dev, uint16_t raw_humidity)
 {
-    bme680_calib_data_t *cd = &dev->calib_data;
+    bme280_calib_data_t *cd = &dev->calib_data;
 
     int32_t var1;
     int32_t var2;
@@ -417,7 +417,7 @@ static uint32_t bme680_convert_humidity(bme680_t *dev, uint16_t raw_humidity)
 
 /**
  * @brief   Lookup table for gas resitance computation
- * @ref     BME680 datasheet, page 19
+ * @ref     BME280 datasheet, page 19
  */
 static float lookup_table[16][2] = {
         // const1, const2       // gas_range
@@ -441,11 +441,11 @@ static float lookup_table[16][2] = {
 
 /**
  * @brief   Calculate gas resistance from raw gas resitance value and gas range
- * @ref     BME680 datasheet
+ * @ref     BME280 datasheet
  */
-static uint32_t bme680_convert_gas(bme680_t *dev, uint16_t gas, uint8_t gas_range)
+static uint32_t bme280_convert_gas(bme280_t *dev, uint16_t gas, uint8_t gas_range)
 {
-    bme680_calib_data_t *cd = &dev->calib_data;
+    bme280_calib_data_t *cd = &dev->calib_data;
 
     float var1 = (1340.0 + 5.0 * cd->range_sw_err) * lookup_table[gas_range][0];
     return var1 * lookup_table[gas_range][1] / (gas - 512.0 + var1);
@@ -464,7 +464,7 @@ static uint32_t bme680_convert_gas(bme680_t *dev, uint16_t gas, uint8_t gas_rang
  *
  * @ref Datasheet
  */
-static uint8_t bme680_heater_duration(uint16_t duration)
+static uint8_t bme280_heater_duration(uint16_t duration)
 {
     uint8_t multiplier = 0;
 
@@ -479,19 +479,19 @@ static uint8_t bme680_heater_duration(uint16_t duration)
 /**
  * @brief  Calculate internal heater resistance value from real temperature.
  *
- * @ref Datasheet of BME680
+ * @ref Datasheet of BME280
  */
-static uint8_t bme680_heater_resistance(const bme680_t *dev, uint16_t temp)
+static uint8_t bme280_heater_resistance(const bme280_t *dev, uint16_t temp)
 {
     if (!dev)
         return 0;
 
-    if (temp < BME680_HEATER_TEMP_MIN)
-        temp = BME680_HEATER_TEMP_MIN;
-    else if (temp > BME680_HEATER_TEMP_MAX)
-        temp = BME680_HEATER_TEMP_MAX;
+    if (temp < BME280_HEATER_TEMP_MIN)
+        temp = BME280_HEATER_TEMP_MIN;
+    else if (temp > BME280_HEATER_TEMP_MAX)
+        temp = BME280_HEATER_TEMP_MAX;
 
-    const bme680_calib_data_t *cd = &dev->calib_data;
+    const bme280_calib_data_t *cd = &dev->calib_data;
 
     // from datasheet
     double var1;
@@ -514,11 +514,11 @@ static uint8_t bme680_heater_resistance(const bme680_t *dev, uint16_t temp)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-esp_err_t bme680_init_desc(bme680_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio)
+esp_err_t bme280_init_desc(bme280_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio)
 {
     CHECK_ARG(dev);
 
-    if (addr != BME680_I2C_ADDR_0 &&  addr != BME680_I2C_ADDR_1)
+    if (addr != BME280_I2C_ADDR_0 &&  addr != BME280_I2C_ADDR_1)
     {
         ESP_LOGE(TAG, "Invalid I2C address");
         return ESP_ERR_INVALID_ARG;
@@ -535,14 +535,14 @@ esp_err_t bme680_init_desc(bme680_t *dev, uint8_t addr, i2c_port_t port, gpio_nu
     return i2c_dev_create_mutex(&dev->i2c_dev);
 }
 
-esp_err_t bme680_free_desc(bme680_t *dev)
+esp_err_t bme280_free_desc(bme280_t *dev)
 {
     CHECK_ARG(dev);
 
     return i2c_dev_delete_mutex(&dev->i2c_dev);
 }
 
-esp_err_t bme680_init_sensor(bme680_t *dev)
+esp_err_t bme280_init_sensor(bme280_t *dev)
 {
     CHECK_ARG(dev);
 
@@ -551,20 +551,20 @@ esp_err_t bme680_init_sensor(bme680_t *dev)
     dev->meas_started = false;
     dev->meas_status = 0;
     dev->settings.ambient_temperature = 0;
-    dev->settings.osr_temperature = BME680_OSR_NONE;
-    dev->settings.osr_pressure = BME680_OSR_NONE;
-    dev->settings.osr_humidity = BME680_OSR_NONE;
-    dev->settings.filter_size = BME680_IIR_SIZE_0;
-    dev->settings.heater_profile = BME680_HEATER_NOT_USED;
+    dev->settings.osr_temperature = BME280_OSR_NONE;
+    dev->settings.osr_pressure = BME280_OSR_NONE;
+    dev->settings.osr_humidity = BME280_OSR_NONE;
+    dev->settings.filter_size = BME280_IIR_SIZE_0;
+    dev->settings.heater_profile = BME280_HEATER_NOT_USED;
     memset(dev->settings.heater_temperature, 0, sizeof(uint16_t) * 10);
     memset(dev->settings.heater_duration, 0, sizeof(uint16_t) * 10);
 
     // reset the sensor
-    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_RESET, BME680_RESET_CMD));
-    vTaskDelay(pdMS_TO_TICKS(BME680_RESET_PERIOD));
+    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_RESET, BME280_RESET_CMD));
+    vTaskDelay(pdMS_TO_TICKS(BME280_RESET_PERIOD));
 
     uint8_t chip_id = 0;
-    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME680_REG_ID, &chip_id));
+    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_ID, &chip_id));
     if (chip_id != 0x61)
     {
         I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
@@ -572,62 +572,62 @@ esp_err_t bme680_init_sensor(bme680_t *dev)
         return ESP_ERR_NOT_FOUND;
     }
 
-    uint8_t buf[BME680_CDM_SIZE];
+    uint8_t buf[BME280_CDM_SIZE];
 
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME680_REG_CD1_ADDR, buf + BME680_CDM_OFF1, BME680_REG_CD1_LEN));
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME680_REG_CD2_ADDR, buf + BME680_CDM_OFF2, BME680_REG_CD2_LEN));
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME680_REG_CD3_ADDR, buf + BME680_CDM_OFF3, BME680_REG_CD3_LEN));
+    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD1_ADDR, buf + BME280_CDM_OFF1, BME280_REG_CD1_LEN));
+    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD2_ADDR, buf + BME280_CDM_OFF2, BME280_REG_CD2_LEN));
+    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD3_ADDR, buf + BME280_CDM_OFF3, BME280_REG_CD3_LEN));
 
-    dev->calib_data.par_t1 = lsb_msb_to_type(uint16_t, buf, BME680_CDM_T1);
-    dev->calib_data.par_t2 = lsb_msb_to_type(int16_t, buf, BME680_CDM_T2);
-    dev->calib_data.par_t3 = lsb_to_type(int8_t, buf, BME680_CDM_T3);
+    dev->calib_data.par_t1 = lsb_msb_to_type(uint16_t, buf, BME280_CDM_T1);
+    dev->calib_data.par_t2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_T2);
+    dev->calib_data.par_t3 = lsb_to_type(int8_t, buf, BME280_CDM_T3);
 
     // pressure compensation parameters
-    dev->calib_data.par_p1 = lsb_msb_to_type(uint16_t, buf, BME680_CDM_P1);
-    dev->calib_data.par_p2 = lsb_msb_to_type(int16_t, buf, BME680_CDM_P2);
-    dev->calib_data.par_p3 = lsb_to_type(int8_t, buf, BME680_CDM_P3);
-    dev->calib_data.par_p4 = lsb_msb_to_type(int16_t, buf, BME680_CDM_P4);
-    dev->calib_data.par_p5 = lsb_msb_to_type(int16_t, buf, BME680_CDM_P5);
-    dev->calib_data.par_p6 = lsb_to_type(int8_t, buf, BME680_CDM_P6);
-    dev->calib_data.par_p7 = lsb_to_type(int8_t, buf, BME680_CDM_P7);
-    dev->calib_data.par_p8 = lsb_msb_to_type(int16_t, buf, BME680_CDM_P8);
-    dev->calib_data.par_p9 = lsb_msb_to_type(int16_t, buf, BME680_CDM_P9);
-    dev->calib_data.par_p10 = lsb_to_type(uint8_t, buf, BME680_CDM_P10);
+    dev->calib_data.par_p1 = lsb_msb_to_type(uint16_t, buf, BME280_CDM_P1);
+    dev->calib_data.par_p2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P2);
+    dev->calib_data.par_p3 = lsb_to_type(int8_t, buf, BME280_CDM_P3);
+    dev->calib_data.par_p4 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P4);
+    dev->calib_data.par_p5 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P5);
+    dev->calib_data.par_p6 = lsb_to_type(int8_t, buf, BME280_CDM_P6);
+    dev->calib_data.par_p7 = lsb_to_type(int8_t, buf, BME280_CDM_P7);
+    dev->calib_data.par_p8 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P8);
+    dev->calib_data.par_p9 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P9);
+    dev->calib_data.par_p10 = lsb_to_type(uint8_t, buf, BME280_CDM_P10);
 
     // humidity compensation parameters
-    dev->calib_data.par_h1 = (uint16_t) (((uint16_t) buf[BME680_CDM_H1 + 1] << 4) | (buf[BME680_CDM_H1] & 0x0F));
-    dev->calib_data.par_h2 = (uint16_t) (((uint16_t) buf[BME680_CDM_H2] << 4) | (buf[BME680_CDM_H2 + 1] >> 4));
-    dev->calib_data.par_h3 = lsb_to_type(int8_t, buf, BME680_CDM_H3);
-    dev->calib_data.par_h4 = lsb_to_type(int8_t, buf, BME680_CDM_H4);
-    dev->calib_data.par_h5 = lsb_to_type(int8_t, buf, BME680_CDM_H5);
-    dev->calib_data.par_h6 = lsb_to_type(uint8_t, buf, BME680_CDM_H6);
-    dev->calib_data.par_h7 = lsb_to_type(int8_t, buf, BME680_CDM_H7);
+    dev->calib_data.par_h1 = (uint16_t) (((uint16_t) buf[BME280_CDM_H1 + 1] << 4) | (buf[BME280_CDM_H1] & 0x0F));
+    dev->calib_data.par_h2 = (uint16_t) (((uint16_t) buf[BME280_CDM_H2] << 4) | (buf[BME280_CDM_H2 + 1] >> 4));
+    dev->calib_data.par_h3 = lsb_to_type(int8_t, buf, BME280_CDM_H3);
+    dev->calib_data.par_h4 = lsb_to_type(int8_t, buf, BME280_CDM_H4);
+    dev->calib_data.par_h5 = lsb_to_type(int8_t, buf, BME280_CDM_H5);
+    dev->calib_data.par_h6 = lsb_to_type(uint8_t, buf, BME280_CDM_H6);
+    dev->calib_data.par_h7 = lsb_to_type(int8_t, buf, BME280_CDM_H7);
 
     // gas sensor compensation parameters
-    dev->calib_data.par_gh1 = lsb_to_type(int8_t, buf, BME680_CDM_GH1);
-    dev->calib_data.par_gh2 = lsb_msb_to_type(int16_t, buf, BME680_CDM_GH2);
-    dev->calib_data.par_gh3 = lsb_to_type(int8_t, buf, BME680_CDM_GH3);
+    dev->calib_data.par_gh1 = lsb_to_type(int8_t, buf, BME280_CDM_GH1);
+    dev->calib_data.par_gh2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_GH2);
+    dev->calib_data.par_gh3 = lsb_to_type(int8_t, buf, BME280_CDM_GH3);
 
-    dev->calib_data.res_heat_range = (lsb_to_type(uint8_t, buf, BME680_CDM_RHR) & BME680_RHR_BITS) >> BME680_RHR_SHIFT;
-    dev->calib_data.res_heat_val = (lsb_to_type(int8_t, buf, BME680_CDM_RHV));
-    dev->calib_data.range_sw_err = (lsb_to_type(int8_t, buf, BME680_CDM_RSWE) & BME680_RSWE_BITS) >> BME680_RSWE_SHIFT;
+    dev->calib_data.res_heat_range = (lsb_to_type(uint8_t, buf, BME280_CDM_RHR) & BME280_RHR_BITS) >> BME280_RHR_SHIFT;
+    dev->calib_data.res_heat_val = (lsb_to_type(int8_t, buf, BME280_CDM_RHV));
+    dev->calib_data.range_sw_err = (lsb_to_type(int8_t, buf, BME280_CDM_RSWE) & BME280_RSWE_BITS) >> BME280_RSWE_SHIFT;
 
     // Set ambient temperature of sensor to default value (25 degree C)
     dev->settings.ambient_temperature = 25;
 
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
-    CHECK(bme680_set_oversampling_rates(dev, BME680_OSR_1X, BME680_OSR_1X, BME680_OSR_1X));
-    CHECK(bme680_set_filter_size(dev, BME680_IIR_SIZE_3));
+    CHECK(bme280_set_oversampling_rates(dev, BME280_OSR_1X, BME280_OSR_1X, BME280_OSR_1X));
+    CHECK(bme280_set_filter_size(dev, BME280_IIR_SIZE_3));
 
     // Set heater default profile 0 to 320 degree Celcius for 150 ms
-    CHECK(bme680_set_heater_profile(dev, 0, 320, 150));
-    CHECK(bme680_use_heater_profile(dev, 0));
+    CHECK(bme280_set_heater_profile(dev, 0, 320, 150));
+    CHECK(bme280_use_heater_profile(dev, 0));
 
     return ESP_OK;
 }
 
-esp_err_t bme680_force_measurement(bme680_t *dev)
+esp_err_t bme280_force_measurement(bme280_t *dev)
 {
     CHECK_ARG(dev);
     if (dev->meas_started)
@@ -637,7 +637,7 @@ esp_err_t bme680_force_measurement(bme680_t *dev)
     }
 
     // Set the power mode to forced mode to trigger one TPHG measurement cycle
-    CHECK_LOGE(bme680_set_mode(dev, BME680_FORCED_MODE),
+    CHECK_LOGE(bme280_set_mode(dev, BME280_FORCED_MODE),
             "Could not set forced mode to start TPHG measurement cycle");
     dev->meas_started = true;
     dev->meas_status = 0;
@@ -653,7 +653,7 @@ esp_err_t bme680_force_measurement(bme680_t *dev)
  * Timing formulas extracted from BME280 datasheet and test in some
  * experiments. They represent the maximum measurement duration.
  */
-esp_err_t bme680_get_measurement_duration(const bme680_t *dev, uint32_t *duration)
+esp_err_t bme280_get_measurement_duration(const bme280_t *dev, uint32_t *duration)
 {
     CHECK_ARG(dev && duration);
 
@@ -671,7 +671,7 @@ esp_err_t bme680_get_measurement_duration(const bme680_t *dev, uint32_t *duratio
         *duration += (1 << (dev->settings.osr_humidity - 1)) * 2300 + 575;
 
     // if gas measurement is used
-    if (dev->settings.heater_profile != BME680_HEATER_NOT_USED && dev->settings.heater_duration[dev->settings.heater_profile]
+    if (dev->settings.heater_profile != BME280_HEATER_NOT_USED && dev->settings.heater_duration[dev->settings.heater_profile]
             && dev->settings.heater_temperature[dev->settings.heater_profile])
     {
         // gas heating time
@@ -701,7 +701,7 @@ esp_err_t bme680_get_measurement_duration(const bme680_t *dev, uint32_t *duratio
     return ESP_OK;
 }
 
-esp_err_t bme680_is_measuring(bme680_t *dev, bool *busy)
+esp_err_t bme280_is_measuring(bme280_t *dev, bool *busy)
 {
     CHECK_ARG(dev && busy);
 
@@ -712,13 +712,13 @@ esp_err_t bme680_is_measuring(bme680_t *dev, bool *busy)
         return ESP_OK;
     }
 
-    CHECK(read_reg_8(dev, BME680_REG_MEAS_STATUS_0, &dev->meas_status));
-    *busy = dev->meas_status & BME680_MEASURING_BITS ? 1 : 0;
+    CHECK(read_reg_8(dev, BME280_REG_MEAS_STATUS_0, &dev->meas_status));
+    *busy = dev->meas_status & BME280_MEASURING_BITS ? 1 : 0;
 
     return ESP_OK;
 }
 
-esp_err_t bme680_get_results_fixed(bme680_t *dev, bme680_values_fixed_t *results)
+esp_err_t bme280_get_results_fixed(bme280_t *dev, bme280_values_fixed_t *results)
 {
     CHECK_ARG(dev && results);
 
@@ -728,22 +728,22 @@ esp_err_t bme680_get_results_fixed(bme680_t *dev, bme680_values_fixed_t *results
     results->humidity = 0;
     results->gas_resistance = 0;
 
-    bme680_raw_data_t raw;
-    CHECK(bme680_get_raw_data(dev, &raw));
+    bme280_raw_data_t raw;
+    CHECK(bme280_get_raw_data(dev, &raw));
 
     // use compensation algorithms to compute sensor values in fixed point format
     if (dev->settings.osr_temperature)
-        results->temperature = bme680_convert_temperature(dev, raw.temperature);
+        results->temperature = bme280_convert_temperature(dev, raw.temperature);
     if (dev->settings.osr_pressure)
-        results->pressure = bme680_convert_pressure(dev, raw.pressure);
+        results->pressure = bme280_convert_pressure(dev, raw.pressure);
     if (dev->settings.osr_humidity)
-        results->humidity = bme680_convert_humidity(dev, raw.humidity);
+        results->humidity = bme280_convert_humidity(dev, raw.humidity);
 
-    if (dev->settings.heater_profile != BME680_HEATER_NOT_USED)
+    if (dev->settings.heater_profile != BME280_HEATER_NOT_USED)
     {
         // convert gas only if raw data are valid and heater was stable
         if (raw.gas_valid && raw.heater_stable)
-            results->gas_resistance = bme680_convert_gas(dev, raw.gas_resistance, raw.gas_range);
+            results->gas_resistance = bme280_convert_gas(dev, raw.gas_resistance, raw.gas_range);
         else if (!raw.gas_valid)
             ESP_LOGW(TAG, "Gas data is not valid");
         else
@@ -756,12 +756,12 @@ esp_err_t bme680_get_results_fixed(bme680_t *dev, bme680_values_fixed_t *results
     return ESP_OK;
 }
 
-esp_err_t bme680_get_results_float(bme680_t *dev, bme680_values_float_t *results)
+esp_err_t bme280_get_results_float(bme280_t *dev, bme280_values_float_t *results)
 {
     CHECK_ARG(dev && results);
 
-    bme680_values_fixed_t fixed;
-    CHECK(bme680_get_results_fixed(dev, &fixed));
+    bme280_values_fixed_t fixed;
+    CHECK(bme280_get_results_fixed(dev, &fixed));
 
     results->temperature = fixed.temperature / 100.0f;
     results->pressure = fixed.pressure / 100.0f;
@@ -771,44 +771,44 @@ esp_err_t bme680_get_results_float(bme680_t *dev, bme680_values_float_t *results
     return ESP_OK;
 }
 
-esp_err_t bme680_measure_fixed(bme680_t *dev, bme680_values_fixed_t *results)
+esp_err_t bme280_measure_fixed(bme280_t *dev, bme280_values_fixed_t *results)
 {
     CHECK_ARG(dev && results);
 
     uint32_t duration;
-    CHECK(bme680_get_measurement_duration(dev, &duration));
+    CHECK(bme280_get_measurement_duration(dev, &duration));
     if (duration == 0)
     {
         ESP_LOGE(TAG, "Failed to get measurement duration");
         return ESP_FAIL;
     }
 
-    CHECK(bme680_force_measurement(dev));
+    CHECK(bme280_force_measurement(dev));
     vTaskDelay(duration);
 
-    return bme680_get_results_fixed(dev, results);
+    return bme280_get_results_fixed(dev, results);
 }
 
-esp_err_t bme680_measure_float(bme680_t *dev, bme680_values_float_t *results)
+esp_err_t bme280_measure_float(bme280_t *dev, bme280_values_float_t *results)
 {
     CHECK_ARG(dev && results);
 
     uint32_t duration;
-    CHECK(bme680_get_measurement_duration(dev, &duration));
+    CHECK(bme280_get_measurement_duration(dev, &duration));
     if (duration == 0)
     {
         ESP_LOGE(TAG, "Failed to get measurement duration");
         return ESP_FAIL;
     }
 
-    CHECK(bme680_force_measurement(dev));
+    CHECK(bme280_force_measurement(dev));
     vTaskDelay(duration);
 
-    return bme680_get_results_float(dev, results);
+    return bme280_get_results_float(dev, results);
 }
 
-esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_t ost,
-        bme680_oversampling_rate_t osp, bme680_oversampling_rate_t osh)
+esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_t ost,
+        bme280_oversampling_rate_t osp, bme280_oversampling_rate_t osh)
 {
     CHECK_ARG(dev);
 
@@ -830,27 +830,27 @@ esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_
     if (ost_changed || osp_changed)
     {
         // read the current register value
-        I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME680_REG_CTRL_MEAS, &reg));
+        I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, &reg));
 
         // set changed bit values
         if (ost_changed)
-            reg = bme_set_reg_bit(reg, BME680_OSR_T, ost);
+            reg = bme_set_reg_bit(reg, BME280_OSR_T, ost);
         if (osp_changed)
-            reg = bme_set_reg_bit(reg, BME680_OSR_P, osp);
+            reg = bme_set_reg_bit(reg, BME280_OSR_P, osp);
 
         // write back the new register value
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_CTRL_MEAS, reg));
+        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, reg));
     }
     if (osh_changed)
     {
         // read the current register value
-        I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME680_REG_CTRL_HUM, &reg));
+        I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_CTRL_HUM, &reg));
 
         // set changed bit value
-        reg = bme_set_reg_bit(reg, BME680_OSR_H, osh);
+        reg = bme_set_reg_bit(reg, BME280_OSR_H, osh);
 
         // write back the new register value
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_CTRL_HUM, reg));
+        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_HUM, reg));
     }
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
@@ -860,7 +860,7 @@ esp_err_t bme680_set_oversampling_rates(bme680_t *dev, bme680_oversampling_rate_
     return ESP_OK;
 }
 
-esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size)
+esp_err_t bme280_set_filter_size(bme280_t *dev, bme280_filter_size_t size)
 {
     CHECK_ARG(dev);
 
@@ -874,11 +874,11 @@ esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size)
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
 
     // read the current register value
-    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME680_REG_CONFIG, &reg));
+    I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_CONFIG, &reg));
     // set changed bit value
-    reg = bme_set_reg_bit(reg, BME680_FILTER, size);
+    reg = bme_set_reg_bit(reg, BME280_FILTER, size);
     // write back the new register value
-    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_CONFIG, reg));
+    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CONFIG, reg));
 
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
@@ -887,9 +887,9 @@ esp_err_t bme680_set_filter_size(bme680_t *dev, bme680_filter_size_t size)
     return ESP_OK;
 }
 
-esp_err_t bme680_set_heater_profile(bme680_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration)
+esp_err_t bme280_set_heater_profile(bme280_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration)
 {
-    CHECK_ARG(dev && profile < BME680_HEATER_PROFILES);
+    CHECK_ARG(dev && profile < BME280_HEATER_PROFILES);
 
     bool temperature_changed = dev->settings.heater_temperature[profile] != temperature;
     bool duration_changed = dev->settings.heater_duration[profile] != duration;
@@ -902,15 +902,15 @@ esp_err_t bme680_set_heater_profile(bme680_t *dev, uint8_t profile, uint16_t tem
     dev->settings.heater_duration[profile] = duration;       // milliseconds
 
     // compute internal gas sensor configuration parameters
-    uint8_t heat_dur = bme680_heater_duration(duration);           // internal duration value
-    uint8_t heat_res = bme680_heater_resistance(dev, temperature); // internal temperature value
+    uint8_t heat_dur = bme280_heater_duration(duration);           // internal duration value
+    uint8_t heat_res = bme280_heater_resistance(dev, temperature); // internal temperature value
 
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
     // set internal gas sensor configuration parameters if changed
     if (temperature_changed)
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_RES_HEAT_BASE + profile, heat_res));
+        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_RES_HEAT_BASE + profile, heat_res));
     if (duration_changed)
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_GAS_WAIT_BASE + profile, heat_dur));
+        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_GAS_WAIT_BASE + profile, heat_dur));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
 
@@ -921,10 +921,10 @@ esp_err_t bme680_set_heater_profile(bme680_t *dev, uint8_t profile, uint16_t tem
     return ESP_OK;
 }
 
-esp_err_t bme680_use_heater_profile(bme680_t *dev, int8_t profile)
+esp_err_t bme280_use_heater_profile(bme280_t *dev, int8_t profile)
 {
     CHECK_ARG(dev);
-    CHECK_ARG(profile >= -1 && profile < BME680_HEATER_PROFILES);
+    CHECK_ARG(profile >= -1 && profile < BME280_HEATER_PROFILES);
 
     if (dev->settings.heater_profile == profile)
         return ESP_OK;
@@ -933,20 +933,20 @@ esp_err_t bme680_use_heater_profile(bme680_t *dev, int8_t profile)
 
     uint8_t reg = 0; // set
     // set active profile
-    reg = bme_set_reg_bit(reg, BME680_NB_CONV, profile != BME680_HEATER_NOT_USED ? profile : 0);
+    reg = bme_set_reg_bit(reg, BME280_NB_CONV, profile != BME280_HEATER_NOT_USED ? profile : 0);
 
     // enable or disable gas measurement
-    reg = bme_set_reg_bit(reg, BME680_RUN_GAS,
-            (profile != BME680_HEATER_NOT_USED && dev->settings.heater_temperature[profile] && dev->settings.heater_duration[profile]));
+    reg = bme_set_reg_bit(reg, BME280_RUN_GAS,
+            (profile != BME280_HEATER_NOT_USED && dev->settings.heater_temperature[profile] && dev->settings.heater_duration[profile]));
 
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME680_REG_CTRL_GAS_1, reg));
+    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_GAS_1, reg));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
     return ESP_OK;
 }
 
-esp_err_t bme680_set_ambient_temperature(bme680_t *dev, int16_t ambient)
+esp_err_t bme280_set_ambient_temperature(bme280_t *dev, int16_t ambient)
 {
     CHECK_ARG(dev);
 
@@ -958,13 +958,13 @@ esp_err_t bme680_set_ambient_temperature(bme680_t *dev, int16_t ambient)
 
     // update all valid heater profiles
     uint8_t data[10];
-    for (int i = 0; i < BME680_HEATER_PROFILES; i++)
+    for (int i = 0; i < BME280_HEATER_PROFILES; i++)
         data[i] = dev->settings.heater_temperature[i]
-                ? bme680_heater_resistance(dev, dev->settings.heater_temperature[i])
+                ? bme280_heater_resistance(dev, dev->settings.heater_temperature[i])
                 : 0;
 
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_write_reg(&dev->i2c_dev, BME680_REG_RES_HEAT_BASE, data, 10));
+    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_write_reg(&dev->i2c_dev, BME280_REG_RES_HEAT_BASE, data, 10));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
     ESP_LOGD(TAG, "Setting heater ambient temperature done: ambient=%d", dev->settings.ambient_temperature);

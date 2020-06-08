@@ -52,12 +52,15 @@ static EventGroupHandle_t sensor_event_group;
 
 // GPIO and ADC Ports
 #define BME_SCL_GPIO 16                 // GPIO 16
-#define BME_SCL_GPIO 17                 // GPIO 17
+#define BME_SDA_GPIO 17                 // GPIO 17
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
+
+#define BME_ADDR BME280_I2C_ADDR_0
+#define BME_PORT 0
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
