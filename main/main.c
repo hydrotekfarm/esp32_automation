@@ -391,7 +391,34 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 }
 
 void measure_bme(void * parameter) {
+	const char *TAG = "BME_TAG";
 
+	i2cdev_init();
+
+	bme280_t sensor;
+	memset(&sensor, 0, sizeof(bme280_t));
+
+	bme280_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO);
+	bme280_init_sensor(&sensor);
+
+	bme280_set_oversampling_rates(&sensor, BME280_OSR_4X, BME280_OSR_NONE, BME280_OSR_2X);
+	bme280_set_filter_size(&sensor, BME280_IIR_SIZE_7);
+
+	bme280_set_heater_filter_profile(&sensor, 0, 200, 100);
+	bme280_use_heater_profile(&sensor, 10);
+
+	bme280_set_ambient_temperature(&sensor, 10);
+
+	uint32_t duration;
+	bme280_get_measurement_duration(&sensor, &duration);
+
+	bme280_values_float_t values;
+	for(;;) {
+		bme280_get_results_float(&sensor, &values);
+		printf("Temperature: %.2f", values.temperature);
+
+		vTaskDelay(pdMS_TO_TICKS(2000));
+	}
 }
 
 void port_setup() {								// ADC Port Setup Method
