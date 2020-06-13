@@ -23,6 +23,7 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
+#include "rf_transmission.h"
 
 static const char *_TAG = "Main";
 
@@ -52,6 +53,7 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
+#define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
@@ -378,6 +380,13 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 		// Measure in 10 sec increments
 		vTaskDelay(pdMS_TO_TICKS(10000));
 	}
+}
+
+void send_rf_transmission(){
+	send_message("000101000101010100110011");
+	vTaskDelay(pdMS_TO_TICKS(5000));
+	send_message("000101000101010100111100");
+	vTaskDelay(pdMS_TO_TICKS(5000));
 }
 
 void port_setup() {								// ADC Port Setup Method
