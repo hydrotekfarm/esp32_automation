@@ -11,7 +11,6 @@
 #include <esp_err.h>
 #include <driver/gpio.h>
 
-static const char *TAG = "DF_Robot_EC_Sensor";
 #define NOP() asm volatile ("nop")
 
 void configure_protocol(int32_t pulse_width, int32_t repeat_transmission, int16_t transmit_pin, struct binary_bits low_bit, struct binary_bits high_bit, struct binary_bits sync_bit){
@@ -44,18 +43,21 @@ void IRAM_ATTR delayMicroseconds(uint32_t us)
 }
 
 void transmit_message(unsigned long code, int32_t length){
+	// Repeat Transmission for better accuracy
 	for(int i = 0; i < power_outlet_protocol.repeat_transmission; i++){
 		for(int j = length - 1; j >= 0; j--){
 			if(code & (1L << j)){
+				// Transmit Binary 1
 				gpio_set_level(power_outlet_protocol.transmit_pin, 1);
-				delayMicroseconds(516);
+				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.high_bit.high_pulse_amount);
 				gpio_set_level(power_outlet_protocol.transmit_pin, 0);
-				delayMicroseconds(172);
+				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.high_bit.low_pulse_amount);
 			} else {
+				// Transmit Binary 0
 				gpio_set_level(power_outlet_protocol.transmit_pin, 1);
-				delayMicroseconds(172);
+				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.low_bit.high_pulse_amount);
 				gpio_set_level(power_outlet_protocol.transmit_pin, 0);
-				delayMicroseconds(516);
+				delayMicroseconds(power_outlet_protocol.pulse_width *  power_outlet_protocol.low_bit.low_pulse_amount);
 			}
 		}
 		gpio_set_level(power_outlet_protocol.transmit_pin, 1);
@@ -70,10 +72,11 @@ void send_message(const char* binary_code){
 	unsigned long code = 0;
 	unsigned int length = 0;
 	  for (const char* p = binary_code; *p; p++) {
+		  // convert char to unsinged long
 	    code <<= 1L;
 	    if (*p != '0')
 	      code |= 1L;
-	    length++;
+	    length++;	// Calculate length of binary
 	  }
 	  transmit_message(code, length);
 }
