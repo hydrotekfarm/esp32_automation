@@ -323,6 +323,7 @@ static int16_t bme280_convert_temperature(bme280_t *dev, uint32_t raw_temperatur
     var2 = (((((raw_temperature >> 4) - ((int32_t) cd->par_t1)) * ((raw_temperature >> 4) - ((int32_t) cd->par_t1))) >> 12)
             * ((int32_t) cd->par_t3)) >> 14;
     cd->t_fine = (int32_t) (var1 + var2);
+    printf("Calib data: %lld, %lld\n", var1, var2);
     temperature = (cd->t_fine * 5 + 128) >> 8;
 
     return temperature;
@@ -730,10 +731,11 @@ esp_err_t bme280_get_results_fixed(bme280_t *dev, bme280_values_fixed_t *results
 
     bme280_raw_data_t raw;
     CHECK(bme280_get_raw_data(dev, &raw));
-
     // use compensation algorithms to compute sensor values in fixed point format
-    if (dev->settings.osr_temperature)
+    if (dev->settings.osr_temperature) {
+    	printf("temp: %d\n", bme280_convert_temperature(dev, raw.temperature));
         results->temperature = bme280_convert_temperature(dev, raw.temperature);
+    }
     if (dev->settings.osr_pressure)
         results->pressure = bme280_convert_pressure(dev, raw.pressure);
     if (dev->settings.osr_humidity)

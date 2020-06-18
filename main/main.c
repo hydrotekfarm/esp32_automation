@@ -51,15 +51,15 @@ static EventGroupHandle_t sensor_event_group;
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define BME_SCL_GPIO 16                 // GPIO 16
-#define BME_SDA_GPIO 17                 // GPIO 17
+#define BME_SCL_GPIO 22                 // GPIO 16
+#define BME_SDA_GPIO 21                 // GPIO 17
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
-#define BME_ADDR BME280_I2C_ADDR_0
+#define BME_ADDR BME280_I2C_ADDR_1
 #define BME_PORT 0
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
@@ -393,32 +393,53 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 void measure_bme(void * parameter) {
 	const char *TAG = "BME_TAG";
 
-	i2cdev_init();
+	ESP_ERROR_CHECK(i2cdev_init());
 
 	bme280_t sensor;
-	memset(&sensor, 0, sizeof(bme280_t));
+	    memset(&sensor, 0, sizeof(bme280_t));
 
-	bme280_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO);
-	bme280_init_sensor(&sensor);
+	    ESP_ERROR_CHECK(bme280_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO));
 
-	bme280_set_oversampling_rates(&sensor, BME280_OSR_4X, BME280_OSR_NONE, BME280_OSR_2X);
-	bme280_set_filter_size(&sensor, BME280_IIR_SIZE_7);
+	    // init the sensor
+	    ESP_ERROR_CHECK(bme280_init_sensor(&sensor));
 
-	bme280_set_heater_filter_profile(&sensor, 0, 200, 100);
-	bme280_use_heater_profile(&sensor, 10);
+	    // Changes the oversampling rates to 4x oversampling for temperature
+	    // and 2x oversampling for humidity. Pressure measurement is skipped.
+	    bme280_set_oversampling_rates(&sensor, BME280_OSR_4X, BME280_OSR_NONE, BME280_OSR_2X);
 
-	bme280_set_ambient_temperature(&sensor, 10);
+	    // Change the IIR filter size for temperature and pressure to 7.
+	    bme280_set_filter_size(&sensor, BME280_IIR_SIZE_7);
 
-	uint32_t duration;
-	bme280_get_measurement_duration(&sensor, &duration);
+	    // Change the heater profile 0 to 200 degree Celcius for 100 ms.
+	    bme280_set_heater_profile(&sensor, 0, 200, 100);
+	    bme280_use_heater_profile(&sensor, BME280_HEATER_NOT_USED);
 
-	bme280_values_float_t values;
-	for(;;) {
-		bme280_get_results_float(&sensor, &values);
-		printf("Temperature: %.2f", values.temperature);
+	    // Set ambient temperature to 10 degree Celsius
+	    bme280_set_ambient_temperature(&sensor, 10);
 
-		vTaskDelay(pdMS_TO_TICKS(2000));
-	}
+	    // as long as sensor configuration isn't changed, duration is constant
+	    uint32_t duration;
+	    bme280_get_measurement_duration(&sensor, &duration);
+
+	    TickType_t last_wakeup = xTaskGetTickCount();
+
+	    bme280_values_float_t values;
+	    while (1)
+	    {
+	        // trigger the sensor to start one TPHG measurement cycle
+	        if (bme280_force_measurement(&sensor) == ESP_OK)
+	        {
+	            // passive waiting until measurement results are available
+	            vTaskDelay(duration);
+
+	            // get the results and do something with them
+	            if (bme280_get_results_float(&sensor, &values) == ESP_OK)
+	                printf("BME280 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n",
+	                        values.temperature, values.humidity, values.pressure, values.gas_resistance);
+	        }
+	        // passive waiting until 1 second is over
+	        vTaskDelayUntil(&last_wakeup, 1000 / portTICK_PERIOD_MS);
+	    }
 }
 
 void port_setup() {								// ADC Port Setup Method
