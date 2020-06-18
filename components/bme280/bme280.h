@@ -26,20 +26,13 @@ extern "C" {
 #define BME280_I2C_ADDR_0 0x76
 #define BME280_I2C_ADDR_1 0x77
 
-#define BME280_HEATER_TEMP_MIN         200  //!< min. 200 degree Celsius
-#define BME280_HEATER_TEMP_MAX         400  //!< max. 200 degree Celsius
-#define BME280_HEATER_PROFILES         10   //!< max. 10 heater profiles 0 ... 9
-#define BME280_HEATER_NOT_USED         -1   //!< heater not used profile
-
 /**
  * Fixed point sensor values (fixed THPG values)
  */
 typedef struct
 {
     int16_t temperature;     //!< temperature in degree C * 100 (Invalid value INT16_MIN)
-    uint32_t pressure;       //!< barometric pressure in Pascal (Invalid value 0)
     uint32_t humidity;       //!< relative humidity in % * 1000 (Invalid value 0)
-    uint32_t gas_resistance; //!< gas resistance in Ohm         (Invalid value 0)
 } bme280_values_fixed_t;
 
 /**
@@ -48,9 +41,7 @@ typedef struct
 typedef struct
 {
     float temperature;    //!< temperature in degree C        (Invalid value -327.68)
-    float pressure;       //!< barometric pressure in hPascal (Invalid value 0.0)
     float humidity;       //!< relative humidity in %         (Invalid value 0.0)
-    float gas_resistance; //!< gas resistance in Ohm          (Invalid value 0.0)
 } bme280_values_float_t;
 
 /**
@@ -83,20 +74,13 @@ typedef enum {
  * @brief Sensor parameters that configure the TPHG measurement cycle
  *
  *  T - temperature measurement
- *  P - pressure measurement
  *  H - humidity measurement
- *  G - gas measurement
  */
 typedef struct
 {
     bme280_oversampling_rate_t osr_temperature; //!< T oversampling rate (default `BME280_OSR_1X`)
-    bme280_oversampling_rate_t osr_pressure;    //!< P oversampling rate (default `BME280_OSR_1X`)
     bme280_oversampling_rate_t osr_humidity;    //!< H oversampling rate (default `BME280_OSR_1X`)
     bme280_filter_size_t filter_size;           //!< IIR filter size (default `BME280_IIR_SIZE_3`)
-
-    int8_t heater_profile;                      //!< Heater profile used (default 0)
-    uint16_t heater_temperature[10];            //!< Heater temperature for G (default 320)
-    uint16_t heater_duration[10];               //!< Heater duration for G (default 150)
 
     int8_t ambient_temperature;                 //!< Ambient temperature for G (default 25)
 } bme280_settings_t;
@@ -113,17 +97,6 @@ typedef struct
     int16_t  par_t2;
     int8_t   par_t3;
 
-    uint16_t par_p1;         //!< calibration data for pressure compensation
-    int16_t  par_p2;
-    int8_t   par_p3;
-    int16_t  par_p4;
-    int16_t  par_p5;
-    int8_t   par_p7;
-    int8_t   par_p6;
-    int16_t  par_p8;
-    int16_t  par_p9;
-    uint8_t  par_p10;
-
     uint16_t par_h1;         //!< calibration data for humidity compensation
     uint16_t par_h2;
     int8_t   par_h3;
@@ -131,10 +104,6 @@ typedef struct
     int8_t   par_h5;
     uint8_t  par_h6;
     int8_t   par_h7;
-
-    int8_t   par_gh1;        //!< calibration data for gas compensation
-    int16_t  par_gh2;
-    int8_t   par_gh3;
 
     int32_t  t_fine;         //!< temperature correction factor for P and G
     uint8_t  res_heat_range;
@@ -185,7 +154,6 @@ esp_err_t bme280_free_desc(bme280_t *dev);
  *
  * - Oversampling rate for temperature, pressure, humidity is osr_1x
  * - Filter size for pressure and temperature is iir_size 3
- * - Heater profile 0 with 320 degree C and 150 ms duration
  *
  * The sensor must be connected to an I2C bus.
  *
@@ -349,51 +317,6 @@ esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_
  * @return `ESP_OK` on success
  */
 esp_err_t bme280_set_filter_size(bme280_t *dev, bme280_filter_size_t size);
-
-/**
- * @brief   Set a heater profile for gas measurements
- *
- * The sensor integrates a heater for the gas measurement. Parameters for this
- * heater are defined by so called heater profiles. The sensor supports up to
- * 10 heater profiles, which are numbered from 0 to 9. Each profile consists of
- * a temperature set-point (the target temperature) and a heating duration.
- *
- * This function sets the parameters for one of the heater profiles 0 ... 9.
- * To activate the gas measurement with this profile, use function
- * ::bme280_use_heater_profile(), see below.
- *
- * Please note: According to the data sheet, a target temperatures of between
- * 200 and 400 degrees Celsius are typical and about 20 to 30 ms are necessary
- * for the heater to reach the desired target temperature.
- *
- * @param dev Device descriptor
- * @param profile heater profile 0 ... 9
- * @param temperature target temperature in degree Celsius
- * @param duration heating duration in milliseconds
- * @return `ESP_OK` on success
- */
-esp_err_t bme280_set_heater_profile(bme280_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration);
-
-/**
- * @brief   Activate gas measurement with a given heater profile
- *
- * The function activates the gas measurement with one of the heater
- * profiles 0 ... 9 or deactivates the gas measurement completely when
- * -1 or ::BME280_HEATER_NOT_USED is used as heater profile.
- *
- * Parameters of the activated heater profile have to be set before with
- * function ::bme280_set_heater_profile() otherwise the function fails.
- *
- * If several heater profiles have been defined with function
- * ::bme280_set_heater_profile(), a sequence of gas measurements with different
- * heater parameters can be realized by a sequence of activations of different
- * heater profiles for successive TPHG measurements using this function.
- *
- * @param dev Device descriptor
- * @param profile 0 ... 9 to activate or -1 to deactivate gas measure
- * @return `ESP_OK` on success
- */
-esp_err_t bme280_use_heater_profile(bme280_t *dev, int8_t profile);
 
 /**
  * @brief   Set ambient temperature

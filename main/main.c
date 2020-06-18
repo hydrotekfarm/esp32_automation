@@ -51,8 +51,8 @@ static EventGroupHandle_t sensor_event_group;
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define BME_SCL_GPIO 22                 // GPIO 16
-#define BME_SDA_GPIO 21                 // GPIO 17
+#define BME_SCL_GPIO 22                 // GPIO 22
+#define BME_SDA_GPIO 21                 // GPIO 21
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
@@ -75,7 +75,7 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 static float _air_temp = 0;
-static float humidity = 0;
+static float _humidity = 0;
 
 // Task Handles
 static TaskHandle_t temperature_task_handle = NULL;
@@ -381,7 +381,7 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 			ESP_LOGE(TAG, "Distance is too large");
 			break;
 		default:
-			ESP_LOGE(TAG, "Distance: %f cm\n", distance);
+			ESP_LOGI(TAG, "Distance: %f cm\n", distance);
 			_distance = distance;
 		}
 
@@ -410,18 +410,12 @@ void measure_bme(void * parameter) {
 	    // Change the IIR filter size for temperature and pressure to 7.
 	    bme280_set_filter_size(&sensor, BME280_IIR_SIZE_7);
 
-	    // Change the heater profile 0 to 200 degree Celcius for 100 ms.
-	    bme280_set_heater_profile(&sensor, 0, 200, 100);
-	    bme280_use_heater_profile(&sensor, 0);
+	    // Set ambient temperature
+	    bme280_set_ambient_temperature(&sensor, 22);
 
-	    // Set ambient temperature to 10 degree Celsius
-	    bme280_set_ambient_temperature(&sensor, 10);
-
-	    // as long as sensor configuration isn't changed, duration is constant
+	    // As long as sensor configuration isn't changed, duration is constant
 	    uint32_t duration;
 	    bme280_get_measurement_duration(&sensor, &duration);
-
-	    TickType_t last_wakeup = xTaskGetTickCount();
 
 	    bme280_values_float_t values;
 	    while (1)
@@ -431,14 +425,17 @@ void measure_bme(void * parameter) {
 	        {
 	            // passive waiting until measurement results are available
 	            vTaskDelay(duration);
-
 	            // get the results and do something with them
-	            if (bme280_get_results_float(&sensor, &values) == ESP_OK)
-	                printf("BME280 Sensor: %.2f °C, %.2f %%, %.2f hPa, %.2f Ohm\n",
-	                        values.temperature, values.humidity, values.pressure, values.gas_resistance);
+	            if (bme280_get_results_float(&sensor, &values) == ESP_OK) {
+	                ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
+	            	ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
+
+	            	_air_temp = values.temperature;
+	            	_humidity = values.humidity;
+	            }
 	        }
-	        // passive waiting until 1 second is over
-	        vTaskDelayUntil(&last_wakeup, 1000 / portTICK_PERIOD_MS);
+	        // Passive waiting until 10 seconds are over
+	        vTaskDelay(pdMS_TO_TICKS(10000));
 	    }
 }
 

@@ -192,17 +192,9 @@ static const char *TAG = "BME280";
  */
 typedef struct
 {
-
-    bool gas_valid;      // indicate that gas measurement results are valid
-    bool heater_stable;  // indicate that heater temperature was stable
-
     uint32_t temperature;    // degree celsius x100
-    uint32_t pressure;       // pressure in Pascal
     uint16_t humidity;       // relative humidity x1000 in %
-    uint16_t gas_resistance; // gas resistance data
-    uint8_t gas_range;      // gas resistance range
 
-    uint8_t gas_index;      // heater profile used (0 ... 9)
     uint8_t meas_index;
 
 } bme280_raw_data_t;
@@ -281,28 +273,21 @@ static esp_err_t bme280_get_raw_data(bme280_t *dev, bme280_raw_data_t *raw_data)
     }
 
     dev->meas_started = false;
-    raw_data->gas_index = dev->meas_status & BME280_GAS_MEAS_INDEX_BITS;
 
     // if there are new data, read raw data from sensor
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
     I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_RAW_DATA_0, raw, BME280_REG_RAW_DATA_LEN));
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
-    raw_data->gas_valid     = bme_get_reg_bit(raw[BME280_RAW_G_OFF + 1], BME280_GAS_VALID);
-    raw_data->heater_stable = bme_get_reg_bit(raw[BME280_RAW_G_OFF + 1], BME280_HEAT_STAB_R);
-
     raw_data->temperature    = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME280_RAW_T_OFF);
-    raw_data->pressure       = msb_lsb_xlsb_to_20bit(uint32_t, raw, BME280_RAW_P_OFF);
     raw_data->humidity       = msb_lsb_to_type(uint16_t, raw, BME280_RAW_H_OFF);
-    raw_data->gas_resistance = ((uint16_t) raw[BME280_RAW_G_OFF] << 2) | raw[BME280_RAW_G_OFF + 1] >> 6;
-    raw_data->gas_range      = raw[BME280_RAW_G_OFF + 1] & BME280_GAS_RANGE_R_BITS;
 
     /*
      * BME280_REG_MEAS_STATUS_1, BME280_REG_MEAS_STATUS_2
      * These data are not documented and it is not really clear when they are filled
      */
-    ESP_LOGD(TAG, "Raw data: %d %d %d %d %d", raw_data->temperature, raw_data->pressure,
-            raw_data->humidity, raw_data->gas_resistance, raw_data->gas_range);
+    ESP_LOGD(TAG, "Raw data: %d %d", raw_data->temperature,
+            raw_data->humidity);
 
     return ESP_OK;
 }
@@ -323,52 +308,9 @@ static int16_t bme280_convert_temperature(bme280_t *dev, uint32_t raw_temperatur
     var2 = (((((raw_temperature >> 4) - ((int32_t) cd->par_t1)) * ((raw_temperature >> 4) - ((int32_t) cd->par_t1))) >> 12)
             * ((int32_t) cd->par_t3)) >> 14;
     cd->t_fine = (int32_t) (var1 + var2);
-    printf("Calib data: %lld, %lld\n", var1, var2);
     temperature = (cd->t_fine * 5 + 128) >> 8;
 
     return temperature;
-}
-
-/**
- * @brief       Calculate pressure from raw pressure value
- * @copyright   Copyright (C) 2017 - 2018 Bosch Sensortec GmbH
- *
- * The algorithm was extracted from the original Bosch Sensortec BME280 driver
- * published as open source. Divisions and multiplications by potences of 2
- * were replaced by shift operations for effeciency reasons.
- *
- * @ref         [BME280_diver](https://github.com/BoschSensortec/BME280_driver)
- * @ref         BME280 datasheet, page 50
- */
-static uint32_t bme280_convert_pressure(bme280_t *dev, uint32_t raw_pressure)
-{
-    bme280_calib_data_t *cd = &dev->calib_data;
-
-    int32_t var1;
-    int32_t var2;
-    int32_t var3;
-    int32_t var4;
-    int32_t pressure;
-
-    var1 = (((int32_t) cd->t_fine) >> 1) - 64000;
-    var2 = ((((var1 >> 2) * (var1 >> 2)) >> 11) * (int32_t) cd->par_p6) >> 2;
-    var2 = ((var2) * (int32_t) cd->par_p6) >> 2;
-    var2 = var2 + ((var1 * (int32_t) cd->par_p5) << 1);
-    var2 = (var2 >> 2) + ((int32_t) cd->par_p4 << 16);
-    var1 = (((var1 >> 2) * (var1 >> 2)) >> 13);
-    var1 = (((var1) * ((int32_t) cd->par_p3 << 5)) >> 3) + (((int32_t) cd->par_p2 * var1) >> 1);
-    var1 = var1 >> 18;
-    var1 = ((32768 + var1) * (int32_t) cd->par_p1) >> 15;
-    pressure = 1048576 - raw_pressure;
-    pressure = (int32_t) ((pressure - (var2 >> 12)) * ((uint32_t) 3125));
-    var4 = (1 << 31);
-    pressure = (pressure >= var4) ? ((pressure / (uint32_t) var1) << 1) : ((pressure << 1) / (uint32_t) var1);
-    var1 = ((int32_t) cd->par_p9 * (int32_t) (((pressure >> 3) * (pressure >> 3)) >> 13)) >> 12;
-    var2 = ((int32_t) (pressure >> 2) * (int32_t) cd->par_p8) >> 13;
-    var3 = ((int32_t) (pressure >> 8) * (int32_t) (pressure >> 8) * (int32_t) (pressure >> 8) * (int32_t) cd->par_p10) >> 17;
-    pressure = (int32_t) (pressure) + ((var1 + var2 + var3 + ((int32_t) cd->par_p7 << 7)) >> 4);
-
-    return (uint32_t) pressure;
 }
 
 /**
@@ -416,103 +358,6 @@ static uint32_t bme280_convert_humidity(bme280_t *dev, uint16_t raw_humidity)
     return (uint32_t) humidity;
 }
 
-/**
- * @brief   Lookup table for gas resitance computation
- * @ref     BME280 datasheet, page 19
- */
-static float lookup_table[16][2] = {
-        // const1, const2       // gas_range
-        { 1.0,   8000000.0 },   // 0
-        { 1.0,   4000000.0 },   // 1
-        { 1.0,   2000000.0 },   // 2
-        { 1.0,   1000000.0 },   // 3
-        { 1.0,   499500.4995 }, // 4
-        { 0.99,  248262.1648 }, // 5
-        { 1.0,   125000.0 },    // 6
-        { 0.992, 63004.03226 }, // 7
-        { 1.0,   31281.28128 }, // 8
-        { 1.0,   15625.0 },     // 9
-        { 0.998, 7812.5 },      // 10
-        { 0.995, 3906.25 },     // 11
-        { 1.0,   1953.125 },    // 12
-        { 0.99,  976.5625 },    // 13
-        { 1.0,   488.28125 },   // 14
-        { 1.0,   244.140625 }   // 15
-};
-
-/**
- * @brief   Calculate gas resistance from raw gas resitance value and gas range
- * @ref     BME280 datasheet
- */
-static uint32_t bme280_convert_gas(bme280_t *dev, uint16_t gas, uint8_t gas_range)
-{
-    bme280_calib_data_t *cd = &dev->calib_data;
-
-    float var1 = (1340.0 + 5.0 * cd->range_sw_err) * lookup_table[gas_range][0];
-    return var1 * lookup_table[gas_range][1] / (gas - 512.0 + var1);
-}
-
-/**
- * @brief   Calculate internal duration representation
- *
- * Durations are internally representes as one byte
- *
- *  duration = value<5:0> * multiplier<7:6>
- *
- * where the multiplier is 1, 4, 16, or 64. Maximum duration is therefore
- * 64*64 = 4032 ms. The function takes a real world duration value given
- * in milliseconds and computes the internal representation.
- *
- * @ref Datasheet
- */
-static uint8_t bme280_heater_duration(uint16_t duration)
-{
-    uint8_t multiplier = 0;
-
-    while (duration > 63)
-    {
-        duration = duration / 4;
-        multiplier++;
-    }
-    return (uint8_t) (duration | (multiplier << 6));
-}
-
-/**
- * @brief  Calculate internal heater resistance value from real temperature.
- *
- * @ref Datasheet of BME280
- */
-static uint8_t bme280_heater_resistance(const bme280_t *dev, uint16_t temp)
-{
-    if (!dev)
-        return 0;
-
-    if (temp < BME280_HEATER_TEMP_MIN)
-        temp = BME280_HEATER_TEMP_MIN;
-    else if (temp > BME280_HEATER_TEMP_MAX)
-        temp = BME280_HEATER_TEMP_MAX;
-
-    const bme280_calib_data_t *cd = &dev->calib_data;
-
-    // from datasheet
-    double var1;
-    double var2;
-    double var3;
-    double var4;
-    double var5;
-    uint8_t res_heat_x;
-
-    var1 = ((double) cd->par_gh1 / 16.0) + 49.0;
-    var2 = (((double) cd->par_gh2 / 32768.0) * 0.0005) + 0.00235;
-    var3 = (double) cd->par_gh3 / 1024.0;
-    var4 = var1 * (1.0 + (var2 * (double) temp));
-    var5 = var4 + (var3 * (double) dev->settings.ambient_temperature);
-    res_heat_x = (uint8_t) (3.4
-            * ((var5 * (4.0 / (4.0 + (double) cd->res_heat_range)) * (1.0 / (1.0 + ((double) cd->res_heat_val * 0.002)))) - 25));
-    return res_heat_x;
-
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 esp_err_t bme280_init_desc(bme280_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio)
@@ -553,12 +398,8 @@ esp_err_t bme280_init_sensor(bme280_t *dev)
     dev->meas_status = 0;
     dev->settings.ambient_temperature = 0;
     dev->settings.osr_temperature = BME280_OSR_NONE;
-    dev->settings.osr_pressure = BME280_OSR_NONE;
     dev->settings.osr_humidity = BME280_OSR_NONE;
     dev->settings.filter_size = BME280_IIR_SIZE_0;
-    dev->settings.heater_profile = BME280_HEATER_NOT_USED;
-    memset(dev->settings.heater_temperature, 0, sizeof(uint16_t) * 10);
-    memset(dev->settings.heater_duration, 0, sizeof(uint16_t) * 10);
 
     // reset the sensor
     I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_RESET, BME280_RESET_CMD));
@@ -583,18 +424,6 @@ esp_err_t bme280_init_sensor(bme280_t *dev)
     dev->calib_data.par_t2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_T2);
     dev->calib_data.par_t3 = lsb_to_type(int8_t, buf, BME280_CDM_T3);
 
-    // pressure compensation parameters
-    dev->calib_data.par_p1 = lsb_msb_to_type(uint16_t, buf, BME280_CDM_P1);
-    dev->calib_data.par_p2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P2);
-    dev->calib_data.par_p3 = lsb_to_type(int8_t, buf, BME280_CDM_P3);
-    dev->calib_data.par_p4 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P4);
-    dev->calib_data.par_p5 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P5);
-    dev->calib_data.par_p6 = lsb_to_type(int8_t, buf, BME280_CDM_P6);
-    dev->calib_data.par_p7 = lsb_to_type(int8_t, buf, BME280_CDM_P7);
-    dev->calib_data.par_p8 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P8);
-    dev->calib_data.par_p9 = lsb_msb_to_type(int16_t, buf, BME280_CDM_P9);
-    dev->calib_data.par_p10 = lsb_to_type(uint8_t, buf, BME280_CDM_P10);
-
     // humidity compensation parameters
     dev->calib_data.par_h1 = (uint16_t) (((uint16_t) buf[BME280_CDM_H1 + 1] << 4) | (buf[BME280_CDM_H1] & 0x0F));
     dev->calib_data.par_h2 = (uint16_t) (((uint16_t) buf[BME280_CDM_H2] << 4) | (buf[BME280_CDM_H2 + 1] >> 4));
@@ -604,15 +433,6 @@ esp_err_t bme280_init_sensor(bme280_t *dev)
     dev->calib_data.par_h6 = lsb_to_type(uint8_t, buf, BME280_CDM_H6);
     dev->calib_data.par_h7 = lsb_to_type(int8_t, buf, BME280_CDM_H7);
 
-    // gas sensor compensation parameters
-    dev->calib_data.par_gh1 = lsb_to_type(int8_t, buf, BME280_CDM_GH1);
-    dev->calib_data.par_gh2 = lsb_msb_to_type(int16_t, buf, BME280_CDM_GH2);
-    dev->calib_data.par_gh3 = lsb_to_type(int8_t, buf, BME280_CDM_GH3);
-
-    dev->calib_data.res_heat_range = (lsb_to_type(uint8_t, buf, BME280_CDM_RHR) & BME280_RHR_BITS) >> BME280_RHR_SHIFT;
-    dev->calib_data.res_heat_val = (lsb_to_type(int8_t, buf, BME280_CDM_RHV));
-    dev->calib_data.range_sw_err = (lsb_to_type(int8_t, buf, BME280_CDM_RSWE) & BME280_RSWE_BITS) >> BME280_RSWE_SHIFT;
-
     // Set ambient temperature of sensor to default value (25 degree C)
     dev->settings.ambient_temperature = 25;
 
@@ -620,10 +440,6 @@ esp_err_t bme280_init_sensor(bme280_t *dev)
 
     CHECK(bme280_set_oversampling_rates(dev, BME280_OSR_1X, BME280_OSR_1X, BME280_OSR_1X));
     CHECK(bme280_set_filter_size(dev, BME280_IIR_SIZE_3));
-
-    // Set heater default profile 0 to 320 degree Celcius for 150 ms
-    CHECK(bme280_set_heater_profile(dev, 0, 320, 150));
-    CHECK(bme280_use_heater_profile(dev, 0));
 
     return ESP_OK;
 }
@@ -666,20 +482,8 @@ esp_err_t bme280_get_measurement_duration(const bme280_t *dev, uint32_t *duratio
     // THP cycle duration which consumes 1963 µs for each measurement at maximum
     if (dev->settings.osr_temperature)
         *duration += (1 << (dev->settings.osr_temperature - 1)) * 2300;
-    if (dev->settings.osr_pressure)
-        *duration += (1 << (dev->settings.osr_pressure - 1)) * 2300 + 575;
     if (dev->settings.osr_humidity)
         *duration += (1 << (dev->settings.osr_humidity - 1)) * 2300 + 575;
-
-    // if gas measurement is used
-    if (dev->settings.heater_profile != BME280_HEATER_NOT_USED && dev->settings.heater_duration[dev->settings.heater_profile]
-            && dev->settings.heater_temperature[dev->settings.heater_profile])
-    {
-        // gas heating time
-        *duration += dev->settings.heater_duration[dev->settings.heater_profile] * 1000;
-        // gas measurement duration;
-        *duration += 2300 + 575;
-    }
 
     // round up to next ms (1 us ... 1000 us => 1 ms)
     *duration += 999;
@@ -725,35 +529,19 @@ esp_err_t bme280_get_results_fixed(bme280_t *dev, bme280_values_fixed_t *results
 
     // fill data structure with invalid values
     results->temperature = INT16_MIN;
-    results->pressure = 0;
     results->humidity = 0;
-    results->gas_resistance = 0;
 
     bme280_raw_data_t raw;
     CHECK(bme280_get_raw_data(dev, &raw));
     // use compensation algorithms to compute sensor values in fixed point format
     if (dev->settings.osr_temperature) {
-    	printf("temp: %d\n", bme280_convert_temperature(dev, raw.temperature));
         results->temperature = bme280_convert_temperature(dev, raw.temperature);
     }
-    if (dev->settings.osr_pressure)
-        results->pressure = bme280_convert_pressure(dev, raw.pressure);
     if (dev->settings.osr_humidity)
         results->humidity = bme280_convert_humidity(dev, raw.humidity);
 
-    if (dev->settings.heater_profile != BME280_HEATER_NOT_USED)
-    {
-        // convert gas only if raw data are valid and heater was stable
-        if (raw.gas_valid && raw.heater_stable)
-            results->gas_resistance = bme280_convert_gas(dev, raw.gas_resistance, raw.gas_range);
-        else if (!raw.gas_valid)
-            ESP_LOGW(TAG, "Gas data is not valid");
-        else
-            ESP_LOGW(TAG, "Heater is not stable");
-    }
-
-    ESP_LOGD(TAG, "Fixed point sensor values - %d/100 deg.C, %d/1000 %%, %d Pa, %d Ohm",
-            results->temperature, results->humidity, results->pressure, results->gas_resistance);
+    ESP_LOGD(TAG, "Fixed point sensor values - %d/100 deg.C, %d/1000 %%",
+            results->temperature, results->humidity);
 
     return ESP_OK;
 }
@@ -766,9 +554,7 @@ esp_err_t bme280_get_results_float(bme280_t *dev, bme280_values_float_t *results
     CHECK(bme280_get_results_fixed(dev, &fixed));
 
     results->temperature = fixed.temperature / 100.0f;
-    results->pressure = fixed.pressure / 100.0f;
     results->humidity = fixed.humidity / 1000.0f;
-    results->gas_resistance = fixed.gas_resistance;
 
     return ESP_OK;
 }
@@ -815,21 +601,19 @@ esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_
     CHECK_ARG(dev);
 
     bool ost_changed = dev->settings.osr_temperature != ost;
-    bool osp_changed = dev->settings.osr_pressure != osp;
     bool osh_changed = dev->settings.osr_humidity != osh;
 
-    if (!ost_changed && !osp_changed && !osh_changed)
+    if (!ost_changed && !osh_changed)
         return ESP_OK;
 
-    // Set the temperature, pressure and humidity oversampling
+    // Set the temperature and humidity oversampling
     dev->settings.osr_temperature = ost;
-    dev->settings.osr_pressure = osp;
     dev->settings.osr_humidity = osh;
 
     uint8_t reg;
 
     I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    if (ost_changed || osp_changed)
+    if (ost_changed)
     {
         // read the current register value
         I2C_DEV_CHECK(&dev->i2c_dev, read_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, &reg));
@@ -837,8 +621,6 @@ esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_
         // set changed bit values
         if (ost_changed)
             reg = bme_set_reg_bit(reg, BME280_OSR_T, ost);
-        if (osp_changed)
-            reg = bme_set_reg_bit(reg, BME280_OSR_P, osp);
 
         // write back the new register value
         I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_MEAS, reg));
@@ -856,8 +638,8 @@ esp_err_t bme280_set_oversampling_rates(bme280_t *dev, bme280_oversampling_rate_
     }
     I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
 
-    ESP_LOGD(TAG, "Setting oversampling rates done: osrt=%d osp=%d osrh=%d",
-            dev->settings.osr_temperature, dev->settings.osr_pressure, dev->settings.osr_humidity);
+    ESP_LOGD(TAG, "Setting oversampling rates done: osrt=%d osp=%d",
+            dev->settings.osr_temperature, dev->settings.osr_humidity);
 
     return ESP_OK;
 }
@@ -869,7 +651,7 @@ esp_err_t bme280_set_filter_size(bme280_t *dev, bme280_filter_size_t size)
     if (dev->settings.filter_size == size)
         return ESP_OK;
 
-    /* Set the temperature, pressure and humidity settings */
+    /* Set the temperature and humidity settings */
     dev->settings.filter_size = size;
 
     uint8_t reg;
@@ -889,65 +671,6 @@ esp_err_t bme280_set_filter_size(bme280_t *dev, bme280_filter_size_t size)
     return ESP_OK;
 }
 
-esp_err_t bme280_set_heater_profile(bme280_t *dev, uint8_t profile, uint16_t temperature, uint16_t duration)
-{
-    CHECK_ARG(dev && profile < BME280_HEATER_PROFILES);
-
-    bool temperature_changed = dev->settings.heater_temperature[profile] != temperature;
-    bool duration_changed = dev->settings.heater_duration[profile] != duration;
-
-    if (!temperature_changed && !duration_changed)
-        return ESP_OK;
-
-    // set external gas sensor configuration
-    dev->settings.heater_temperature[profile] = temperature; // degree Celsius
-    dev->settings.heater_duration[profile] = duration;       // milliseconds
-
-    // compute internal gas sensor configuration parameters
-    uint8_t heat_dur = bme280_heater_duration(duration);           // internal duration value
-    uint8_t heat_res = bme280_heater_resistance(dev, temperature); // internal temperature value
-
-    I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    // set internal gas sensor configuration parameters if changed
-    if (temperature_changed)
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_RES_HEAT_BASE + profile, heat_res));
-    if (duration_changed)
-        I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_GAS_WAIT_BASE + profile, heat_dur));
-    I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
-
-
-    ESP_LOGD(TAG, "Setting heater profile %d done: temperature=%d duration=%d"
-            " heater_resistance=%02x heater_duration=%02x", profile, dev->settings.heater_temperature[profile],
-            dev->settings.heater_duration[profile], heat_dur, heat_res);
-
-    return ESP_OK;
-}
-
-esp_err_t bme280_use_heater_profile(bme280_t *dev, int8_t profile)
-{
-    CHECK_ARG(dev);
-    CHECK_ARG(profile >= -1 && profile < BME280_HEATER_PROFILES);
-
-    if (dev->settings.heater_profile == profile)
-        return ESP_OK;
-
-    dev->settings.heater_profile = profile;
-
-    uint8_t reg = 0; // set
-    // set active profile
-    reg = bme_set_reg_bit(reg, BME280_NB_CONV, profile != BME280_HEATER_NOT_USED ? profile : 0);
-
-    // enable or disable gas measurement
-    reg = bme_set_reg_bit(reg, BME280_RUN_GAS,
-            (profile != BME280_HEATER_NOT_USED && dev->settings.heater_temperature[profile] && dev->settings.heater_duration[profile]));
-
-    I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, write_reg_8_nolock(dev, BME280_REG_CTRL_GAS_1, reg));
-    I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
-
-    return ESP_OK;
-}
-
 esp_err_t bme280_set_ambient_temperature(bme280_t *dev, int16_t ambient)
 {
     CHECK_ARG(dev);
@@ -957,19 +680,6 @@ esp_err_t bme280_set_ambient_temperature(bme280_t *dev, int16_t ambient)
 
     // set ambient temperature configuration
     dev->settings.ambient_temperature = ambient; // degree Celsius
-
-    // update all valid heater profiles
-    uint8_t data[10];
-    for (int i = 0; i < BME280_HEATER_PROFILES; i++)
-        data[i] = dev->settings.heater_temperature[i]
-                ? bme280_heater_resistance(dev, dev->settings.heater_temperature[i])
-                : 0;
-
-    I2C_DEV_TAKE_MUTEX(&dev->i2c_dev);
-    I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_write_reg(&dev->i2c_dev, BME280_REG_RES_HEAT_BASE, data, 10));
-    I2C_DEV_GIVE_MUTEX(&dev->i2c_dev);
-
-    ESP_LOGD(TAG, "Setting heater ambient temperature done: ambient=%d", dev->settings.ambient_temperature);
 
     return ESP_OK;
 }
