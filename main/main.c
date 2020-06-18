@@ -23,7 +23,7 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
-#include "bme280.h"
+#include "bme680.h"
 
 static const char *_TAG = "Main";
 
@@ -59,7 +59,7 @@ static EventGroupHandle_t sensor_event_group;
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
-#define BME_ADDR BME280_I2C_ADDR_1
+#define BME_ADDR BME680_I2C_ADDR_1
 #define BME_PORT 0
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
@@ -226,7 +226,7 @@ void measure_temperature(void *parameter) {		// Water Temperature Measurement Ta
 				ESP_LOGE(TAG, "Unknown Error\n");
 			}
 			// Sync with other sensor tasks
-			//Wait up to 10 seconds to let other tasks end
+			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT,
 			ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		}
@@ -395,38 +395,38 @@ void measure_bme(void * parameter) {
 
 	ESP_ERROR_CHECK(i2cdev_init());
 
-	bme280_t sensor;
-	    memset(&sensor, 0, sizeof(bme280_t));
+	bme680_t sensor;
+	    memset(&sensor, 0, sizeof(bme680_t));
 
-	    ESP_ERROR_CHECK(bme280_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO));
+	    ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO));
 
-	    // init the sensor
-	    ESP_ERROR_CHECK(bme280_init_sensor(&sensor));
+	    // Init the sensor
+	    ESP_ERROR_CHECK(bme680_init_sensor(&sensor));
 
 	    // Changes the oversampling rates to 4x oversampling for temperature
 	    // and 2x oversampling for humidity. Pressure measurement is skipped.
-	    bme280_set_oversampling_rates(&sensor, BME280_OSR_4X, BME280_OSR_NONE, BME280_OSR_2X);
+	    bme680_set_oversampling_rates(&sensor, BME680_OSR_4X, BME680_OSR_NONE, BME680_OSR_2X);
 
 	    // Change the IIR filter size for temperature and pressure to 7.
-	    bme280_set_filter_size(&sensor, BME280_IIR_SIZE_7);
+	    bme680_set_filter_size(&sensor, BME680_IIR_SIZE_7);
 
 	    // Set ambient temperature
-	    bme280_set_ambient_temperature(&sensor, 22);
+	    bme680_set_ambient_temperature(&sensor, 22);
 
 	    // As long as sensor configuration isn't changed, duration is constant
 	    uint32_t duration;
-	    bme280_get_measurement_duration(&sensor, &duration);
+	    bme680_get_measurement_duration(&sensor, &duration);
 
-	    bme280_values_float_t values;
+	    bme680_values_float_t values;
 	    while (1)
 	    {
 	        // trigger the sensor to start one TPHG measurement cycle
-	        if (bme280_force_measurement(&sensor) == ESP_OK)
+	        if (bme680_force_measurement(&sensor) == ESP_OK)
 	        {
 	            // passive waiting until measurement results are available
 	            vTaskDelay(duration);
 	            // get the results and do something with them
-	            if (bme280_get_results_float(&sensor, &values) == ESP_OK) {
+	            if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
 	                ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
 	            	ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
 
