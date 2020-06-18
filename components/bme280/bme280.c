@@ -574,7 +574,7 @@ esp_err_t bme280_init_sensor(bme280_t *dev)
     }
 
     uint8_t buf[BME280_CDM_SIZE];
-
+    vTaskDelay(pdMS_TO_TICKS(10));
     I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD1_ADDR, buf + BME280_CDM_OFF1, BME280_REG_CD1_LEN));
     I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD2_ADDR, buf + BME280_CDM_OFF2, BME280_REG_CD2_LEN));
     I2C_DEV_CHECK(&dev->i2c_dev, i2c_dev_read_reg(&dev->i2c_dev, BME280_REG_CD3_ADDR, buf + BME280_CDM_OFF3, BME280_REG_CD3_LEN));

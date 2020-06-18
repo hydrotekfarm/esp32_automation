@@ -412,7 +412,7 @@ void measure_bme(void * parameter) {
 
 	    // Change the heater profile 0 to 200 degree Celcius for 100 ms.
 	    bme280_set_heater_profile(&sensor, 0, 200, 100);
-	    bme280_use_heater_profile(&sensor, BME280_HEATER_NOT_USED);
+	    bme280_use_heater_profile(&sensor, 0);
 
 	    // Set ambient temperature to 10 degree Celsius
 	    bme280_set_ambient_temperature(&sensor, 10);
