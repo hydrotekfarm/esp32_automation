@@ -38,7 +38,9 @@ static EventGroupHandle_t sensor_event_group;
 #define EC_COMPLETED_BIT 	        (1<<1)
 #define DELAY_COMPLETED_BIT		    (1<<2)
 #define PH_COMPLETED_BIT		    (1<<3)
-#define ALL_SYNC_BITS ( TEMPERATURE_COMPLETED_BIT | EC_COMPLETED_BIT | DELAY_COMPLETED_BIT | PH_COMPLETED_BIT)
+#define ULTRASONIC_COMPLETED_BIT    (1<<4)
+#define BME_COMPLETED_BIT           (1<<4)
+#define ALL_SYNC_BITS ( TEMPERATURE_COMPLETED_BIT | EC_COMPLETED_BIT | DELAY_COMPLETED_BIT | PH_COMPLETED_BIT | ULTRASONIC_COMPLETED_BIT | BME_COMPLETED_BIT)
 
 // Core 1 Task Priorities
 #define BME_TASK_PRIORITY 1
@@ -58,9 +60,6 @@ static EventGroupHandle_t sensor_event_group;
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
-
-#define BME_ADDR BME680_I2C_ADDR_1
-#define BME_PORT 0
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
@@ -194,7 +193,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	}
 }
 
-void measure_temperature(void *parameter) {		// Water Temperature Measurement Task
+void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 	ds18x20_addr_t ds18b20_address[1];
 	int sensor_count = 0;
@@ -252,7 +251,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
 			// Sync with other sensor tasks
-			//Wait up to 10 seconds to let other tasks end
+			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS,
 					pdMS_TO_TICKS(10000));
 		} else if (!ec_active && !ec_calibration) {		// Delay if EC sensor is disabled and calibration is not taking place
@@ -303,7 +302,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			_ph = readPH(voltage);		// Calculate pH from voltage Reading
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
-			//Wait up to 10 seconds to let other tasks end
+			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 		} else if (!ph_active && !ph_calibration) {	// Delay if pH sensor is disabled and calibration is not taking place
 			vTaskDelay(pdMS_TO_TICKS(5000));
@@ -332,22 +331,6 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			ph_calibration = false;
 			ph_active = true;
 			vTaskPrioritySet(ph_task_handle, PH_TASK_PRIORITY);
-		}
-	}
-}
-
-void sync_task(void *parameter) {				// Sensor Synchronization Task
-	const char *TAG = "Sync_Task";
-	EventBits_t returnBits;
-	for (;;) {
-		// Provide a minimum amount of time before event group round resets
-		vTaskDelay(pdMS_TO_TICKS(10000));
-		returnBits = xEventGroupSync(sensor_event_group, DELAY_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
-		// Check Whether all tasks were completed on time
-		if ((returnBits & ALL_SYNC_BITS) == ALL_SYNC_BITS) {
-			ESP_LOGI(TAG, "Completed");
-		} else {
-			ESP_LOGE(TAG, "Failed to Complete On Time");
 		}
 	}
 }
@@ -385,8 +368,9 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 			_distance = distance;
 		}
 
-		// Measure in 10 sec increments
-		vTaskDelay(pdMS_TO_TICKS(10000));
+		// Sync with other sensor tasks
+		// Wait up to 10 seconds to let other tasks end
+		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 	}
 }
 
@@ -398,7 +382,7 @@ void measure_bme(void * parameter) {
 	bme680_t sensor;
 	    memset(&sensor, 0, sizeof(bme680_t));
 
-	    ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME_ADDR, BME_PORT, BME_SDA_GPIO, BME_SCL_GPIO));
+	    ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME680_I2C_ADDR_1, 0, BME_SDA_GPIO, BME_SCL_GPIO));
 
 	    // Init the sensor
 	    ESP_ERROR_CHECK(bme680_init_sensor(&sensor));
@@ -434,9 +418,25 @@ void measure_bme(void * parameter) {
 	            	_humidity = values.humidity;
 	            }
 	        }
-	        // Passive waiting until 10 seconds are over
-	        vTaskDelay(pdMS_TO_TICKS(10000));
+
+	        xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 	    }
+}
+
+void sync_task(void *parameter) {				// Sensor Synchronization Task
+	const char *TAG = "Sync_Task";
+	EventBits_t returnBits;
+	for (;;) {
+		// Provide a minimum amount of time before event group round resets
+		vTaskDelay(pdMS_TO_TICKS(10000));
+		returnBits = xEventGroupSync(sensor_event_group, DELAY_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+		// Check Whether all tasks were completed on time
+		if ((returnBits & ALL_SYNC_BITS) == ALL_SYNC_BITS) {
+			ESP_LOGI(TAG, "Completed");
+		} else {
+			ESP_LOGE(TAG, "Failed to Complete On Time");
+		}
+	}
 }
 
 void port_setup() {								// ADC Port Setup Method
