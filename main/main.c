@@ -419,6 +419,8 @@ void measure_bme(void * parameter) {
 	            }
 	        }
 
+	        // Sync with other sensor tasks
+	        // Wait up to 10 seconds to let other tasks end
 	        xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
 	    }
 }
@@ -474,8 +476,8 @@ void app_main(void) {							// Main Method
 		esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 		ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 		wifi_config_t wifi_config = { .sta = {
-				.ssid = "LeawoodGuest",
-				.password = "guest,123" },
+				.ssid = "XXXXXXXXXX",
+				.password = "xxxxxxxx" },
 		};
 		ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 		ESP_ERROR_CHECK(esp_wifi_start());
@@ -501,12 +503,12 @@ void app_main(void) {							// Main Method
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 
 			// Create core 1 tasks
-			/*xTaskCreatePinnedToCore(measure_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
+			xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
-			xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1); */
+			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, &bme_task_handle, 1);
+			xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 		} else if ((eventBits & WIFI_FAIL_BIT) != 0) {
 			ESP_LOGE("", "WIFI Connection Failed\n");
