@@ -64,6 +64,7 @@ static EventGroupHandle_t sensor_event_group;
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
 #define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
+#define SENSOR_DISABLED_PERIOD SENSOR_MEASUREMENT_PERIOD / 2 // Disabled increment is half of measure period so task always finishes on time
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
@@ -93,6 +94,8 @@ static TaskHandle_t publish_task_handle = NULL;
 static bool temperature_active = true;
 static bool ec_active = true;
 static bool ph_active = true;
+static bool ultrasonic_active = true;
+static bool bme_active = true;
 
 // Sensor Calibration Status
 static bool ec_calibration = false;
@@ -229,13 +232,15 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 			} else {
 				ESP_LOGE(TAG, "Unknown Error\n");
 			}
+
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT,
-			ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 		while (!temperature_active) {		// Delay if Water Temperature Sensor is disabled
-			vTaskDelay(pdMS_TO_TICKS(5000));
+			// Sync with other sensor tasks
+			// Wait up to 5 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
 		}
 	}
 }
@@ -255,12 +260,14 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
+
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS,
-					pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		} else if (!ec_active && !ec_calibration) {		// Delay if EC sensor is disabled and calibration is not taking place
-			vTaskDelay(pdMS_TO_TICKS(5000));
+			// Sync with other sensor tasks
+			// Wait up to 5 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
 		} else if (ec_calibration) {		// Calibration Mode is activated
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 			// Get many Raw Voltage Samples to allow values to stabilize before calibrating
@@ -310,7 +317,9 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		} else if (!ph_active && !ph_calibration) {	// Delay if pH sensor is disabled and calibration is not taking place
-			vTaskDelay(pdMS_TO_TICKS(5000));
+			// Sync with other sensor tasks
+			// Wait up to 5 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
 		} else if (ph_calibration) {	// Calibration Mode is activated
 			ESP_LOGI(TAG, "Start Calibration");
 			vTaskPrioritySet(ph_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
@@ -351,31 +360,37 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 	ESP_LOGI(TAG, "Ultrasonic initialized\n");
 
 	for (;;) {
-		// Measures distance and returns error code
-		float distance;
-		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
+		if(ultrasonic_active) {
+			// Measures distance and returns error code
+			float distance;
+			esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
-		// TODO check if value is beyond acceptable margin of error and react appropriately
+			// TODO check if value is beyond acceptable margin of error and react appropriately
 
-		// React appropriately to error code
-		switch (res) {
-		case ESP_ERR_ULTRASONIC_PING:
-			ESP_LOGE(TAG, "Device is in invalid state");
-			break;
-		case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
-			ESP_LOGE(TAG, "Device not found");
-			break;
-		case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
-			ESP_LOGE(TAG, "Distance is too large");
-			break;
-		default:
-			ESP_LOGI(TAG, "Distance: %f cm\n", distance);
-			_distance = distance;
+			// React appropriately to error code
+			switch (res) {
+			case ESP_ERR_ULTRASONIC_PING:
+				ESP_LOGE(TAG, "Device is in invalid state");
+				break;
+			case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
+				ESP_LOGE(TAG, "Device not found");
+				break;
+			case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
+				ESP_LOGE(TAG, "Distance is too large");
+				break;
+			default:
+				ESP_LOGI(TAG, "Distance: %f cm\n", distance);
+				_distance = distance;
+			}
+
+			// Sync with other sensor tasks
+			// Wait up to 10 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+		} else {
+			// Sync with other sensor tasks
+			// Wait up to 5 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
 		}
-
-		// Sync with other sensor tasks
-		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -407,26 +422,30 @@ void measure_bme(void * parameter) {
 	    bme680_get_measurement_duration(&sensor, &duration);
 
 	    bme680_values_float_t values;
-	    while (1)
-	    {
-	        // trigger the sensor to start one TPHG measurement cycle
-	        if (bme680_force_measurement(&sensor) == ESP_OK)
-	        {
-	            // passive waiting until measurement results are available
-	            vTaskDelay(duration);
-	            // get the results and do something with them
-	            if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
-	                ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
-	            	ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
+	    for(;;) {
+	    	if(bme_active) {
+	    		// trigger the sensor to start one TPHG measurement cycle
+	    		if (bme680_force_measurement(&sensor) == ESP_OK) {
+	    			// passive waiting until measurement results are available
+	    			vTaskDelay(duration);
+	    			// get the results and do something with them
+	    			if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
+	    				ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
+	    				ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
 
-	            	_air_temp = values.temperature;
-	            	_humidity = values.humidity;
-	            }
-	        }
+	    				_air_temp = values.temperature;
+	    				_humidity = values.humidity;
+	    			}
+	    		}
 
-	        // Sync with other sensor tasks
-	        // Wait up to 10 seconds to let other tasks end
-	        xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+	    		// Sync with other sensor tasks
+	    		// Wait up to 10 seconds to let other tasks end
+	    		xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+	    	} else {
+	    		// Sync with other sensor tasks
+	    		// Wait up to 5 seconds to let other tasks end
+	    		xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
+	    	}
 	    }
 }
 
