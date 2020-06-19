@@ -63,6 +63,8 @@ static EventGroupHandle_t sensor_event_group;
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
+#define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
+
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
 
@@ -230,7 +232,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT,
-			ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+			ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 		while (!temperature_active) {		// Delay if Water Temperature Sensor is disabled
 			vTaskDelay(pdMS_TO_TICKS(5000));
@@ -256,7 +258,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS,
-					pdMS_TO_TICKS(10000));
+					pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		} else if (!ec_active && !ec_calibration) {		// Delay if EC sensor is disabled and calibration is not taking place
 			vTaskDelay(pdMS_TO_TICKS(5000));
 		} else if (ec_calibration) {		// Calibration Mode is activated
@@ -306,7 +308,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		} else if (!ph_active && !ph_calibration) {	// Delay if pH sensor is disabled and calibration is not taking place
 			vTaskDelay(pdMS_TO_TICKS(5000));
 		} else if (ph_calibration) {	// Calibration Mode is activated
@@ -373,7 +375,7 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 
 		// Sync with other sensor tasks
 		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -424,7 +426,7 @@ void measure_bme(void * parameter) {
 
 	        // Sync with other sensor tasks
 	        // Wait up to 10 seconds to let other tasks end
-	        xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+	        xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	    }
 }
 
