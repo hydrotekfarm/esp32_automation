@@ -186,7 +186,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	for (;;) {
 		// Publish sensor data
 		add_sensor_data(client, "water_temp", _water_temp);
-		add_sensor_data(client, "air_temp", _temp);
+		add_sensor_data(client, "air_temp", _air_temp);
 		add_sensor_data(client, "distance", _distance);
 		add_sensor_data(client, "ec", _ec);
 		ESP_LOGI(TAG, "publishing data");
