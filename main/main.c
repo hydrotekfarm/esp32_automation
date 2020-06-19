@@ -24,6 +24,7 @@
 #include "ph_sensor.h"
 #include "ultrasonic.h"
 #include "bme680.h"
+#include "rf_transmission.h"
 
 static const char *_TAG = "Main";
 
@@ -58,6 +59,7 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
+#define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
@@ -143,10 +145,9 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 		ESP_LOGI(TAG, "Published\n");
 		break;
 	case MQTT_EVENT_DATA:
-		//if event data = ec_calibration = true
-		if (true) {
-			ec_calibration = true;
-		}
+//		if (true) {
+//			ec_calibration = true;
+//		}
 		break;
 	case MQTT_EVENT_ERROR:
 		ESP_LOGI(TAG, "Error\n");
@@ -173,9 +174,9 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
 	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = { .host = "70.94.9.135", .port = 1883 };
+	esp_mqtt_client_config_t mqtt_cfg = { .host = "192.168.1.16", .port = 1883 };
 
-	// Create and initialize mqtt client
+	// Create and initialize MQTT client
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
 	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler,
 			client);
@@ -184,12 +185,14 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 	for (;;) {
 		// Publish sensor data
-		add_sensor_data(client, "temperature", _water_temp);
+		add_sensor_data(client, "water_temp", _water_temp);
+		add_sensor_data(client, "air_temp", _temp);
 		add_sensor_data(client, "distance", _distance);
+		add_sensor_data(client, "ec", _ec);
 		ESP_LOGI(TAG, "publishing data");
 
 		// Publish data every 20 seconds
-		vTaskDelay(pdMS_TO_TICKS(20000));
+		vTaskDelay(pdMS_TO_TICKS(10000));
 	}
 }
 
@@ -441,6 +444,20 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 	}
 }
 
+void send_rf_transmission(){
+	// Setup Transmission Protcol
+	struct binary_bits low_bit = {3, 1};
+	struct binary_bits sync_bit = {31, 1};
+	struct binary_bits high_bit = {1, 3};
+	configure_protocol(172, 10, 32, low_bit, high_bit, sync_bit);
+
+	// Start controlling outlets
+	send_message("000101000101010100110011"); // Binary Code to turn on Power Outlet 1
+	vTaskDelay(pdMS_TO_TICKS(5000));
+	send_message("000101000101010100111100"); // Binary Code to turn off Power Outlet 1
+	vTaskDelay(pdMS_TO_TICKS(5000));
+}
+
 void port_setup() {								// ADC Port Setup Method
 	// ADC 1 setup
 	adc1_config_width(ADC_WIDTH_BIT_12);
@@ -451,6 +468,8 @@ void port_setup() {								// ADC Port Setup Method
 	// ADC Channel Setup
 	adc1_config_channel_atten(ADC_CHANNEL_0, ADC_ATTEN_DB_11);
 	adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
+
+	gpio_set_direction(32, GPIO_MODE_OUTPUT);
 }
 
 void app_main(void) {							// Main Method
