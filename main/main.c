@@ -1,5 +1,4 @@
 #include <inttypes.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/semphr.h>
@@ -91,8 +90,8 @@ static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 
 // Sensor Active Status
-static bool temperature_active = true;
-static bool ec_active = true;
+static bool water_temperature_active = false;
+static bool ec_active = false;
 static bool ph_active = true;
 static bool ultrasonic_active = true;
 static bool bme_active = true;
@@ -179,7 +178,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
 	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = { .host = "192.168.1.16", .port = 1883 };
+	esp_mqtt_client_config_t mqtt_cfg = { .host = "70.94.9.135", .port = 1883 };
 
 	// Create and initialize MQTT client
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
@@ -187,17 +186,99 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
-
 	for (;;) {
-		// Publish sensor data
-		add_sensor_data(client, "water_temp", _water_temp);
-		add_sensor_data(client, "air_temp", _air_temp);
-		add_sensor_data(client, "distance", _distance);
-		add_sensor_data(client, "ec", _ec);
-		ESP_LOGI(TAG, "publishing data");
+		char data [200] = "{";
+		char date [] = "\"6/19/2020(10:23:56)\" : {";
+		strcat(data, date);
+
+		bool first = true;
+
+		if(water_temperature_active) {
+			if(first) first = false;
+			else strcat(data, ",");
+
+			char value[8];
+			snprintf(value, sizeof(value), "%.2f", _water_temp);
+
+			char entry[] = "\"water temp\" : \"";
+			strcat(entry, value);
+			strcat(entry, "\"");
+			strcat(data, entry);
+		}
+
+		if(ec_active) {
+			if(first) first = false;
+			else strcat(data, ",");
+
+			char value[8];
+			snprintf(value, sizeof(value), "%.2f", _ec);
+
+			char entry[] = "\"ec\" : \"";
+			strcat(entry, value);
+			strcat(entry, "\"");
+			strcat(data, entry);
+		}
+
+		if(ph_active) {
+			if(first) first = false;
+			else strcat(data, ",");
+
+			char value[8];
+			snprintf(value, sizeof(value), "%.2f", _ph);
+
+			char entry[] = "\"ph\" : \"";
+			strcat(entry, value);
+			strcat(entry, "\"");
+			strcat(data, entry);
+		}
+
+		if(ultrasonic_active) {
+			if(first) first = false;
+			else strcat(data, ",");
+
+			char value[8];
+			snprintf(value, sizeof(value), "%.2f", _distance);
+
+			char entry[] = "\"distance\" : \"";
+			strcat(entry, value);
+			strcat(entry, "\"");
+			strcat(data, entry);
+		}
+
+		if(bme_active) {
+			if(first) first = false;
+			else strcat(data, ",");
+
+			char temp_value[8];
+			snprintf(temp_value, sizeof(temp_value), "%.2f", _air_temp);
+
+			char temp_entry[] = "\"air temp\" : \"";
+			strcat(temp_entry, temp_value);
+			strcat(temp_entry, "\"");
+			strcat(data, temp_entry);
+
+			strcat(data, ",");
+
+			char humidity_value[8];
+			snprintf(humidity_value, sizeof(humidity_value), "%.2f", _humidity);
+
+			char humidity_entry[] = "\"humidity\" : \"";
+			strcat(humidity_entry, humidity_value);
+			strcat(humidity_entry, "\"");
+			strcat(data, humidity_entry);
+		}
+
+		strcat(data, "}}");
+
+		char topic[] = "growroom1/systems/system1";
+
+		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+
+		ESP_LOGI(TAG, "Topic: %s", topic);
+		ESP_LOGI(TAG, "Message: %s", data);
 
 		// Publish data every 20 seconds
-		vTaskDelay(pdMS_TO_TICKS(10000));
+		vTaskDelay(pdMS_TO_TICKS(5000));
 	}
 }
 
@@ -218,7 +299,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 	}
 
 	for (;;) {
-		while (temperature_active) {		// Water Temperature Sensor is Active
+		while (water_temperature_active) {		// Water Temperature Sensor is Active
 			// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
 			esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
 					ds18b20_address[0], &_water_temp);
@@ -237,7 +318,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
-		while (!temperature_active) {		// Delay if Water Temperature Sensor is disabled
+		while (!water_temperature_active) {		// Delay if Water Temperature Sensor is disabled
 			// Sync with other sensor tasks
 			// Wait up to 5 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
@@ -516,8 +597,8 @@ void app_main(void) {							// Main Method
 		esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 		ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 		wifi_config_t wifi_config = { .sta = {
-				.ssid = "XXXXXXXXXX",
-				.password = "xxxxxxxx" },
+				.ssid = "LeawoodGuest",
+				.password = "guest,123" },
 		};
 		ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 		ESP_ERROR_CHECK(esp_wifi_start());
