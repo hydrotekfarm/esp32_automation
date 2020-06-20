@@ -285,21 +285,19 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 	ds18x20_addr_t ds18b20_address[1];
-	int sensor_count = 0;
 
 	// Scan and setup sensor
+	uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO,
+			ds18b20_address, 1);
+
 	sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO,
 			ds18b20_address, 1);
-	while (sensor_count < 1) {
-		// Keep Scanning until sensor is found
-		sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO,
-				ds18b20_address, 1);
-		vTaskDelay(pdMS_TO_TICKS(1000));
-		ESP_LOGE(TAG, "Sensor Not Found");
-	}
+	vTaskDelay(pdMS_TO_TICKS(1000));
+
+	if(sensor_count < 1 && water_temperature_active) ESP_LOGE(TAG, "Sensor Not Found");
 
 	for (;;) {
-		while (water_temperature_active) {		// Water Temperature Sensor is Active
+		if (water_temperature_active) {		// Water Temperature Sensor is Active
 			// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
 			esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
 					ds18b20_address[0], &_water_temp);
@@ -317,8 +315,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-		}
-		while (!water_temperature_active) {		// Delay if Water Temperature Sensor is disabled
+		} else {		// Delay if Water Temperature Sensor is disabled
 			// Sync with other sensor tasks
 			// Wait up to 5 seconds to let other tasks end
 			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
