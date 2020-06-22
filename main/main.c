@@ -169,7 +169,7 @@ void add_entry(char** data, bool* first, char* key, float num) {
 	if(*first) *first = false;
 	else {
 		char comma[] = ",";
-		*data = realloc(*data, 50);
+		*data = realloc(*data, (strlen(*data) + strlen(comma)) * sizeof(char) + 1);
 		strcat(*data, comma);
 	}
 
@@ -180,10 +180,7 @@ void add_entry(char** data, bool* first, char* key, float num) {
 	strcat(entry, value);
 	strcat(entry, "\"");
 
-	printf("length: %i\n", strlen(entry));
-	printf("size: %i\n", sizeof(entry));
-
-	*data = realloc(*data, (strlen(*data) + strlen(entry)) * sizeof(char));
+	*data = realloc(*data, (strlen(*data) + strlen(entry)) * sizeof(char) + 1);
 	strcat(*data, entry);
 }
 
@@ -202,11 +199,11 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	for (;;) {
 		char *data = NULL;
 		char opening_tag[] = "{";
-		data = (char*) malloc(strlen(opening_tag) * sizeof(char));
+		data = (char*) malloc(strlen(opening_tag) * sizeof(char) + 1);
 		strcpy(data, opening_tag);
 
 		char date[] = "\"6/19/2020(10:23:56)\" : {";
-		data = realloc(data, (strlen(data) + strlen(date)) * sizeof(char));
+		data = realloc(data, (strlen(data) + strlen(date)) * sizeof(char) + 1);
 		strcat(data, date);
 
 		bool first = true;
@@ -227,16 +224,15 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			add_entry(&data, &first, "distance", _distance);
 		}
 
-		/*if(bme_active) {
+		if(bme_active) {
 			add_entry(&data, &first, "temp", _air_temp);
 			add_entry(&data, &first, "humidity", _humidity);
 		}
-		ESP_LOGI(TAG, "Size of data: %i", strlen(data) * sizeof(char));
 
 		char closing_tag[] = "}}";
-		data = realloc(data, (strlen(data) + strlen(closing_tag)) * sizeof(char));
+		data = realloc(data, (strlen(data) + strlen(closing_tag)) * sizeof(char) + 1);
 		strcat(data, closing_tag);
-*/
+
 		char topic[] = "growroom1/systems/system1";
 
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
