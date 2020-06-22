@@ -72,6 +72,10 @@ static int retryNumber = 0;  // WiFi Reconnection Attempts
 
 static esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
+// IDs
+static char growroom_id[] = "growroom1";
+static char system_id[] = "system1";
+
 // Sensor Measurement Variables
 static float _water_temp = 0;
 static float _ec = 0;
@@ -209,6 +213,12 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
+		char *topic = NULL;
+		create_str(&topic, growroom_id);
+		append_str(&topic, "/");
+		append_str(&topic, "systems/");
+		append_str(&topic, system_id);
+
 		char *data = NULL;
 		create_str(&data, "{");
 
@@ -239,8 +249,6 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		}
 
 		append_str(&data, "}}");
-
-		char topic[] = "growroom1/systems/system1";
 
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 
