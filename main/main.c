@@ -169,35 +169,41 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 	}
 }
 
-void create_str(char** str, char* init_str) {
-	*str = malloc(strlen(init_str) * sizeof(char));
-	strcpy(*str, init_str);
+void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
+	*str = malloc(strlen(init_str) * sizeof(char)); // Assign memory based on size of initial value
+	strcpy(*str, init_str); // Copy initial value into string
 }
-void append_str(char** str, char* str_to_add) {
-	*str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1);
-	strcat(*str, str_to_add);
+void append_str(char** str, char* str_to_add) { // Create method to reallocate and append string to already allocated string
+	*str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1); // Reallocate data based on existing and new string size
+	strcat(*str, str_to_add); // Concatenate strings
 }
 
+// Add sensor data to JSON entry
 void add_entry(char** data, bool* first, char* key, float num) {
+	// Add a comma to the beginning of every entry except the first
 	if(*first) *first = false;
-	else {
-		append_str(data, ",");
-	}
+	else append_str(data, ",");
 
+	// Convert float data into string
 	char value[8];
 	snprintf(value, sizeof(value), "%.2f", num);
 
+	// Create entry string
 	char *entry = NULL;
 	create_str(&entry, "\"");
 
+	// Create entry using key, value, and other JSON syntax
 	append_str(&entry, key);
 	append_str(&entry, "\" : \"");
 	append_str(&entry, value);
 	append_str(&entry, "\"");
 
+	// Add entry to overall JSON data
 	append_str(data, entry);
 
+	// Free allocated memory
 	free(entry);
+	entry = NULL;
 }
 
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
@@ -213,20 +219,25 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
+		// Create and structure topic for publishing data through MQTT
 		char *topic = NULL;
 		create_str(&topic, growroom_id);
 		append_str(&topic, "/");
 		append_str(&topic, "systems/");
 		append_str(&topic, system_id);
 
+		// Create and initially assign JSON data
 		char *data = NULL;
 		create_str(&data, "{");
 
-		char date[] = "\"6/19/2020(10:23:56)\" : {";
+		// Add timestamp to data
+		char date[] = "\"6/19/2020(10:23:56)\" : {"; // TODO add actual time using RTC
 		append_str(&data, date);
 
+		// Variable for adding comma to every entry except first
 		bool first = true;
 
+		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
 		if(water_temperature_active) {
 			add_entry(&data, &first, "water temp", _water_temp);
 		}
@@ -248,13 +259,16 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			add_entry(&data, &first, "humidity", _humidity);
 		}
 
+		// Add closing tag
 		append_str(&data, "}}");
 
+		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 
 		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);
 
+		// Free allocated memory
 		free(data);
 		data = NULL;
 
