@@ -165,37 +165,33 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 	}
 }
 
+void create_str(char** str, char* init_str) {
+	*str = malloc(strlen(init_str) * sizeof(char));
+	strcpy(*str, init_str);
+}
+void append_str(char** str, char* str_to_add) {
+	*str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1);
+	strcat(*str, str_to_add);
+}
+
 void add_entry(char** data, bool* first, char* key, float num) {
 	if(*first) *first = false;
 	else {
-		char comma[] = ",";
-		*data = realloc(*data, (strlen(*data) + strlen(comma)) * sizeof(char) + 1);
-		strcat(*data, comma);
+		append_str(data, ",");
 	}
 
 	char value[8];
 	snprintf(value, sizeof(value), "%.2f", num);
 
 	char *entry = NULL;
-	char quote[] = "\"";
-	entry = (char*) malloc(strlen(quote) * sizeof(char) + 1);
-	strcpy(entry, quote);
+	create_str(&entry, "\"");
 
-	entry = realloc(entry, (strlen(entry) + strlen(key)) * sizeof(char) + 1);
-	strcat(entry, key);
+	append_str(&entry, key);
+	append_str(&entry, "\" : \"");
+	append_str(&entry, value);
+	append_str(&entry, "\"");
 
-	char linking_syntax[] = "\" : \"";
-	entry = realloc(entry, (strlen(entry) + strlen(linking_syntax)) * sizeof(char) + 1);
-	strcat(entry, linking_syntax);
-
-	entry = realloc(entry, (strlen(entry) + strlen(value)) * sizeof(char) + 1);
-	strcat(entry, value);
-
-	entry = realloc(entry, (strlen(entry) + strlen(quote)) * sizeof(char) + 1);
-	strcat(entry, quote);
-
-	*data = realloc(*data, (strlen(*data) + strlen(entry)) * sizeof(char) + 1);
-	strcat(*data, entry);
+	append_str(data, entry);
 
 	free(entry);
 }
@@ -214,13 +210,10 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
 		char *data = NULL;
-		char opening_tag[] = "{";
-		data = (char*) malloc(strlen(opening_tag) * sizeof(char) + 1);
-		strcpy(data, opening_tag);
+		create_str(&data, "{");
 
 		char date[] = "\"6/19/2020(10:23:56)\" : {";
-		data = realloc(data, (strlen(data) + strlen(date)) * sizeof(char) + 1);
-		strcat(data, date);
+		append_str(&data, date);
 
 		bool first = true;
 
@@ -245,9 +238,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			add_entry(&data, &first, "humidity", _humidity);
 		}
 
-		char closing_tag[] = "}}";
-		data = realloc(data, (strlen(data) + strlen(closing_tag)) * sizeof(char) + 1);
-		strcat(data, closing_tag);
+		append_str(&data, "}}");
 
 		char topic[] = "growroom1/systems/system1";
 
