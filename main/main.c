@@ -176,12 +176,28 @@ void add_entry(char** data, bool* first, char* key, float num) {
 	char value[8];
 	snprintf(value, sizeof(value), "%.2f", num);
 
-	char entry[] = "\"ec\" : \"";
+	char *entry = NULL;
+	char quote[] = "\"";
+	entry = (char*) malloc(strlen(quote) * sizeof(char) + 1);
+	strcpy(entry, quote);
+
+	entry = realloc(entry, (strlen(entry) + strlen(key)) * sizeof(char) + 1);
+	strcat(entry, key);
+
+	char linking_syntax[] = "\" : \"";
+	entry = realloc(entry, (strlen(entry) + strlen(linking_syntax)) * sizeof(char) + 1);
+	strcat(entry, linking_syntax);
+
+	entry = realloc(entry, (strlen(entry) + strlen(value)) * sizeof(char) + 1);
 	strcat(entry, value);
-	strcat(entry, "\"");
+
+	entry = realloc(entry, (strlen(entry) + strlen(quote)) * sizeof(char) + 1);
+	strcat(entry, quote);
 
 	*data = realloc(*data, (strlen(*data) + strlen(entry)) * sizeof(char) + 1);
 	strcat(*data, entry);
+
+	free(entry);
 }
 
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
