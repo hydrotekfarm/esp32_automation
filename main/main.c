@@ -81,7 +81,7 @@ static float _air_temp = 0;
 static float _humidity = 0;
 
 // Task Handles
-static TaskHandle_t temperature_task_handle = NULL;
+static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
 static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
@@ -165,13 +165,17 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 	}
 }
 
-void add_sensor_data(esp_mqtt_client_handle_t client, char topic[], float value) {	// Publish Sensor Data Method
-	// Convert sensor data to string
-	char data[8];
-	snprintf(data, sizeof(data), "%.2f", value);
+void add_entry(char** data, bool* first, char* key, float num) {
+	if(*first) *first = false;
+	else strcat(*data, ",");
 
-	// Publish string using mqtt client
-	esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+	char value[8];
+	snprintf(value, sizeof(value), "%.2f", num);
+
+	char entry[] = "\"ec\" : \"";
+	strcat(entry, value);
+	strcat(entry, "\"");
+	strcat(*data, entry);
 }
 
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
@@ -187,85 +191,32 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
-		char data [200] = "{";
+		char *data = (char*) malloc(500 * sizeof(char));
+		strcpy(data, "{");
 		char date [] = "\"6/19/2020(10:23:56)\" : {";
 		strcat(data, date);
 
 		bool first = true;
 
 		if(water_temperature_active) {
-			if(first) first = false;
-			else strcat(data, ",");
-
-			char value[8];
-			snprintf(value, sizeof(value), "%.2f", _water_temp);
-
-			char entry[] = "\"water temp\" : \"";
-			strcat(entry, value);
-			strcat(entry, "\"");
-			strcat(data, entry);
+			add_entry(&data, &first, "water temp", _water_temp);
 		}
 
 		if(ec_active) {
-			if(first) first = false;
-			else strcat(data, ",");
-
-			char value[8];
-			snprintf(value, sizeof(value), "%.2f", _ec);
-
-			char entry[] = "\"ec\" : \"";
-			strcat(entry, value);
-			strcat(entry, "\"");
-			strcat(data, entry);
+			add_entry(&data, &first, "ec", _ec);
 		}
 
 		if(ph_active) {
-			if(first) first = false;
-			else strcat(data, ",");
-
-			char value[8];
-			snprintf(value, sizeof(value), "%.2f", _ph);
-
-			char entry[] = "\"ph\" : \"";
-			strcat(entry, value);
-			strcat(entry, "\"");
-			strcat(data, entry);
+			add_entry(&data, &first, "ph", _ph);
 		}
 
 		if(ultrasonic_active) {
-			if(first) first = false;
-			else strcat(data, ",");
-
-			char value[8];
-			snprintf(value, sizeof(value), "%.2f", _distance);
-
-			char entry[] = "\"distance\" : \"";
-			strcat(entry, value);
-			strcat(entry, "\"");
-			strcat(data, entry);
+			add_entry(&data, &first, "distance", _distance);
 		}
 
 		if(bme_active) {
-			if(first) first = false;
-			else strcat(data, ",");
-
-			char temp_value[8];
-			snprintf(temp_value, sizeof(temp_value), "%.2f", _air_temp);
-
-			char temp_entry[] = "\"air temp\" : \"";
-			strcat(temp_entry, temp_value);
-			strcat(temp_entry, "\"");
-			strcat(data, temp_entry);
-
-			strcat(data, ",");
-
-			char humidity_value[8];
-			snprintf(humidity_value, sizeof(humidity_value), "%.2f", _humidity);
-
-			char humidity_entry[] = "\"humidity\" : \"";
-			strcat(humidity_entry, humidity_value);
-			strcat(humidity_entry, "\"");
-			strcat(data, humidity_entry);
+			add_entry(&data, &first, "temp", _air_temp);
+			add_entry(&data, &first, "humidity", _humidity);
 		}
 
 		strcat(data, "}}");
@@ -435,7 +386,6 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 			.echo_pin = ULTRASONIC_ECHO_GPIO };
 
 	ultrasonic_init(&sensor);
-	ESP_LOGI(TAG, "Ultrasonic initialized\n");
 
 	for (;;) {
 		if(ultrasonic_active) {
@@ -621,7 +571,7 @@ void app_main(void) {							// Main Method
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 
 			// Create core 1 tasks
-			xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &temperature_task_handle, 1);
+			xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
 			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
