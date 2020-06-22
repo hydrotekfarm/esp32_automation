@@ -167,7 +167,11 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 
 void add_entry(char** data, bool* first, char* key, float num) {
 	if(*first) *first = false;
-	else strcat(*data, ",");
+	else {
+		char comma[] = ",";
+		*data = realloc(*data, 50);
+		strcat(*data, comma);
+	}
 
 	char value[8];
 	snprintf(value, sizeof(value), "%.2f", num);
@@ -175,6 +179,11 @@ void add_entry(char** data, bool* first, char* key, float num) {
 	char entry[] = "\"ec\" : \"";
 	strcat(entry, value);
 	strcat(entry, "\"");
+
+	printf("length: %i\n", strlen(entry));
+	printf("size: %i\n", sizeof(entry));
+
+	*data = realloc(*data, (strlen(*data) + strlen(entry)) * sizeof(char));
 	strcat(*data, entry);
 }
 
@@ -191,9 +200,13 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
-		char *data = (char*) malloc(500 * sizeof(char));
-		strcpy(data, "{");
-		char date [] = "\"6/19/2020(10:23:56)\" : {";
+		char *data = NULL;
+		char opening_tag[] = "{";
+		data = (char*) malloc(strlen(opening_tag) * sizeof(char));
+		strcpy(data, opening_tag);
+
+		char date[] = "\"6/19/2020(10:23:56)\" : {";
+		data = realloc(data, (strlen(data) + strlen(date)) * sizeof(char));
 		strcat(data, date);
 
 		bool first = true;
@@ -214,19 +227,25 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			add_entry(&data, &first, "distance", _distance);
 		}
 
-		if(bme_active) {
+		/*if(bme_active) {
 			add_entry(&data, &first, "temp", _air_temp);
 			add_entry(&data, &first, "humidity", _humidity);
 		}
+		ESP_LOGI(TAG, "Size of data: %i", strlen(data) * sizeof(char));
 
-		strcat(data, "}}");
-
+		char closing_tag[] = "}}";
+		data = realloc(data, (strlen(data) + strlen(closing_tag)) * sizeof(char));
+		strcat(data, closing_tag);
+*/
 		char topic[] = "growroom1/systems/system1";
 
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 
 		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);
+
+		free(data);
+		data = NULL;
 
 		// Publish data every 20 seconds
 		vTaskDelay(pdMS_TO_TICKS(5000));
@@ -379,7 +398,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 }
 
 void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurement Task
-	const char *TAG = "ULTRASONIC_TAG";
+	const char *TAG = "ULTRASONIC_TASK";
 
 	// Setting sensor ports and initializing
 	ultrasonic_sensor_t sensor = { .trigger_pin = ULTRASONIC_TRIGGER_GPIO,
