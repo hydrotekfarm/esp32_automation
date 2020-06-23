@@ -105,6 +105,11 @@ static uint32_t sensor_sync_bits;
 static bool ec_calibration = false;
 static bool ph_calibration = false;
 
+static void restart_esp32() { // Restart ESP32
+	fflush(stdout);
+	esp_restart();
+}
+
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
 	const char *TAG = "Event_Handler";
@@ -172,10 +177,18 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 
 void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
 	*str = malloc(strlen(init_str) * sizeof(char)); // Assign memory based on size of initial value
+	if(!(*str)) { // Restart if memory alloc fails
+		ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
+		restart_esp32();
+	}
 	strcpy(*str, init_str); // Copy initial value into string
 }
 void append_str(char** str, char* str_to_add) { // Create method to reallocate and append string to already allocated string
 	*str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1); // Reallocate data based on existing and new string size
+	if(!(*str)) { // Restart if memory alloc fails
+		ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
+		restart_esp32();
+	}
 	strcat(*str, str_to_add); // Concatenate strings
 }
 
