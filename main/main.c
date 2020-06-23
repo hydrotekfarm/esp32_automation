@@ -34,13 +34,12 @@ static EventGroupHandle_t wifi_event_group;
 
 // Sensor Task Coordination with Event Group
 static EventGroupHandle_t sensor_event_group;
-#define TEMPERATURE_COMPLETED_BIT	(1<<0)
-#define EC_COMPLETED_BIT 	        (1<<1)
-#define DELAY_COMPLETED_BIT		    (1<<2)
-#define PH_COMPLETED_BIT		    (1<<3)
-#define ULTRASONIC_COMPLETED_BIT    (1<<4)
-#define BME_COMPLETED_BIT           (1<<4)
-#define ALL_SYNC_BITS ( TEMPERATURE_COMPLETED_BIT | EC_COMPLETED_BIT | DELAY_COMPLETED_BIT | PH_COMPLETED_BIT | ULTRASONIC_COMPLETED_BIT | BME_COMPLETED_BIT)
+#define DELAY_BIT		    (1<<0)
+#define WATER_TEMPERATURE_BIT	(1<<1)
+#define EC_BIT 	        (1<<2)
+#define PH_BIT		    (1<<3)
+#define ULTRASONIC_BIT    (1<<4)
+#define BME_BIT           (1<<5)
 
 // Core 1 Task Priorities
 #define BME_TASK_PRIORITY 1
@@ -99,6 +98,8 @@ static bool ec_active = false;
 static bool ph_active = true;
 static bool ultrasonic_active = true;
 static bool bme_active = false;
+
+static uint32_t sensor_sync_bits;
 
 // Sensor Calibration Status
 static bool ec_calibration = false;
@@ -308,7 +309,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 
 		// Sync with other sensor tasks
 		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+		xEventGroupSync(sensor_event_group, WATER_TEMPERATURE_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -355,7 +356,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			xEventGroupSync(sensor_event_group, EC_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 	}
 }
@@ -403,7 +404,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			xEventGroupSync(sensor_event_group, PH_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 	}
 }
@@ -442,7 +443,7 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 
 		// Sync with other sensor tasks
 		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+		xEventGroupSync(sensor_event_group, ULTRASONIC_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -452,47 +453,52 @@ void measure_bme(void * parameter) {
 	ESP_ERROR_CHECK(i2cdev_init());
 
 	bme680_t sensor;
-	    memset(&sensor, 0, sizeof(bme680_t));
+	memset(&sensor, 0, sizeof(bme680_t));
 
-	    ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME680_I2C_ADDR_1, 0, BME_SDA_GPIO, BME_SCL_GPIO));
+	ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME680_I2C_ADDR_1, 0, BME_SDA_GPIO, BME_SCL_GPIO));
 
-	    // Init the sensor
-	    ESP_ERROR_CHECK(bme680_init_sensor(&sensor));
+	// Init the sensor
+	ESP_ERROR_CHECK(bme680_init_sensor(&sensor));
 
-	    // Changes the oversampling rates to 4x oversampling for temperature
-	    // and 2x oversampling for humidity. Pressure measurement is skipped.
-	    bme680_set_oversampling_rates(&sensor, BME680_OSR_4X, BME680_OSR_NONE, BME680_OSR_2X);
+	// Changes the oversampling rates to 4x oversampling for temperature
+	// and 2x oversampling for humidity. Pressure measurement is skipped.
+	bme680_set_oversampling_rates(&sensor, BME680_OSR_4X, BME680_OSR_NONE, BME680_OSR_2X);
 
-	    // Change the IIR filter size for temperature and pressure to 7.
-	    bme680_set_filter_size(&sensor, BME680_IIR_SIZE_7);
+	// Change the IIR filter size for temperature and pressure to 7.
+	bme680_set_filter_size(&sensor, BME680_IIR_SIZE_7);
 
-	    // Set ambient temperature
-	    bme680_set_ambient_temperature(&sensor, 22);
+	// Set ambient temperature
+	bme680_set_ambient_temperature(&sensor, 22);
 
-	    // As long as sensor configuration isn't changed, duration is constant
-	    uint32_t duration;
-	    bme680_get_measurement_duration(&sensor, &duration);
+	// As long as sensor configuration isn't changed, duration is constant
+	uint32_t duration;
+	bme680_get_measurement_duration(&sensor, &duration);
 
-	    bme680_values_float_t values;
-	    for(;;) {
-			// trigger the sensor to start one TPHG measurement cycle
-			if (bme680_force_measurement(&sensor) == ESP_OK) {
-				// passive waiting until measurement results are available
-				vTaskDelay(duration);
-				// get the results and do something with them
-				if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
-					ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
-					ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
+	bme680_values_float_t values;
+	for(;;) {
+		// trigger the sensor to start one TPHG measurement cycle
+		if (bme680_force_measurement(&sensor) == ESP_OK) {
+			// passive waiting until measurement results are available
+			vTaskDelay(duration);
+			// get the results and do something with them
+			if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
+				ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
+				ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
 
-					_air_temp = values.temperature;
-					_humidity = values.humidity;
-				}
+				_air_temp = values.temperature;
+				_humidity = values.humidity;
 			}
+		}
 
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	    }
+		// Sync with other sensor tasks
+		// Wait up to 10 seconds to let other tasks end
+		xEventGroupSync(sensor_event_group, BME_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+	}
+}
+
+void set_sensor_sync_bits(uint32_t *bits) {
+	//*bits = 24;
+	*bits = DELAY_BIT | (water_temperature_active ? WATER_TEMPERATURE_BIT : 0) | (ec_active ? EC_BIT : 0) | (ph_active ? PH_BIT : 0) | (ultrasonic_active ? ULTRASONIC_BIT : 0) | (bme_active  ? BME_BIT : 0);
 }
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task
@@ -501,9 +507,9 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 	for (;;) {
 		// Provide a minimum amount of time before event group round resets
 		vTaskDelay(pdMS_TO_TICKS(10000));
-		returnBits = xEventGroupSync(sensor_event_group, DELAY_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(10000));
+		returnBits = xEventGroupSync(sensor_event_group, DELAY_BIT, sensor_sync_bits, pdMS_TO_TICKS(10000));
 		// Check Whether all tasks were completed on time
-		if ((returnBits & ALL_SYNC_BITS) == ALL_SYNC_BITS) {
+		if ((returnBits & sensor_sync_bits) == sensor_sync_bits) {
 			ESP_LOGI(TAG, "Completed");
 		} else {
 			ESP_LOGE(TAG, "Failed to Complete On Time");
@@ -584,6 +590,7 @@ void app_main(void) {							// Main Method
 				ESP_LOGE(_TAG,
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
+			set_sensor_sync_bits(&sensor_sync_bits);
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
