@@ -98,7 +98,7 @@ static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
 static bool ultrasonic_active = true;
-static bool bme_active = true;
+static bool bme_active = false;
 
 // Sensor Calibration Status
 static bool ec_calibration = false;
@@ -292,29 +292,23 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 	if(sensor_count < 1 && water_temperature_active) ESP_LOGE(TAG, "Sensor Not Found");
 
 	for (;;) {
-		if (water_temperature_active) {		// Water Temperature Sensor is Active
-			// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
-			esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
-					ds18b20_address[0], &_water_temp);
-			// Error Management
-			if (error == ESP_OK) {
-				ESP_LOGI(TAG, "temperature: %f\n", _water_temp);
-			} else if (error == ESP_ERR_INVALID_RESPONSE) {
-				ESP_LOGE(TAG, "Temperature Sensor Not Connected\n");
-			} else if (error == ESP_ERR_INVALID_CRC) {
-				ESP_LOGE(TAG, "Invalid CRC, Try Again\n");
-			} else {
-				ESP_LOGE(TAG, "Unknown Error\n");
-			}
-
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-		} else {		// Delay if Water Temperature Sensor is disabled
-			// Sync with other sensor tasks
-			// Wait up to 5 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
+		// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
+		esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
+				ds18b20_address[0], &_water_temp);
+		// Error Management
+		if (error == ESP_OK) {
+			ESP_LOGI(TAG, "temperature: %f\n", _water_temp);
+		} else if (error == ESP_ERR_INVALID_RESPONSE) {
+			ESP_LOGE(TAG, "Temperature Sensor Not Connected\n");
+		} else if (error == ESP_ERR_INVALID_CRC) {
+			ESP_LOGE(TAG, "Invalid CRC, Try Again\n");
+		} else {
+			ESP_LOGE(TAG, "Unknown Error\n");
 		}
+
+		// Sync with other sensor tasks
+		// Wait up to 10 seconds to let other tasks end
+		xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -323,25 +317,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	ec_begin();		// Setup EC sensor and get calibrated values stored in NVS
 
 	for (;;) {
-		if (ec_active) {		// EC sensor is Active
-			uint32_t adc_reading = 0;
-			// Get a Raw Voltage Reading
-			for (int i = 0; i < 64; i++) {
-				adc_reading += adc1_get_raw(EC_SENSOR_GPIO);
-			}
-			adc_reading /= 64;
-			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
-			ESP_LOGI(TAG, "EC: %f\n", _ec);
-
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-		} else if (!ec_active && !ec_calibration) {		// Delay if EC sensor is disabled and calibration is not taking place
-			// Sync with other sensor tasks
-			// Wait up to 5 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
-		} else if (ec_calibration) {		// Calibration Mode is activated
+		if(ec_calibration) { // Calibration Mode is activated
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 			// Get many Raw Voltage Samples to allow values to stabilize before calibrating
 			for (int i = 0; i < 20; i++) {
@@ -366,6 +342,20 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			ec_calibration = false;
 			ec_active = true;
 			vTaskPrioritySet(ec_task_handle, EC_TASK_PRIORITY);
+		} else {		// EC sensor is Active
+			uint32_t adc_reading = 0;
+			// Get a Raw Voltage Reading
+			for (int i = 0; i < 64; i++) {
+				adc_reading += adc1_get_raw(EC_SENSOR_GPIO);
+			}
+			adc_reading /= 64;
+			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
+			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
+			ESP_LOGI(TAG, "EC: %f\n", _ec);
+
+			// Sync with other sensor tasks
+			// Wait up to 10 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, EC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 	}
 }
@@ -375,25 +365,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 	ph_begin();	// Setup pH sensor and get calibrated values stored in NVS
 
 	for (;;) {
-		if (ph_active) {	// pH sensor is Active
-			uint32_t adc_reading = 0;
-			// Get a Raw Voltage Reading
-			for (int i = 0; i < 64; i++) {
-				adc_reading += adc1_get_raw(PH_SENSOR_GPIO);
-			}
-			adc_reading /= 64;
-			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			ESP_LOGI(TAG, "voltage: %f", voltage);
-			_ph = readPH(voltage);		// Calculate pH from voltage Reading
-			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-		} else if (!ph_active && !ph_calibration) {	// Delay if pH sensor is disabled and calibration is not taking place
-			// Sync with other sensor tasks
-			// Wait up to 5 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
-		} else if (ph_calibration) {	// Calibration Mode is activated
+		if(ph_calibration) {
 			ESP_LOGI(TAG, "Start Calibration");
 			vTaskPrioritySet(ph_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 			// Get many Raw Voltage Samples to allow values to stabilize before calibrating
@@ -418,6 +390,20 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			ph_calibration = false;
 			ph_active = true;
 			vTaskPrioritySet(ph_task_handle, PH_TASK_PRIORITY);
+		} else {	// pH sensor is Active
+			uint32_t adc_reading = 0;
+			// Get a Raw Voltage Reading
+			for (int i = 0; i < 64; i++) {
+				adc_reading += adc1_get_raw(PH_SENSOR_GPIO);
+			}
+			adc_reading /= 64;
+			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
+			ESP_LOGI(TAG, "voltage: %f", voltage);
+			_ph = readPH(voltage);		// Calculate pH from voltage Reading
+			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
+			// Sync with other sensor tasks
+			// Wait up to 10 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, PH_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 	}
 }
@@ -432,37 +418,31 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 	ultrasonic_init(&sensor);
 
 	for (;;) {
-		if(ultrasonic_active) {
-			// Measures distance and returns error code
-			float distance;
-			esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
+		// Measures distance and returns error code
+		float distance;
+		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
-			// TODO check if value is beyond acceptable margin of error and react appropriately
+		// TODO check if value is beyond acceptable margin of error and react appropriately
 
-			// React appropriately to error code
-			switch (res) {
-			case ESP_ERR_ULTRASONIC_PING:
-				ESP_LOGE(TAG, "Device is in invalid state");
-				break;
-			case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
-				ESP_LOGE(TAG, "Device not found");
-				break;
-			case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
-				ESP_LOGE(TAG, "Distance is too large");
-				break;
-			default:
-				ESP_LOGI(TAG, "Distance: %f cm\n", distance);
-				_distance = distance;
-			}
-
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-		} else {
-			// Sync with other sensor tasks
-			// Wait up to 5 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
+		// React appropriately to error code
+		switch (res) {
+		case ESP_ERR_ULTRASONIC_PING:
+			ESP_LOGE(TAG, "Device is in invalid state");
+			break;
+		case ESP_ERR_ULTRASONIC_PING_TIMEOUT:
+			ESP_LOGE(TAG, "Device not found");
+			break;
+		case ESP_ERR_ULTRASONIC_ECHO_TIMEOUT:
+			ESP_LOGE(TAG, "Distance is too large");
+			break;
+		default:
+			ESP_LOGI(TAG, "Distance: %f cm\n", distance);
+			_distance = distance;
 		}
+
+		// Sync with other sensor tasks
+		// Wait up to 10 seconds to let other tasks end
+		xEventGroupSync(sensor_event_group, ULTRASONIC_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -495,29 +475,23 @@ void measure_bme(void * parameter) {
 
 	    bme680_values_float_t values;
 	    for(;;) {
-	    	if(bme_active) {
-	    		// trigger the sensor to start one TPHG measurement cycle
-	    		if (bme680_force_measurement(&sensor) == ESP_OK) {
-	    			// passive waiting until measurement results are available
-	    			vTaskDelay(duration);
-	    			// get the results and do something with them
-	    			if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
-	    				ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
-	    				ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
+			// trigger the sensor to start one TPHG measurement cycle
+			if (bme680_force_measurement(&sensor) == ESP_OK) {
+				// passive waiting until measurement results are available
+				vTaskDelay(duration);
+				// get the results and do something with them
+				if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
+					ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
+					ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
 
-	    				_air_temp = values.temperature;
-	    				_humidity = values.humidity;
-	    			}
-	    		}
+					_air_temp = values.temperature;
+					_humidity = values.humidity;
+				}
+			}
 
-	    		// Sync with other sensor tasks
-	    		// Wait up to 10 seconds to let other tasks end
-	    		xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	    	} else {
-	    		// Sync with other sensor tasks
-	    		// Wait up to 5 seconds to let other tasks end
-	    		xEventGroupSync(sensor_event_group, TEMPERATURE_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_DISABLED_PERIOD));
-	    	}
+			// Sync with other sensor tasks
+			// Wait up to 10 seconds to let other tasks end
+			xEventGroupSync(sensor_event_group, BME_COMPLETED_BIT, ALL_SYNC_BITS, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	    }
 }
 
@@ -615,11 +589,11 @@ void app_main(void) {							// Main Method
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 
 			// Create core 1 tasks
-			xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
-			xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, &bme_task_handle, 1);
+			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+			if(ec_active) xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
+			if(ph_active) xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
+			if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
+			if(bme_active) xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, &bme_task_handle, 1);
 			xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 		} else if ((eventBits & WIFI_FAIL_BIT) != 0) {
