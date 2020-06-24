@@ -22,6 +22,7 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
+#include "ds3231.h"
 #include "rf_transmission.h"
 
 static const char *_TAG = "Main";
