@@ -53,6 +53,8 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
+#define RTC_SCL_GPIO 22                 // GPIO 22
+#define RTC_SDA_GPIO 21                 // GPIO 21
 #define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
@@ -97,9 +99,35 @@ static uint32_t sensor_sync_bits;
 static bool ec_calibration = false;
 static bool ph_calibration = false;
 
+static bool init_rtc = true;
+
 static void restart_esp32() { // Restart ESP32
 	fflush(stdout);
 	esp_restart();
+}
+
+static void set_time(i2c_dev_t *dev, struct tm *time, uint32_t year, uint32_t month, uint32_t  day_of_month, uint32_t hour, uint32_t min, uint32_t  sec) {
+	ESP_ERROR_CHECK(i2cdev_init());
+
+	memset(&(*dev), 0, sizeof(i2c_dev_t));
+
+	ESP_ERROR_CHECK(ds3231_init_desc(&(*dev), 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
+
+	time->tm_year = year;
+	time->tm_mon = month;
+	time->tm_mday = day_of_month;
+	time->tm_hour = hour;
+	time->tm_min = min;
+	time->tm_sec = sec;
+}
+
+static void  get_time() {
+	i2c_dev_t dev;
+	struct tm time;
+
+	if(init_rtc) {
+		set_time(&dev, &time, 120, 5, 24, 14, 9, 23);
+	}
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -542,6 +570,7 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 			set_sensor_sync_bits(&sensor_sync_bits);
+			get_time();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
