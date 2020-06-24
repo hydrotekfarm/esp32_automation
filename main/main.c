@@ -22,7 +22,6 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
-#include "bme680.h"
 #include "rf_transmission.h"
 
 static const char *_TAG = "Main";
@@ -39,21 +38,17 @@ static EventGroupHandle_t sensor_event_group;
 #define EC_BIT 	        (1<<2)
 #define PH_BIT		    (1<<3)
 #define ULTRASONIC_BIT    (1<<4)
-#define BME_BIT           (1<<5)
 
 // Core 1 Task Priorities
-#define BME_TASK_PRIORITY 1
-#define ULTRASONIC_TASK_PRIORITY 2
-#define PH_TASK_PRIORITY 3
-#define EC_TASK_PRIORITY 4
-#define TEMPERATURE_TASK_PRIORITY 5
-#define SYNC_TASK_PRIORITY 6
+#define ULTRASONIC_TASK_PRIORITY 1
+#define PH_TASK_PRIORITY 2
+#define EC_TASK_PRIORITY 3
+#define WATER_TEMPERATURE_TASK_PRIORITY 4
+#define SYNC_TASK_PRIORITY 5
 
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define BME_SCL_GPIO 22                 // GPIO 22
-#define BME_SDA_GPIO 21                 // GPIO 21
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
@@ -80,15 +75,12 @@ static float _water_temp = 0;
 static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
-static float _air_temp = 0;
-static float _humidity = 0;
 
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
 static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
-static TaskHandle_t bme_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 
@@ -97,7 +89,6 @@ static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
 static bool ultrasonic_active = true;
-static bool bme_active = false;
 
 static uint32_t sensor_sync_bits;
 
@@ -268,11 +259,6 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			add_entry(&data, &first, "distance", _distance);
 		}
 
-		if(bme_active) {
-			add_entry(&data, &first, "temp", _air_temp);
-			add_entry(&data, &first, "humidity", _humidity);
-		}
-
 		// Add closing tag
 		append_str(&data, "}}");
 
@@ -364,7 +350,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			}
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			_ec = readEC(voltage, _air_temp);	// Calculate EC from voltage reading
+			_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
 
 			// Sync with other sensor tasks
@@ -460,58 +446,9 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 	}
 }
 
-void measure_bme(void * parameter) {
-	const char *TAG = "BME_TAG";
-
-	ESP_ERROR_CHECK(i2cdev_init());
-
-	bme680_t sensor;
-	memset(&sensor, 0, sizeof(bme680_t));
-
-	ESP_ERROR_CHECK(bme680_init_desc(&sensor, BME680_I2C_ADDR_1, 0, BME_SDA_GPIO, BME_SCL_GPIO));
-
-	// Init the sensor
-	ESP_ERROR_CHECK(bme680_init_sensor(&sensor));
-
-	// Changes the oversampling rates to 4x oversampling for temperature
-	// and 2x oversampling for humidity. Pressure measurement is skipped.
-	bme680_set_oversampling_rates(&sensor, BME680_OSR_4X, BME680_OSR_NONE, BME680_OSR_2X);
-
-	// Change the IIR filter size for temperature and pressure to 7.
-	bme680_set_filter_size(&sensor, BME680_IIR_SIZE_7);
-
-	// Set ambient temperature
-	bme680_set_ambient_temperature(&sensor, 22);
-
-	// As long as sensor configuration isn't changed, duration is constant
-	uint32_t duration;
-	bme680_get_measurement_duration(&sensor, &duration);
-
-	bme680_values_float_t values;
-	for(;;) {
-		// trigger the sensor to start one TPHG measurement cycle
-		if (bme680_force_measurement(&sensor) == ESP_OK) {
-			// passive waiting until measurement results are available
-			vTaskDelay(duration);
-			// get the results and do something with them
-			if (bme680_get_results_float(&sensor, &values) == ESP_OK) {
-				ESP_LOGI(TAG, "Temperature: %.2f", values.temperature);
-				ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
-
-				_air_temp = values.temperature;
-				_humidity = values.humidity;
-			}
-		}
-
-		// Sync with other sensor tasks
-		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, BME_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	}
-}
-
 void set_sensor_sync_bits(uint32_t *bits) {
 	//*bits = 24;
-	*bits = DELAY_BIT | (water_temperature_active ? WATER_TEMPERATURE_BIT : 0) | (ec_active ? EC_BIT : 0) | (ph_active ? PH_BIT : 0) | (ultrasonic_active ? ULTRASONIC_BIT : 0) | (bme_active  ? BME_BIT : 0);
+	*bits = DELAY_BIT | (water_temperature_active ? WATER_TEMPERATURE_BIT : 0) | (ec_active ? EC_BIT : 0) | (ph_active ? PH_BIT : 0) | (ultrasonic_active ? ULTRASONIC_BIT : 0);
 }
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task
@@ -531,7 +468,7 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 }
 
 void send_rf_transmission(){
-	// Setup Transmission Protcol
+	// Setup Transmission Protocol
 	struct binary_bits low_bit = {3, 1};
 	struct binary_bits sync_bit = {31, 1};
 	struct binary_bits high_bit = {1, 3};
@@ -581,8 +518,8 @@ void app_main(void) {							// Main Method
 		esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 		ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 		wifi_config_t wifi_config = { .sta = {
-				.ssid = "XXXXXXXXX",
-				.password = "xxxxxxxx" },
+				.ssid = "LeawoodGuest",
+				.password = "guest,123" },
 		};
 		ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 		ESP_ERROR_CHECK(esp_wifi_start());
@@ -609,11 +546,10 @@ void app_main(void) {							// Main Method
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
 
 			// Create core 1 tasks
-			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
 			if(ec_active) xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 			if(ph_active) xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
 			if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
-			if(bme_active) xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, &bme_task_handle, 1);
 			xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 		} else if ((eventBits & WIFI_FAIL_BIT) != 0) {
