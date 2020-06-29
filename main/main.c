@@ -107,12 +107,12 @@ static void restart_esp32() { // Restart ESP32
 	esp_restart();
 }
 
-static void set_time() {
+static void init_rtc() {
 	ESP_ERROR_CHECK(i2cdev_init());
-
 	memset(&dev, 0, sizeof(i2c_dev_t));
-
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
+}
+static void set_time() {
 	struct tm time;
 
 	time.tm_year = 120;
@@ -574,7 +574,8 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 			set_sensor_sync_bits(&sensor_sync_bits);
-			set_time();
+			init_rtc();
+			//set_time();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
