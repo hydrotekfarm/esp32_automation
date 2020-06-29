@@ -79,6 +79,9 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 
+// RTC Components
+i2c_dev_t dev;
+
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
@@ -91,7 +94,7 @@ static TaskHandle_t publish_task_handle = NULL;
 static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
-static bool ultrasonic_active = true;
+static bool ultrasonic_active = false;
 
 static uint32_t sensor_sync_bits;
 
@@ -99,35 +102,31 @@ static uint32_t sensor_sync_bits;
 static bool ec_calibration = false;
 static bool ph_calibration = false;
 
-static bool init_rtc = true;
-
 static void restart_esp32() { // Restart ESP32
 	fflush(stdout);
 	esp_restart();
 }
 
-static void set_time(i2c_dev_t *dev, struct tm *time, uint32_t year, uint32_t month, uint32_t  day_of_month, uint32_t hour, uint32_t min, uint32_t  sec) {
+static void set_time() {
 	ESP_ERROR_CHECK(i2cdev_init());
 
-	memset(&(*dev), 0, sizeof(i2c_dev_t));
+	memset(&dev, 0, sizeof(i2c_dev_t));
 
-	ESP_ERROR_CHECK(ds3231_init_desc(&(*dev), 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
-
-	time->tm_year = year;
-	time->tm_mon = month;
-	time->tm_mday = day_of_month;
-	time->tm_hour = hour;
-	time->tm_min = min;
-	time->tm_sec = sec;
-}
-
-static void  get_time() {
-	i2c_dev_t dev;
+	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
 	struct tm time;
 
-	if(init_rtc) {
-		set_time(&dev, &time, 120, 5, 24, 14, 9, 23);
-	}
+	time.tm_year = 120;
+	time.tm_mon = 5;
+	time.tm_mday = 29;
+	time.tm_hour = 13;
+	time.tm_min = 14;
+	time.tm_sec = 0;
+
+	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
+}
+
+static void get_time(struct tm *time) {
+	ds3231_get_time(&dev, &(*time));
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -265,6 +264,11 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		create_str(&data, "{");
 
 		// Add timestamp to data
+		struct tm time;
+		get_time(&time);
+		printf("%04d-%02d-%02d %02d:%02d:%02d\n", time.tm_year + 1900 /*Add 1900 for better readability*/, time.tm_mon + 1,
+			            time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+
 		char date[] = "\"6/19/2020(10:23:56)\" : {"; // TODO add actual time using RTC
 		append_str(&data, date);
 
@@ -570,7 +574,7 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 			set_sensor_sync_bits(&sensor_sync_bits);
-			get_time();
+			set_time();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
