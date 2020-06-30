@@ -115,10 +115,10 @@ static void init_rtc() {
 static void set_time() {
 	struct tm time;
 
-	time.tm_year = 120;
-	time.tm_mon = 5;
-	time.tm_mday = 29;
-	time.tm_hour = 13;
+	time.tm_year = 120; // Years since 1900
+	time.tm_mon = 5; // 0-11
+	time.tm_mday = 29; // day of month
+	time.tm_hour = 13; // 0-24
 	time.tm_min = 14;
 	time.tm_sec = 0;
 
@@ -264,12 +264,45 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		create_str(&data, "{");
 
 		// Add timestamp to data
+		char *date = NULL;;
+		create_str(&date, "\"");
+
 		struct tm time;
 		get_time(&time);
-		printf("%04d-%02d-%02d %02d:%02d:%02d\n", time.tm_year + 1900 /*Add 1900 for better readability*/, time.tm_mon + 1,
-			            time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 
-		char date[] = "\"6/19/2020(10:23:56)\" : {"; // TODO add actual time using RTC
+		uint32_t month_int = time.tm_mon + 1;
+		char month[8];
+		snprintf(month, sizeof(month), "%.2d", month_int);
+
+		char day[8];
+		snprintf(day, sizeof(day), "%.2d", time.tm_mday);
+
+		uint32_t year_int = time.tm_year + 1900;
+		char year[8];
+		snprintf(year, sizeof(year), "%.4d", year_int);
+
+		char hour[8];
+		snprintf(hour, sizeof(hour), "%.2d", time.tm_hour);
+
+		char min[8];
+		snprintf(min, sizeof(min), "%.2d", time.tm_min);
+
+		char sec[8];
+		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
+
+		append_str(&date, month);
+		append_str(&date, "/");
+		append_str(&date, day);
+		append_str(&date, "/");
+		append_str(&date,  year);
+		append_str(&date, "(");
+		append_str(&date, hour);
+		append_str(&date, ":");
+		append_str(&date, min);
+		append_str(&date, ":");
+		append_str(&date, sec);
+		append_str(&date, ")\" : {");
+
 		append_str(&data, date);
 
 		// Variable for adding comma to every entry except first
@@ -563,7 +596,6 @@ void app_main(void) {							// Main Method
 		WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,
 		portMAX_DELAY);
 
-
 		if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 			sensor_event_group = xEventGroupCreate();
 
@@ -575,7 +607,7 @@ void app_main(void) {							// Main Method
 			}
 			set_sensor_sync_bits(&sensor_sync_bits);
 			init_rtc();
-			//set_time();
+			set_time();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
