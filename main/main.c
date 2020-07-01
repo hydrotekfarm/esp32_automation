@@ -107,12 +107,13 @@ static void restart_esp32() { // Restart ESP32
 	esp_restart();
 }
 
-static void init_rtc() {
+static void init_rtc() { // Init RTC
 	ESP_ERROR_CHECK(i2cdev_init());
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
 }
-static void set_time() {
+static void set_time() { // Set current time to some date
+	// TODO Have user input for time so actual time is set
 	struct tm time;
 
 	time.tm_year = 120; // Years since 1900
@@ -126,15 +127,19 @@ static void set_time() {
 }
 
 static void check_rtc_reset() {
+	// Get current time
 	struct tm time;
 	ds3231_get_time(&dev, &time);
 
+	// If year is less than 2020 (RTC was reset), set time again
 	if(time.tm_year < 120) set_time();
 }
 
 static void get_time(struct tm *time) {
+	// Get current time and set it to return var
 	ds3231_get_time(&dev, &(*time));
 
+	// If year is less than 2020 (RTC was reset), set time again and set new time to return var
 	if(time->tm_year < 120) {
 		set_time();
 		ds3231_get_time(&dev, &(*time));
@@ -279,6 +284,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		struct tm time;
 		get_time(&time);
 
+		// Convert all time componenets to string
 		uint32_t year_int = time.tm_year + 1900;
 		char year[8];
 		snprintf(year, sizeof(year), "%.4d", year_int);
@@ -299,6 +305,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		char sec[8];
 		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
 
+		// Format timestamp in standard ISO format (https://www.w3.org/TR/NOTE-datetime)
 		char *date = NULL;;
 		create_str(&date, "\"");
 		append_str(&date, year);
@@ -314,6 +321,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, sec);
 		append_str(&date, "Z\" : {");
 
+		// Append formatted timestamp to data
 		append_str(&data, date);
 		free(date);
 		date = NULL;
@@ -619,7 +627,10 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 
+			// Set all sync bits var
 			set_sensor_sync_bits(&sensor_sync_bits);
+
+			// Init rtc and check if time needs to be set
 			init_rtc();
 			check_rtc_reset();
 
