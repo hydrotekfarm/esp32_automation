@@ -276,11 +276,12 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		create_str(&data, "{");
 
 		// Add timestamp to data
-		char *date = NULL;;
-		create_str(&date, "\"");
-
 		struct tm time;
 		get_time(&time);
+
+		uint32_t year_int = time.tm_year + 1900;
+		char year[8];
+		snprintf(year, sizeof(year), "%.4d", year_int);
 
 		uint32_t month_int = time.tm_mon + 1;
 		char month[8];
@@ -288,10 +289,6 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		char day[8];
 		snprintf(day, sizeof(day), "%.2d", time.tm_mday);
-
-		uint32_t year_int = time.tm_year + 1900;
-		char year[8];
-		snprintf(year, sizeof(year), "%.4d", year_int);
 
 		char hour[8];
 		snprintf(hour, sizeof(hour), "%.2d", time.tm_hour);
@@ -302,18 +299,20 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		char sec[8];
 		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
 
+		char *date = NULL;;
+		create_str(&date, "\"");
+		append_str(&date, year);
+		append_str(&date, "-");
 		append_str(&date, month);
-		append_str(&date, "/");
-		append_str(&date, day);
-		append_str(&date, "/");
-		append_str(&date,  year);
-		append_str(&date, "(");
+		append_str(&date, "-");
+		append_str(&date,  day);
+		append_str(&date, "T");
 		append_str(&date, hour);
-		append_str(&date, ":");
+		append_str(&date, "-");
 		append_str(&date, min);
-		append_str(&date, ":");
+		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, ")\" : {");
+		append_str(&date, "Z\" : {");
 
 		append_str(&data, date);
 		free(date);
