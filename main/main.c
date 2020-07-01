@@ -125,8 +125,20 @@ static void set_time() {
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
 }
 
+static void check_rtc_reset() {
+	struct tm time;
+	ds3231_get_time(&dev, &time);
+
+	if(time.tm_year < 120) set_time();
+}
+
 static void get_time(struct tm *time) {
 	ds3231_get_time(&dev, &(*time));
+
+	if(time->tm_year < 120) {
+		set_time();
+		ds3231_get_time(&dev, &(*time));
+	}
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -304,6 +316,8 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, ")\" : {");
 
 		append_str(&data, date);
+		free(date);
+		date = NULL;
 
 		// Variable for adding comma to every entry except first
 		bool first = true;
@@ -605,9 +619,10 @@ void app_main(void) {							// Main Method
 				ESP_LOGE(_TAG,
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
+
 			set_sensor_sync_bits(&sensor_sync_bits);
 			init_rtc();
-			set_time();
+			check_rtc_reset();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
