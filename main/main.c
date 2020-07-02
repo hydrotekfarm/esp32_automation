@@ -22,6 +22,7 @@
 #include "ds18x20.h"
 #include "ph_sensor.h"
 #include "ultrasonic.h"
+#include "ds3231.h"
 #include "rf_transmission.h"
 
 static const char *_TAG = "Main";
@@ -52,6 +53,8 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
+#define RTC_SCL_GPIO 22                 // GPIO 22
+#define RTC_SDA_GPIO 21                 // GPIO 21
 #define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
@@ -76,6 +79,9 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 
+// RTC Components
+i2c_dev_t dev;
+
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
@@ -88,7 +94,7 @@ static TaskHandle_t publish_task_handle = NULL;
 static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
-static bool ultrasonic_active = true;
+static bool ultrasonic_active = false;
 
 static uint32_t sensor_sync_bits;
 
@@ -99,6 +105,45 @@ static bool ph_calibration = false;
 static void restart_esp32() { // Restart ESP32
 	fflush(stdout);
 	esp_restart();
+}
+
+static void init_rtc() { // Init RTC
+	ESP_ERROR_CHECK(i2cdev_init());
+	memset(&dev, 0, sizeof(i2c_dev_t));
+	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
+}
+static void set_time() { // Set current time to some date
+	// TODO Have user input for time so actual time is set
+	struct tm time;
+
+	time.tm_year = 120; // Years since 1900
+	time.tm_mon = 5; // 0-11
+	time.tm_mday = 29; // day of month
+	time.tm_hour = 13; // 0-24
+	time.tm_min = 14;
+	time.tm_sec = 0;
+
+	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
+}
+
+static void check_rtc_reset() {
+	// Get current time
+	struct tm time;
+	ds3231_get_time(&dev, &time);
+
+	// If year is less than 2020 (RTC was reset), set time again
+	if(time.tm_year < 120) set_time();
+}
+
+static void get_time(struct tm *time) {
+	// Get current time and set it to return var
+	ds3231_get_time(&dev, &(*time));
+
+	// If year is less than 2020 (RTC was reset), set time again and set new time to return var
+	if(time->tm_year < 120) {
+		set_time();
+		ds3231_get_time(&dev, &(*time));
+	}
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -236,8 +281,50 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		create_str(&data, "{");
 
 		// Add timestamp to data
-		char date[] = "\"6/19/2020(10:23:56)\" : {"; // TODO add actual time using RTC
+		struct tm time;
+		get_time(&time);
+
+		// Convert all time componenets to string
+		uint32_t year_int = time.tm_year + 1900;
+		char year[8];
+		snprintf(year, sizeof(year), "%.4d", year_int);
+
+		uint32_t month_int = time.tm_mon + 1;
+		char month[8];
+		snprintf(month, sizeof(month), "%.2d", month_int);
+
+		char day[8];
+		snprintf(day, sizeof(day), "%.2d", time.tm_mday);
+
+		char hour[8];
+		snprintf(hour, sizeof(hour), "%.2d", time.tm_hour);
+
+		char min[8];
+		snprintf(min, sizeof(min), "%.2d", time.tm_min);
+
+		char sec[8];
+		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
+
+		// Format timestamp in standard ISO format (https://www.w3.org/TR/NOTE-datetime)
+		char *date = NULL;;
+		create_str(&date, "\"");
+		append_str(&date, year);
+		append_str(&date, "-");
+		append_str(&date, month);
+		append_str(&date, "-");
+		append_str(&date,  day);
+		append_str(&date, "T");
+		append_str(&date, hour);
+		append_str(&date, "-");
+		append_str(&date, min);
+		append_str(&date, "-");
+		append_str(&date, sec);
+		append_str(&date, "Z\" : {");
+
+		// Append formatted timestamp to data
 		append_str(&data, date);
+		free(date);
+		date = NULL;
 
 		// Variable for adding comma to every entry except first
 		bool first = true;
@@ -530,7 +617,6 @@ void app_main(void) {							// Main Method
 		WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,
 		portMAX_DELAY);
 
-
 		if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 			sensor_event_group = xEventGroupCreate();
 
@@ -540,7 +626,13 @@ void app_main(void) {							// Main Method
 				ESP_LOGE(_TAG,
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
+
+			// Set all sync bits var
 			set_sensor_sync_bits(&sensor_sync_bits);
+
+			// Init rtc and check if time needs to be set
+			init_rtc();
+			check_rtc_reset();
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
