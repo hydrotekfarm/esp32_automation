@@ -89,6 +89,7 @@ static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
+static TaskHandle_t timer_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
@@ -151,6 +152,17 @@ static void get_unix_time(time_t *milliseconds) {
 	ds3231_get_time(&dev, &date_time);
 
 	*milliseconds = mktime(&date_time);
+}
+
+static void manage_timers(void *parameter) {
+	const char *TAG = "TIMER_TASK";
+	for(;;) {
+		time_t seconds;
+		get_unix_time(&seconds);
+		ESP_LOGI(TAG, "Unix time: %ld", seconds);
+
+		vTaskDelay(pdMS_TO_TICKS(5000));
+	}
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -290,10 +302,6 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Add timestamp to data
 		struct tm time;
 		get_date_time(&time);
-
-		time_t milliseconds;
-		get_unix_time(&milliseconds);
-		ESP_LOGI(TAG, "Milliseconds: %ld", milliseconds);
 
 		// Convert all time componenets to string
 		uint32_t year_int = time.tm_year + 1900;
@@ -647,6 +655,7 @@ void app_main(void) {							// Main Method
 
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
+			xTaskCreatePinnedToCore(manage_timers, "timer_task", 2500, NULL, 0, &timer_task_handle, 0);
 
 			// Create core 1 tasks
 			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
