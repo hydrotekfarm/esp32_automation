@@ -135,7 +135,7 @@ static void check_rtc_reset() {
 	if(time.tm_year < 120) set_time();
 }
 
-static void get_time(struct tm *time) {
+static void get_date_time(struct tm *time) {
 	// Get current time and set it to return var
 	ds3231_get_time(&dev, &(*time));
 
@@ -144,6 +144,13 @@ static void get_time(struct tm *time) {
 		set_time();
 		ds3231_get_time(&dev, &(*time));
 	}
+}
+
+static void get_unix_time(time_t *milliseconds) {
+	struct tm date_time;
+	ds3231_get_time(&dev, &date_time);
+
+	*milliseconds = mktime(&date_time);
 }
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -282,7 +289,11 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Add timestamp to data
 		struct tm time;
-		get_time(&time);
+		get_date_time(&time);
+
+		time_t milliseconds;
+		get_unix_time(&milliseconds);
+		ESP_LOGI(TAG, "Milliseconds: %ld", milliseconds);
 
 		// Convert all time componenets to string
 		uint32_t year_int = time.tm_year + 1900;
