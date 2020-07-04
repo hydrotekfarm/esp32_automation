@@ -70,8 +70,8 @@ static int retryNumber = 0;  // WiFi Reconnection Attempts
 static esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
 // IDs
-static char growroom_id[] = "growroom1";
-static char system_id[] = "system1";
+static char growroom_id[] = "Grow Room 1";
+static char system_id[] = "System 1";
 
 // Sensor Measurement Variables
 static float _water_temp = 0;
