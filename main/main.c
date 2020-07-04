@@ -286,7 +286,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Create and initially assign JSON data
 		char *data = NULL;
-		create_str(&data, "{");
+		create_str(&data, "{ \"time\": ");
 
 		// Add timestamp to data
 		struct tm time;
@@ -327,7 +327,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, min);
 		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, "Z\" : {");
+		append_str(&date, "Z\",");
 
 		// Append formatted timestamp to data
 		append_str(&data, date);
@@ -355,7 +355,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		}
 
 		// Add closing tag
-		append_str(&data, "}}");
+		append_str(&data, "}");
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
