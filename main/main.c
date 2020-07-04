@@ -82,6 +82,13 @@ static float _ph = 0;
 // RTC Components
 i2c_dev_t dev;
 
+// Timers
+struct timer water_pump_timer;
+
+// Water pump timings
+static uint32_t water_pump_on_time = 5;
+static uint32_t water_pump_off_time  = 10;
+
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
@@ -144,17 +151,6 @@ static void get_date_time(struct tm *time) {
 	if(time->tm_year < 120) {
 		set_time();
 		ds3231_get_time(&dev, &(*time));
-	}
-}
-
-static void manage_timers(void *parameter) {
-	const char *TAG = "TIMER_TASK";
-	for(;;) {
-		time_t seconds;
-		get_unix_time(&dev, &seconds);
-		ESP_LOGI(TAG, "Unix time: %ld", seconds);
-
-		vTaskDelay(pdMS_TO_TICKS(5000));
 	}
 }
 
@@ -373,6 +369,42 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Publish data every 20 seconds
 		vTaskDelay(pdMS_TO_TICKS(5000));
+	}
+}
+
+// Trigger method for water pump timer
+void water_pump() {
+	const char *TAG = "Water Pump";
+
+	if(water_pump_timer.duration == water_pump_on_time) {
+		// TODO Turn water pump off
+
+		ESP_LOGI(TAG, "Turning pump off");
+		enable_timer(&dev, &water_pump_timer, water_pump_off_time);
+	} else if(water_pump_timer.duration == water_pump_off_time) {
+		// TODO Turn water pump on
+
+		ESP_LOGI(TAG, "Turning  pump on");
+		enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+	}
+}
+
+
+static void manage_timers(void *parameter) {
+	const char *TAG = "TIMER_TASK";
+
+	init_timer(&water_pump_timer, &water_pump, false);
+	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+
+	ESP_LOGI(TAG, "Timers initialized");
+
+	for(;;) {
+		time_t unix_time;
+		get_unix_time(&dev, &unix_time);
+
+		check_timer(&dev, &water_pump_timer, unix_time);
+
+		vTaskDelay(pdMS_TO_TICKS(250));
 	}
 }
 

@@ -117,14 +117,6 @@ esp_err_t ds3231_set_time(i2c_dev_t *dev, struct tm *time);
 esp_err_t ds3231_get_time(i2c_dev_t *dev, struct tm *time);
 
 /**
- * @brief Get UNIX time from RTC as number of seconds past since epoch (Jan 1 1970)
- * @param dev Device descriptor
- * @param[out] unix time
- * @return ESP_OK to indicate success
- */
-esp_err_t get_unix_time(i2c_dev_t *dev, time_t *seconds);
-
-/**
  * @brief Set alarms
  *
  * `alarm1` works with seconds, minutes, hours and day of week/month, or fires every second.
@@ -295,6 +287,40 @@ esp_err_t ds3231_get_temp_integer(i2c_dev_t *dev, int8_t *temp);
  * @return ESP_OK to indicate success
  */
 esp_err_t ds3231_get_temp_float(i2c_dev_t *dev, float *temp);
+
+/**
+ * @brief Get UNIX time from RTC as number of seconds past since epoch (Jan 1 1970)
+ * @param dev Device descriptor
+ * @param[out] unix time
+ * @return ESP_OK to indicate success
+ */
+esp_err_t get_unix_time(i2c_dev_t *dev, time_t *seconds);
+
+/**
+ * @brief initialize timer struct
+ * @param timer struct
+ * @param function to call when timer is done
+ * @param is timer repeated or not
+ */
+void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat);
+
+/**
+ * @brief enable timer so it's checked every cycle
+ * @param dev Device descriptor
+ * @param timer struct
+ * @param duration of timer
+ */
+void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration);
+
+/**
+ * @brief check if timer is completed
+ * @param dev Device adapter
+ * @param timer struct
+ * @param time in unix format
+ */
+void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time);
+
+
 
 #ifdef	__cplusplus
 }

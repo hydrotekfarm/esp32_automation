@@ -406,31 +406,27 @@ esp_err_t get_unix_time(i2c_dev_t *dev, time_t *unix_time) {
 	return ESP_OK;
 }
 
-void init_timer(struct timer *timer, void *trigger_function) {
+void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat) {
 	timer->active = false;
 	timer->trigger_function = trigger_function;
+	timer->repeat = repeat;
 }
 
-void enable_timer(i2c_dev_t *dev, struct timer *timer) {
+void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration) {
 	time_t unix_time;
 	get_unix_time(dev, &unix_time);
 
+	timer->duration = duration;
 	timer->end_time = unix_time + timer->duration;
 	timer->active = true;
-
 }
 
-void disable_timer(struct timer *timer) {
-	timer->active = false;
-}
-
-void check_timer(i2c_dev_t *dev, struct timer *timer) {
-	time_t unix_time;
-	get_unix_time(dev, &unix_time);
-
-	if(unix_time >= timer->end_time) {
-		timer->trigger_function();
-		if(timer->repeat) enable_timer(dev, timer);
-		else timer->active = false;
+void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time) {
+	if(timer->active) {
+		if(unix_time >= timer->end_time) {
+			if(timer->repeat) enable_timer(dev, timer, timer->duration);
+			else timer->active = false;
+			timer->trigger_function();
+		}
 	}
 }
