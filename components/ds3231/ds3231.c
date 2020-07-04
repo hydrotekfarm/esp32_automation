@@ -396,3 +396,41 @@ esp_err_t ds3231_get_time(i2c_dev_t *dev, struct tm *time)
 
     return ESP_OK;
 }
+
+esp_err_t get_unix_time(i2c_dev_t *dev, time_t *unix_time) {
+	struct tm date_time;
+	ds3231_get_time(dev, &date_time);
+
+	*unix_time = mktime(&date_time);
+
+	return ESP_OK;
+}
+
+void init_timer(struct timer *timer, void *trigger_function) {
+	timer->active = false;
+	timer->trigger_function = trigger_function;
+}
+
+void enable_timer(i2c_dev_t *dev, struct timer *timer) {
+	time_t unix_time;
+	get_unix_time(dev, &unix_time);
+
+	timer->end_time = unix_time + timer->duration;
+	timer->active = true;
+
+}
+
+void disable_timer(struct timer *timer) {
+	timer->active = false;
+}
+
+void check_timer(i2c_dev_t *dev, struct timer *timer) {
+	time_t unix_time;
+	get_unix_time(dev, &unix_time);
+
+	if(unix_time >= timer->end_time) {
+		timer->trigger_function();
+		if(timer->repeat) enable_timer(dev, timer);
+		else timer->active = false;
+	}
+}

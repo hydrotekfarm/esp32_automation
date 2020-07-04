@@ -147,18 +147,11 @@ static void get_date_time(struct tm *time) {
 	}
 }
 
-static void get_unix_time(time_t *milliseconds) {
-	struct tm date_time;
-	ds3231_get_time(&dev, &date_time);
-
-	*milliseconds = mktime(&date_time);
-}
-
 static void manage_timers(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 	for(;;) {
 		time_t seconds;
-		get_unix_time(&seconds);
+		get_unix_time(&dev, &seconds);
 		ESP_LOGI(TAG, "Unix time: %ld", seconds);
 
 		vTaskDelay(pdMS_TO_TICKS(5000));

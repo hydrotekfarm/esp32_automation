@@ -71,6 +71,17 @@ typedef enum {
 } ds3231_sqwave_freq_t;
 
 /**
+ * Template for timer
+ */
+struct timer {
+	bool active;
+	uint32_t duration;
+	time_t end_time;
+	bool repeat;
+	void (*trigger_function)(void);
+};
+
+/**
  * @brief Initialize device descriptor
  * @param dev I2C device descriptor
  * @param port I2C port
@@ -104,6 +115,14 @@ esp_err_t ds3231_set_time(i2c_dev_t *dev, struct tm *time);
  * @return ESP_OK to indicate success
  */
 esp_err_t ds3231_get_time(i2c_dev_t *dev, struct tm *time);
+
+/**
+ * @brief Get UNIX time from RTC as number of seconds past since epoch (Jan 1 1970)
+ * @param dev Device descriptor
+ * @param[out] unix time
+ * @return ESP_OK to indicate success
+ */
+esp_err_t get_unix_time(i2c_dev_t *dev, time_t *seconds);
 
 /**
  * @brief Set alarms
