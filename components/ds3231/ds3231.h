@@ -79,6 +79,7 @@ struct timer {
 	time_t end_time;
 	bool repeat;
 	void (*trigger_function)(void);
+	bool high_priority;
 };
 
 /**
@@ -301,8 +302,9 @@ esp_err_t get_unix_time(i2c_dev_t *dev, time_t *seconds);
  * @param timer struct
  * @param function to call when timer is done
  * @param is timer repeated or not
+ * @param is timer time sensitive
  */
-void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat);
+void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat, bool high_priority);
 
 /**
  * @brief enable timer so it's checked every cycle

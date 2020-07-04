@@ -40,6 +40,10 @@ static EventGroupHandle_t sensor_event_group;
 #define PH_BIT		    (1<<3)
 #define ULTRASONIC_BIT    (1<<4)
 
+// Core 0 Task Priorities
+#define TIMER_TASK_PRIORITY 1
+#define MQTT_PUBLISH_TASK_PRIORITY 2
+
 // Core 1 Task Priorities
 #define ULTRASONIC_TASK_PRIORITY 1
 #define PH_TASK_PRIORITY 2
@@ -84,6 +88,9 @@ i2c_dev_t dev;
 
 // Timers
 struct timer water_pump_timer;
+
+static const uint32_t timer_urgent_delay = 10;
+static const uint32_t timer_regular_delay = 50;
 
 // Water pump timings
 static uint32_t water_pump_on_time = 5;
@@ -393,7 +400,7 @@ void water_pump() {
 static void manage_timers(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
-	init_timer(&water_pump_timer, &water_pump, false);
+	init_timer(&water_pump_timer, &water_pump, false, false);
 	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
 
 	ESP_LOGI(TAG, "Timers initialized");
@@ -402,9 +409,13 @@ static void manage_timers(void *parameter) {
 		time_t unix_time;
 		get_unix_time(&dev, &unix_time);
 
+
 		check_timer(&dev, &water_pump_timer, unix_time);
 
-		vTaskDelay(pdMS_TO_TICKS(250));
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority);
+
+		vTaskPrioritySet(timer_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_TASK_PRIORITY);
+		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_urgent_delay : timer_regular_delay));
 	}
 }
 
@@ -679,8 +690,8 @@ void app_main(void) {							// Main Method
 			check_rtc_reset();
 
 			// Create core 0 tasks
-			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
-			xTaskCreatePinnedToCore(manage_timers, "timer_task", 2500, NULL, 0, &timer_task_handle, 0);
+			xTaskCreatePinnedToCore(manage_timers, "timer_task", 2500, NULL, TIMER_TASK_PRIORITY, &timer_task_handle, 0);
+			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 
 			// Create core 1 tasks
 			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
