@@ -431,3 +431,24 @@ void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time) {
 		}
 	}
 }
+
+void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool high_priority) {
+	alarm->alarm_timer.trigger_function = trigger_function;
+	alarm->alarm_timer.high_priority = high_priority;
+	alarm->alarm_timer.repeat = false;
+}
+
+void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
+	alarm->alarm_time = alarm_time;
+	alarm->alarm_timer.end_time = mktime(&alarm_time);
+	alarm->alarm_timer.active = true;
+}
+
+void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {
+	if(alarm->alarm_timer.active) {
+		if(unix_time >= alarm->alarm_timer.end_time) {
+			alarm->alarm_timer.active = false;
+			alarm->alarm_timer.trigger_function();
+		}
+	}
+}

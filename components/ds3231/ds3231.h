@@ -82,6 +82,11 @@ struct timer {
 	bool high_priority;
 };
 
+struct alarm {
+	struct timer alarm_timer;
+	struct tm alarm_time;
+};
+
 /**
  * @brief Initialize device descriptor
  * @param dev I2C device descriptor
@@ -318,11 +323,32 @@ void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration);
  * @brief check if timer is completed
  * @param dev Device adapter
  * @param timer struct
- * @param time in unix format
+ * @param current time in unix format
  */
 void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time);
 
+/**
+ * @brief initialize alarm struct along with built in timer
+ * @param alarm struct
+ * @param function to call when alarm is done
+ * @param is alarm time sensitive
+ */
+void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool high_priority);
 
+/**
+ * @brief enable alarm so it's checked every cycle
+ * @param alarm struct
+ * @param time when alarm should trigger
+ */
+void enable_alarm(struct alarm *alarm, struct tm alarm_time);
+
+/**
+ * @brief check if alarm is done
+ * @param dev Device descriptor
+ * @param alarm struct
+ * @param current time in unix format
+ */
+void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time);
 
 #ifdef	__cplusplus
 }
