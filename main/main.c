@@ -109,7 +109,7 @@ static TaskHandle_t timer_task_handle = NULL;
 static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
-static bool ultrasonic_active = false;
+static bool ultrasonic_active = true;
 
 static uint32_t sensor_sync_bits;
 
@@ -244,7 +244,7 @@ void append_str(char** str, char* str_to_add) { // Create method to reallocate a
 }
 
 // Add sensor data to JSON entry
-void add_entry(char** data, bool* first, char* key, float num) {
+void add_entry(char** data, bool* first, char* name, float num) {
 	// Add a comma to the beginning of every entry except the first
 	if(*first) *first = false;
 	else append_str(data, ",");
@@ -255,13 +255,13 @@ void add_entry(char** data, bool* first, char* key, float num) {
 
 	// Create entry string
 	char *entry = NULL;
-	create_str(&entry, "\"");
+	create_str(&entry, "{ name: \"");
 
 	// Create entry using key, value, and other JSON syntax
-	append_str(&entry, key);
-	append_str(&entry, "\" : \"");
+	append_str(&entry, name);
+	append_str(&entry, "\", value: \"");
 	append_str(&entry, value);
-	append_str(&entry, "\"");
+	append_str(&entry, "\"}");
 
 	// Add entry to overall JSON data
 	append_str(data, entry);
@@ -334,7 +334,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, min);
 		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, "Z\",");
+		append_str(&date, "Z\", sensors: [");
 
 		// Append formatted timestamp to data
 		append_str(&data, date);
@@ -362,7 +362,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		}
 
 		// Add closing tag
-		append_str(&data, "}");
+		append_str(&data, "]}");
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
