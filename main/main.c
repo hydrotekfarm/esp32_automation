@@ -41,7 +41,7 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_BIT    (1<<4)
 
 // Core 0 Task Priorities
-#define TIMER_TASK_PRIORITY 1
+#define TIMER_ALARM_TASK_PRIORITY 1
 #define MQTT_PUBLISH_TASK_PRIORITY 2
 
 // Core 1 Task Priorities
@@ -89,12 +89,22 @@ i2c_dev_t dev;
 // Timers
 struct timer water_pump_timer;
 
-static const uint32_t timer_urgent_delay = 10;
-static const uint32_t timer_regular_delay = 50;
+// Alarms
+struct alarm lights_on_alarm;
+struct alarm lights_off_alarm;
+
+static const uint32_t timer_alarm_urgent_delay = 10;
+static const uint32_t timer_alarm_regular_delay = 50;
 
 // Water pump timings
 static uint32_t water_pump_on_time = 5;
 static uint32_t water_pump_off_time  = 10;
+
+// Lights
+static uint32_t lights_on_hour = 12;
+static uint32_t lights_on_min = 33;
+static uint32_t lights_off_hour  = 12;
+static uint32_t lights_off_min = 34;
 
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
@@ -103,13 +113,13 @@ static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
-static TaskHandle_t timer_task_handle = NULL;
+static TaskHandle_t timer_alarm_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
 static bool ec_active = false;
 static bool ph_active = true;
-static bool ultrasonic_active = true;
+static bool ultrasonic_active = false;
 
 static uint32_t sensor_sync_bits;
 
@@ -132,10 +142,10 @@ static void set_time() { // Set current time to some date
 	struct tm time;
 
 	time.tm_year = 120; // Years since 1900
-	time.tm_mon = 5; // 0-11
-	time.tm_mday = 29; // day of month
-	time.tm_hour = 13; // 0-24
-	time.tm_min = 14;
+	time.tm_mon = 6; // 0-11
+	time.tm_mday = 6; // day of month
+	time.tm_hour = 11; // 0-24
+	time.tm_min = 55;
 	time.tm_sec = 0;
 
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
@@ -396,12 +406,53 @@ void water_pump() {
 	}
 }
 
+// Turn lights on
+void lights_on() {
+	// TODO Turn lights on
+	ESP_LOGI("", "Turning lights on");
+}
 
-static void manage_timers(void *parameter) {
+// Turn lights off
+void lights_off() {
+	// TODO Turn lights off
+	ESP_LOGI("", "Turning lights off");
+}
+
+void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
+	struct tm current_date_time;
+	ds3231_get_time(&dev, &current_date_time);
+
+	lights_on_time->tm_year = current_date_time.tm_year;
+	lights_on_time->tm_mon = current_date_time.tm_mon;
+	lights_on_time->tm_mday = current_date_time.tm_mday;
+	lights_on_time->tm_hour = lights_on_hour;
+	lights_on_time->tm_min  = lights_on_min;
+	lights_on_time->tm_sec = 0;
+
+	lights_off_time->tm_year = current_date_time.tm_year;
+	lights_off_time->tm_mon = current_date_time.tm_mon;
+	lights_off_time->tm_mday = current_date_time.tm_mday;
+	lights_off_time->tm_hour = lights_off_hour;
+	lights_off_time->tm_min  = lights_off_min;
+	lights_off_time->tm_sec = 0;
+}
+
+
+static void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+
+	struct tm lights_on_time;
+	struct tm lights_off_time;
+	get_lights_times(&lights_on_time, &lights_off_time);
+
+	init_alarm(&lights_on_alarm, *lights_on, false);
+	enable_alarm(&lights_on_alarm, lights_on_time);
+
+	init_alarm(&lights_off_alarm, *lights_off, false);
+	enable_alarm(&lights_off_alarm, lights_off_time);
 
 	ESP_LOGI(TAG, "Timers initialized");
 
@@ -409,13 +460,15 @@ static void manage_timers(void *parameter) {
 		time_t unix_time;
 		get_unix_time(&dev, &unix_time);
 
-
 		check_timer(&dev, &water_pump_timer, unix_time);
+
+		check_alarm(&dev, &lights_on_alarm, unix_time);
+		check_alarm(&dev, &lights_off_alarm, unix_time);
 
 		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority);
 
-		vTaskPrioritySet(timer_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_TASK_PRIORITY);
-		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_urgent_delay : timer_regular_delay));
+		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
+		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
 	}
 }
 
@@ -690,7 +743,7 @@ void app_main(void) {							// Main Method
 			check_rtc_reset();
 
 			// Create core 0 tasks
-			xTaskCreatePinnedToCore(manage_timers, "timer_task", 2500, NULL, TIMER_TASK_PRIORITY, &timer_task_handle, 0);
+			xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 
 			// Create core 1 tasks
