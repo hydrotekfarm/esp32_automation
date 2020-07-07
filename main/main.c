@@ -97,14 +97,14 @@ static const uint32_t timer_alarm_urgent_delay = 10;
 static const uint32_t timer_alarm_regular_delay = 50;
 
 // Water pump timings
-static uint32_t water_pump_on_time = 5;
-static uint32_t water_pump_off_time  = 10;
+static uint32_t water_pump_on_time = 15 * 60;
+static uint32_t water_pump_off_time  = 45 * 60;
 
 // Lights
-static uint32_t lights_on_hour = 10;
-static uint32_t lights_on_min = 36;
-static uint32_t lights_off_hour  = 10;
-static uint32_t lights_off_min = 37;
+static uint32_t lights_on_hour = 21;
+static uint32_t lights_on_min = 0;
+static uint32_t lights_off_hour  = 6;
+static uint32_t lights_off_min = 0;
 
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
