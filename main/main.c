@@ -101,10 +101,10 @@ static uint32_t water_pump_on_time = 5;
 static uint32_t water_pump_off_time  = 10;
 
 // Lights
-static uint32_t lights_on_hour = 12;
-static uint32_t lights_on_min = 33;
-static uint32_t lights_off_hour  = 12;
-static uint32_t lights_off_min = 34;
+static uint32_t lights_on_hour = 22;
+static uint32_t lights_on_min = 27;
+static uint32_t lights_off_hour  = 22;
+static uint32_t lights_off_min = 28;
 
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
@@ -448,10 +448,10 @@ static void manage_timers_alarms(void *parameter) {
 	struct tm lights_off_time;
 	get_lights_times(&lights_on_time, &lights_off_time);
 
-	init_alarm(&lights_on_alarm, *lights_on, false);
+	init_alarm(&lights_on_alarm, &lights_on, true, false);
 	enable_alarm(&lights_on_alarm, lights_on_time);
 
-	init_alarm(&lights_off_alarm, *lights_off, false);
+	init_alarm(&lights_off_alarm, &lights_off, true, false);
 	enable_alarm(&lights_off_alarm, lights_off_time);
 
 	ESP_LOGI(TAG, "Timers initialized");

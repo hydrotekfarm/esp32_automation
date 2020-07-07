@@ -432,10 +432,8 @@ void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time) {
 	}
 }
 
-void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool high_priority) {
-	alarm->alarm_timer.trigger_function = trigger_function;
-	alarm->alarm_timer.high_priority = high_priority;
-	alarm->alarm_timer.repeat = false;
+void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat, bool high_priority) {
+	init_timer(&(alarm->alarm_timer), trigger_function, repeat, high_priority);
 }
 
 void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
@@ -447,7 +445,11 @@ void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
 void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {
 	if(alarm->alarm_timer.active) {
 		if(unix_time >= alarm->alarm_timer.end_time) {
-			alarm->alarm_timer.active = false;
+			if(alarm->alarm_timer.repeat) {
+				alarm->alarm_time.tm_mday += 1;
+				mktime(&(alarm->alarm_time));
+				enable_alarm(alarm, alarm->alarm_time);
+			} else alarm->alarm_timer.active = false;
 			alarm->alarm_timer.trigger_function();
 		}
 	}

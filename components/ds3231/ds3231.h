@@ -331,9 +331,10 @@ void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time);
  * @brief initialize alarm struct along with built in timer
  * @param alarm struct
  * @param function to call when alarm is done
+ * @param is alarm repeated daily
  * @param is alarm time sensitive
  */
-void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool high_priority);
+void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat, bool high_priority);
 
 /**
  * @brief enable alarm so it's checked every cycle
