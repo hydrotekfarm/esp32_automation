@@ -393,14 +393,19 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 void water_pump() {
 	const char *TAG = "Water Pump";
 
+	// Check if pump was just on
 	if(water_pump_timer.duration == water_pump_on_time) {
 		// TODO Turn water pump off
 
+		// Start pump off timer
 		ESP_LOGI(TAG, "Turning pump off");
 		enable_timer(&dev, &water_pump_timer, water_pump_off_time);
+
+		// Pump was just off
 	} else if(water_pump_timer.duration == water_pump_off_time) {
 		// TODO Turn water pump on
 
+		// Start pump on  timer
 		ESP_LOGI(TAG, "Turning  pump on");
 		enable_timer(&dev, &water_pump_timer, water_pump_on_time);
 	}
@@ -419,9 +424,11 @@ void lights_off() {
 }
 
 void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
+	// Get current date time
 	struct tm current_date_time;
 	ds3231_get_time(&dev, &current_date_time);
 
+	// Set alarm times
 	lights_on_time->tm_year = current_date_time.tm_year;
 	lights_on_time->tm_mon = current_date_time.tm_mon;
 	lights_on_time->tm_mday = current_date_time.tm_mday;
@@ -441,13 +448,16 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 static void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
+	// Initialize timers
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
 
+	// Get alarm times
 	struct tm lights_on_time;
 	struct tm lights_off_time;
 	get_lights_times(&lights_on_time, &lights_off_time);
 
+	// Initialize alarms
 	init_alarm(&lights_on_alarm, &lights_on, true, false);
 	enable_alarm(&lights_on_alarm, lights_on_time);
 
@@ -457,16 +467,21 @@ static void manage_timers_alarms(void *parameter) {
 	ESP_LOGI(TAG, "Timers initialized");
 
 	for(;;) {
+		// Get current unix time
 		time_t unix_time;
 		get_unix_time(&dev, &unix_time);
 
+		// Check if timers are done
 		check_timer(&dev, &water_pump_timer, unix_time);
 
+		// Check if alarms are done
 		check_alarm(&dev, &lights_on_alarm, unix_time);
 		check_alarm(&dev, &lights_off_alarm, unix_time);
 
+		// Check if any timer or alarm is urgent
 		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm->alarm_timer.active && lights_on_alarm->alarm_timer.high_priority) || (lights_off_alarm->alarm_timer.active && lights_off_alarm->alarm_timer.high_priority);
 
+		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
 		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
 	}

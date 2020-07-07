@@ -407,6 +407,7 @@ esp_err_t get_unix_time(i2c_dev_t *dev, time_t *unix_time) {
 }
 
 void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat, bool high_priority) {
+	// Set initial parameters
 	timer->active = false;
 	timer->trigger_function = trigger_function;
 	timer->repeat = repeat;
@@ -414,42 +415,58 @@ void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat
 }
 
 void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration) {
+	// Get unix time
 	time_t unix_time;
 	get_unix_time(dev, &unix_time);
 
+	// Set end time based on current time and duration of  timer
 	timer->duration = duration;
 	timer->end_time = unix_time + timer->duration;
 	timer->active = true;
 }
 
 void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time) {
+	// Check if timer is active
 	if(timer->active) {
+		// Check if timer is done
 		if(unix_time >= timer->end_time) {
+			//  Re-enable  timer  if timer is repeated
 			if(timer->repeat) enable_timer(dev, timer, timer->duration);
+			// Otherwise disable timer
 			else timer->active = false;
+
+			// Call trigger function
 			timer->trigger_function();
 		}
 	}
 }
 
 void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat, bool high_priority) {
+	// Set initial parameters
 	init_timer(&(alarm->alarm_timer), trigger_function, repeat, high_priority);
 }
 
 void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
+	// Set end time based on unix time for alarm time
 	alarm->alarm_time = alarm_time;
 	alarm->alarm_timer.end_time = mktime(&alarm_time);
 	alarm->alarm_timer.active = true;
 }
 
 void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {
+	// Check if alarm is active
 	if(alarm->alarm_timer.active) {
+		// Check if alarm is done
 		if(unix_time >= alarm->alarm_timer.end_time) {
+			// Reset alarm to next day if it is repeated
 			if(alarm->alarm_timer.repeat) {
 				alarm->alarm_time.tm_mday += 1;
 				mktime(&(alarm->alarm_time));
 				enable_alarm(alarm, alarm->alarm_time);
+				// Otherwise  disable alarm
 			} else alarm->alarm_timer.active = false;
+
+			// Call trigger function
 			alarm->alarm_timer.trigger_function();
 		}
 	}

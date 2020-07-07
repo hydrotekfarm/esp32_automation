@@ -82,6 +82,9 @@ struct timer {
 	bool high_priority;
 };
 
+/**
+ * Template for alarm
+ */
 struct alarm {
 	struct timer alarm_timer;
 	struct tm alarm_time;
