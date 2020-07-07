@@ -40,6 +40,10 @@ static EventGroupHandle_t sensor_event_group;
 #define PH_BIT		    (1<<3)
 #define ULTRASONIC_BIT    (1<<4)
 
+// Core 0 Task Priorities
+#define TIMER_ALARM_TASK_PRIORITY 1
+#define MQTT_PUBLISH_TASK_PRIORITY 2
+
 // Core 1 Task Priorities
 #define ULTRASONIC_TASK_PRIORITY 1
 #define PH_TASK_PRIORITY 2
@@ -70,8 +74,8 @@ static int retryNumber = 0;  // WiFi Reconnection Attempts
 static esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
 // IDs
-static char growroom_id[] = "growroom1";
-static char system_id[] = "system1";
+static char growroom_id[] = "Grow Room 1";
+static char system_id[] = "System 1";
 
 // Sensor Measurement Variables
 static float _water_temp = 0;
@@ -82,6 +86,26 @@ static float _ph = 0;
 // RTC Components
 i2c_dev_t dev;
 
+// Timers
+struct timer water_pump_timer;
+
+// Alarms
+struct alarm lights_on_alarm;
+struct alarm lights_off_alarm;
+
+static const uint32_t timer_alarm_urgent_delay = 10;
+static const uint32_t timer_alarm_regular_delay = 50;
+
+// Water pump timings
+static uint32_t water_pump_on_time = 15 * 60;
+static uint32_t water_pump_off_time  = 45 * 60;
+
+// Lights
+static uint32_t lights_on_hour = 21;
+static uint32_t lights_on_min = 0;
+static uint32_t lights_off_hour  = 6;
+static uint32_t lights_off_min = 0;
+
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;
@@ -89,6 +113,7 @@ static TaskHandle_t ph_task_handle = NULL;
 static TaskHandle_t ultrasonic_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
+static TaskHandle_t timer_alarm_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
@@ -117,10 +142,10 @@ static void set_time() { // Set current time to some date
 	struct tm time;
 
 	time.tm_year = 120; // Years since 1900
-	time.tm_mon = 5; // 0-11
-	time.tm_mday = 29; // day of month
-	time.tm_hour = 13; // 0-24
-	time.tm_min = 14;
+	time.tm_mon = 6; // 0-11
+	time.tm_mday = 7; // day of month
+	time.tm_hour = 9; // 0-24
+	time.tm_min = 59;
 	time.tm_sec = 0;
 
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
@@ -135,7 +160,7 @@ static void check_rtc_reset() {
 	if(time.tm_year < 120) set_time();
 }
 
-static void get_time(struct tm *time) {
+static void get_date_time(struct tm *time) {
 	// Get current time and set it to return var
 	ds3231_get_time(&dev, &(*time));
 
@@ -229,7 +254,7 @@ void append_str(char** str, char* str_to_add) { // Create method to reallocate a
 }
 
 // Add sensor data to JSON entry
-void add_entry(char** data, bool* first, char* key, float num) {
+void add_entry(char** data, bool* first, char* name, float num) {
 	// Add a comma to the beginning of every entry except the first
 	if(*first) *first = false;
 	else append_str(data, ",");
@@ -240,13 +265,13 @@ void add_entry(char** data, bool* first, char* key, float num) {
 
 	// Create entry string
 	char *entry = NULL;
-	create_str(&entry, "\"");
+	create_str(&entry, "{ name: \"");
 
 	// Create entry using key, value, and other JSON syntax
-	append_str(&entry, key);
-	append_str(&entry, "\" : \"");
+	append_str(&entry, name);
+	append_str(&entry, "\", value: \"");
 	append_str(&entry, value);
-	append_str(&entry, "\"");
+	append_str(&entry, "\"}");
 
 	// Add entry to overall JSON data
 	append_str(data, entry);
@@ -278,11 +303,11 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Create and initially assign JSON data
 		char *data = NULL;
-		create_str(&data, "{");
+		create_str(&data, "{ \"time\": ");
 
 		// Add timestamp to data
 		struct tm time;
-		get_time(&time);
+		get_date_time(&time);
 
 		// Convert all time componenets to string
 		uint32_t year_int = time.tm_year + 1900;
@@ -319,7 +344,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, min);
 		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, "Z\" : {");
+		append_str(&date, "Z\", sensors: [");
 
 		// Append formatted timestamp to data
 		append_str(&data, date);
@@ -347,7 +372,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		}
 
 		// Add closing tag
-		append_str(&data, "}}");
+		append_str(&data, "]}");
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
@@ -361,6 +386,104 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Publish data every 20 seconds
 		vTaskDelay(pdMS_TO_TICKS(5000));
+	}
+}
+
+// Trigger method for water pump timer
+void water_pump() {
+	const char *TAG = "Water Pump";
+
+	// Check if pump was just on
+	if(water_pump_timer.duration == water_pump_on_time) {
+		// TODO Turn water pump off
+
+		// Start pump off timer
+		ESP_LOGI(TAG, "Turning pump off");
+		enable_timer(&dev, &water_pump_timer, water_pump_off_time);
+
+		// Pump was just off
+	} else if(water_pump_timer.duration == water_pump_off_time) {
+		// TODO Turn water pump on
+
+		// Start pump on  timer
+		ESP_LOGI(TAG, "Turning  pump on");
+		enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+	}
+}
+
+// Turn lights on
+void lights_on() {
+	// TODO Turn lights on
+	ESP_LOGI("", "Turning lights on");
+}
+
+// Turn lights off
+void lights_off() {
+	// TODO Turn lights off
+	ESP_LOGI("", "Turning lights off");
+}
+
+void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
+	// Get current date time
+	struct tm current_date_time;
+	ds3231_get_time(&dev, &current_date_time);
+
+	// Set alarm times
+	lights_on_time->tm_year = current_date_time.tm_year;
+	lights_on_time->tm_mon = current_date_time.tm_mon;
+	lights_on_time->tm_mday = current_date_time.tm_mday;
+	lights_on_time->tm_hour = lights_on_hour;
+	lights_on_time->tm_min  = lights_on_min;
+	lights_on_time->tm_sec = 0;
+
+	lights_off_time->tm_year = current_date_time.tm_year;
+	lights_off_time->tm_mon = current_date_time.tm_mon;
+	lights_off_time->tm_mday = current_date_time.tm_mday;
+	lights_off_time->tm_hour = lights_off_hour;
+	lights_off_time->tm_min  = lights_off_min;
+	lights_off_time->tm_sec = 0;
+}
+
+
+static void manage_timers_alarms(void *parameter) {
+	const char *TAG = "TIMER_TASK";
+
+	// Initialize timers
+	init_timer(&water_pump_timer, &water_pump, false, false);
+	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+
+	// Get alarm times
+	struct tm lights_on_time;
+	struct tm lights_off_time;
+	get_lights_times(&lights_on_time, &lights_off_time);
+
+	// Initialize alarms
+	init_alarm(&lights_on_alarm, &lights_on, true, false);
+	enable_alarm(&lights_on_alarm, lights_on_time);
+
+	init_alarm(&lights_off_alarm, &lights_off, true, false);
+	enable_alarm(&lights_off_alarm, lights_off_time);
+
+	ESP_LOGI(TAG, "Timers initialized");
+
+	for(;;) {
+		// Get current unix time
+		time_t unix_time;
+		get_unix_time(&dev, &unix_time);
+
+		// Check if timers are done
+		check_timer(&dev, &water_pump_timer, unix_time);
+
+		// Check if alarms are done
+		check_alarm(&dev, &lights_on_alarm, unix_time);
+		check_alarm(&dev, &lights_off_alarm, unix_time);
+
+		// Check if any timer or alarm is urgent
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm->alarm_timer.active && lights_on_alarm->alarm_timer.high_priority) || (lights_off_alarm->alarm_timer.active && lights_off_alarm->alarm_timer.high_priority);
+
+		// Set priority and delay based on urgency of timers and alarms
+		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
+		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
 	}
 }
 
@@ -635,7 +758,8 @@ void app_main(void) {							// Main Method
 			check_rtc_reset();
 
 			// Create core 0 tasks
-			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, 1, &publish_task_handle, 0);
+			xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 
 			// Create core 1 tasks
 			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
