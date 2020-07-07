@@ -101,10 +101,10 @@ static uint32_t water_pump_on_time = 5;
 static uint32_t water_pump_off_time  = 10;
 
 // Lights
-static uint32_t lights_on_hour = 22;
-static uint32_t lights_on_min = 27;
-static uint32_t lights_off_hour  = 22;
-static uint32_t lights_off_min = 28;
+static uint32_t lights_on_hour = 10;
+static uint32_t lights_on_min = 36;
+static uint32_t lights_off_hour  = 10;
+static uint32_t lights_off_min = 37;
 
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
@@ -143,9 +143,9 @@ static void set_time() { // Set current time to some date
 
 	time.tm_year = 120; // Years since 1900
 	time.tm_mon = 6; // 0-11
-	time.tm_mday = 6; // day of month
-	time.tm_hour = 11; // 0-24
-	time.tm_min = 55;
+	time.tm_mday = 7; // day of month
+	time.tm_hour = 9; // 0-24
+	time.tm_min = 59;
 	time.tm_sec = 0;
 
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
@@ -465,7 +465,7 @@ static void manage_timers_alarms(void *parameter) {
 		check_alarm(&dev, &lights_on_alarm, unix_time);
 		check_alarm(&dev, &lights_off_alarm, unix_time);
 
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority);
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm->alarm_timer.active && lights_on_alarm->alarm_timer.high_priority) || (lights_off_alarm->alarm_timer.active && lights_off_alarm->alarm_timer.high_priority);
 
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
 		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
