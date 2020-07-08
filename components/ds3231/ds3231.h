@@ -71,6 +71,26 @@ typedef enum {
 } ds3231_sqwave_freq_t;
 
 /**
+ * Template for timer
+ */
+struct timer {
+	bool active;
+	uint32_t duration;
+	time_t end_time;
+	bool repeat;
+	void (*trigger_function)(void);
+	bool high_priority;
+};
+
+/**
+ * Template for alarm
+ */
+struct alarm {
+	struct timer alarm_timer;
+	struct tm alarm_time;
+};
+
+/**
  * @brief Initialize device descriptor
  * @param dev I2C device descriptor
  * @param port I2C port
@@ -276,6 +296,63 @@ esp_err_t ds3231_get_temp_integer(i2c_dev_t *dev, int8_t *temp);
  * @return ESP_OK to indicate success
  */
 esp_err_t ds3231_get_temp_float(i2c_dev_t *dev, float *temp);
+
+/**
+ * @brief Get UNIX time from RTC as number of seconds past since epoch (Jan 1 1970)
+ * @param dev Device descriptor
+ * @param[out] unix time
+ * @return ESP_OK to indicate success
+ */
+esp_err_t get_unix_time(i2c_dev_t *dev, time_t *seconds);
+
+/**
+ * @brief initialize timer struct
+ * @param timer struct
+ * @param function to call when timer is done
+ * @param is timer repeated or not
+ * @param is timer time sensitive
+ */
+void init_timer(struct timer *timer, void (*trigger_function)(void), bool repeat, bool high_priority);
+
+/**
+ * @brief enable timer so it's checked every cycle
+ * @param dev Device descriptor
+ * @param timer struct
+ * @param duration of timer
+ */
+void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration);
+
+/**
+ * @brief check if timer is completed
+ * @param dev Device adapter
+ * @param timer struct
+ * @param current time in unix format
+ */
+void check_timer(i2c_dev_t *dev, struct timer *timer, time_t unix_time);
+
+/**
+ * @brief initialize alarm struct along with built in timer
+ * @param alarm struct
+ * @param function to call when alarm is done
+ * @param is alarm repeated daily
+ * @param is alarm time sensitive
+ */
+void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat, bool high_priority);
+
+/**
+ * @brief enable alarm so it's checked every cycle
+ * @param alarm struct
+ * @param time when alarm should trigger
+ */
+void enable_alarm(struct alarm *alarm, struct tm alarm_time);
+
+/**
+ * @brief check if alarm is done
+ * @param dev Device descriptor
+ * @param alarm struct
+ * @param current time in unix format
+ */
+void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time);
 
 #ifdef	__cplusplus
 }
