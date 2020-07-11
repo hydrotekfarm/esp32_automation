@@ -43,6 +43,7 @@ static EventGroupHandle_t sensor_event_group;
 // Core 0 Task Priorities
 #define TIMER_ALARM_TASK_PRIORITY 1
 #define MQTT_PUBLISH_TASK_PRIORITY 2
+#define SENSOR_CONTROL_TASK_PRIORITY 3
 
 // Core 1 Task Priorities
 #define ULTRASONIC_TASK_PRIORITY 1
@@ -114,6 +115,7 @@ static TaskHandle_t ultrasonic_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 static TaskHandle_t timer_alarm_task_handle = NULL;
+static TaskHandle_t sensor_control_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
@@ -479,12 +481,16 @@ static void manage_timers_alarms(void *parameter) {
 		check_alarm(&dev, &lights_off_alarm, unix_time);
 
 		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm->alarm_timer.active && lights_on_alarm->alarm_timer.high_priority) || (lights_off_alarm->alarm_timer.active && lights_off_alarm->alarm_timer.high_priority);
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
 		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
 	}
+}
+
+void sensor_control (void *parameter) { // Sensor Control Task
+
 }
 
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
@@ -760,6 +766,7 @@ void app_main(void) {							// Main Method
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+			xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 			// Create core 1 tasks
 			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
