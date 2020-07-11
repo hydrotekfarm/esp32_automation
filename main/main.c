@@ -84,11 +84,23 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 
+// Sensor target values
+static float target_ph = 4;
+
+// Sensor margin of errors
+static float ph_margin_error = 0.05;
+
+// Sensor control timings
+static float ph_dose_time = 10;
+static float ph_wait_time = 10 * 60;
+
 // RTC Components
 i2c_dev_t dev;
 
 // Timers
 struct timer water_pump_timer;
+struct timer ph_dose_timer;
+struct timer ph_wait_timer;
 
 // Alarms
 struct alarm lights_on_alarm;
@@ -446,51 +458,39 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 	lights_off_time->tm_sec = 0;
 }
 
+void ph_up_pump() {
+	// Turn ph up pump on
+}
 
-static void manage_timers_alarms(void *parameter) {
-	const char *TAG = "TIMER_TASK";
+void ph_down_pump() {
+	// Turn ph down pump on
+}
 
-	// Initialize timers
-	init_timer(&water_pump_timer, &water_pump, false, false);
-	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+void ph_pump_off() {
+	// Turn pumps off
 
-	// Get alarm times
-	struct tm lights_on_time;
-	struct tm lights_off_time;
-	get_lights_times(&lights_on_time, &lights_off_time);
+	enable_timer(&dev, &ph_wait_timer, ph_wait_time);
+}
 
-	// Initialize alarms
-	init_alarm(&lights_on_alarm, &lights_on, true, false);
-	enable_alarm(&lights_on_alarm, lights_on_time);
+void check_ph() {
+	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
-	init_alarm(&lights_off_alarm, &lights_off, true, false);
-	enable_alarm(&lights_off_alarm, lights_off_time);
+	if(!ph_control) {
+		if(_ph < target_ph - ph_margin_error) {
+			ph_up_pump();
+		} else if(_ph > target_ph - ph_margin_error) {
+			ph_down_pump();
+		}
 
-	ESP_LOGI(TAG, "Timers initialized");
-
-	for(;;) {
-		// Get current unix time
-		time_t unix_time;
-		get_unix_time(&dev, &unix_time);
-
-		// Check if timers are done
-		check_timer(&dev, &water_pump_timer, unix_time);
-
-		// Check if alarms are done
-		check_alarm(&dev, &lights_on_alarm, unix_time);
-		check_alarm(&dev, &lights_off_alarm, unix_time);
-
-		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
-
-		// Set priority and delay based on urgency of timers and alarms
-		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
-		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
+		enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 	}
 }
 
-void sensor_control (void *parameter) { // Sensor Control Task
 
+void sensor_control (void *parameter) { // Sensor Control Task
+	for(;;)  {
+		check_ph();
+	}
 }
 
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
@@ -680,6 +680,48 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 		} else {
 			ESP_LOGE(TAG, "Failed to Complete On Time");
 		}
+	}
+}
+
+static void manage_timers_alarms(void *parameter) {
+	const char *TAG = "TIMER_TASK";
+
+	// Initialize timers
+	init_timer(&water_pump_timer, &water_pump, false, false);
+	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
+	init_timer(&ph_wait_timer, &check_ph, false, false);
+
+	// Get alarm times
+	struct tm lights_on_time;
+	struct tm lights_off_time;
+	get_lights_times(&lights_on_time, &lights_off_time);
+
+	// Initialize alarms
+	init_alarm(&lights_on_alarm, &lights_on, true, false);
+	init_alarm(&lights_off_alarm, &lights_off, true, false);
+
+	ESP_LOGI(TAG, "Timers initialized");
+
+	for(;;) {
+		// Get current unix time
+		time_t unix_time;
+		get_unix_time(&dev, &unix_time);
+
+		// Check if timers are done
+		check_timer(&dev, &water_pump_timer, unix_time);
+		check_timer(&dev, &ph_dose_timer, unix_time);
+		check_timer(&dev, &ph_wait_timer, unix_time);
+
+		// Check if alarms are done
+		check_alarm(&dev, &lights_on_alarm, unix_time);
+		check_alarm(&dev, &lights_off_alarm, unix_time);
+
+		// Check if any timer or alarm is urgent
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
+
+		// Set priority and delay based on urgency of timers and alarms
+		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
+		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
 	}
 }
 
