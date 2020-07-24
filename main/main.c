@@ -85,14 +85,14 @@ static float _distance = 0;
 static float _ph = 0;
 
 // Sensor target values
-static float target_ph = 4;
+static float target_ph = 5;
 
 // Sensor margin of errors
-static float ph_margin_error = 0.05;
+static float ph_margin_error = 0.3;
 
 // Sensor control timings
 static float ph_dose_time = 10;
-static float ph_wait_time = 10 * 60;
+static float ph_wait_time = 0.25 * 60;
 
 // RTC Components
 i2c_dev_t dev;
@@ -460,14 +460,17 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 
 void ph_up_pump() {
 	// Turn ph up pump on
+	ESP_LOGI("", "pH up pump on");
 }
 
 void ph_down_pump() {
 	// Turn ph down pump on
+	ESP_LOGI("", "pH down pump on");
 }
 
 void ph_pump_off() {
 	// Turn pumps off
+	ESP_LOGI("", "pH  pumps off");
 
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time);
 }
@@ -478,7 +481,7 @@ void check_ph() {
 	if(!ph_control) {
 		if(_ph < target_ph - ph_margin_error) {
 			ph_up_pump();
-		} else if(_ph > target_ph - ph_margin_error) {
+		} else if(_ph > target_ph + ph_margin_error) {
 			ph_down_pump();
 		}
 
@@ -490,6 +493,8 @@ void check_ph() {
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		check_ph();
+
+		vTaskDelay(pdMS_TO_TICKS(10000));
 	}
 }
 
