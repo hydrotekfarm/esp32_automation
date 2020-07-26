@@ -84,13 +84,10 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 
-// Sensor target values
+// pH control
 static float target_ph = 5;
-
-// Sensor margin of errors
 static float ph_margin_error = 0.3;
-
-// Sensor control timings
+static bool ph_checks[6] = {false, false, false, false, false, false};
 static float ph_dose_time = 10;
 static float ph_wait_time = 0.25 * 60;
 
@@ -461,16 +458,20 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 void ph_up_pump() {
 	// Turn ph up pump on
 	ESP_LOGI("", "pH up pump on");
+
+	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
 void ph_down_pump() {
 	// Turn ph down pump on
 	ESP_LOGI("", "pH down pump on");
+
+	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
 void ph_pump_off() {
 	// Turn pumps off
-	ESP_LOGI("", "pH  pumps off");
+	ESP_LOGI("", "pH pumps off");
 
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time);
 }
@@ -480,15 +481,40 @@ void check_ph() {
 
 	if(!ph_control) {
 		if(_ph < target_ph - ph_margin_error) {
-			ph_up_pump();
-		} else if(_ph > target_ph + ph_margin_error) {
-			ph_down_pump();
-		}
+			if(ph_checks[sizeof(ph_checks) - 1]) {
+				ph_up_pump();
 
-		enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					ph_checks[i] = false;
+				}
+			} else {
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					if(!ph_checks[i]) {
+						ph_checks[i] = true;
+						printf("i: %d\n", i);
+						break;
+					}
+				}
+			}
+		} else if(_ph > target_ph + ph_margin_error) {
+			if(ph_checks[sizeof(ph_checks) - 1]) {
+				ph_down_pump();
+
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					ph_checks[i] = false;
+				}
+			} else {
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					if(!ph_checks[i]) {
+						ph_checks[i] = true;
+						printf("i: %d\n", i);
+						break;
+					}
+				}
+			}
+		}
 	}
 }
-
 
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
