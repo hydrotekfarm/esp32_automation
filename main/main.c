@@ -88,8 +88,8 @@ static float _ph = 0;
 static float target_ph = 5;
 static float ph_margin_error = 0.3;
 static bool ph_checks[6] = {false, false, false, false, false, false};
-static float ph_dose_time = 10;
-static float ph_wait_time = 0.25 * 60;
+static float ph_dose_time = 5;
+static float ph_wait_time = 2 * 60;
 
 // RTC Components
 i2c_dev_t dev;
@@ -473,7 +473,7 @@ void ph_pump_off() {
 	// Turn pumps off
 	ESP_LOGI("", "pH pumps off");
 
-	enable_timer(&dev, &ph_wait_timer, ph_wait_time);
+	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
 }
 
 void reset_ph_checks() {
@@ -523,7 +523,7 @@ void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		check_ph();
 
-		vTaskDelay(pdMS_TO_TICKS(10000));
+		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -613,7 +613,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
 	ph_begin();	// Setup pH sensor and get calibrated values stored in NVS
-	bool ph_done = false;
+
 	for (;;) {
 		if(ph_calibration) {
 			ESP_LOGI(TAG, "Start Calibration");
@@ -650,9 +650,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 			ESP_LOGI(TAG, "voltage: %f", voltage);
 			//_ph = readPH(voltage);		// Calculate pH from voltage Reading
-			if(ph_wait_timer.active) ph_done = true;
-			if(!ph_done) _ph = 4.57;
-			else _ph = 5.13;
+			_ph = 5.42;
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
@@ -720,13 +718,15 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 	}
 }
 
+void do_nothing() {}
+
 static void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
 	// Initialize timers
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
-	init_timer(&ph_wait_timer, &check_ph, false, false);
+	init_timer(&ph_wait_timer, &do_nothing, false, false);
 
 	// Get alarm times
 	struct tm lights_on_time;
