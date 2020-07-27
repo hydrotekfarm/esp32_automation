@@ -55,11 +55,13 @@ static EventGroupHandle_t sensor_event_group;
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
+#define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
-#define RTC_SCL_GPIO 22                 // GPIO 22
 #define RTC_SDA_GPIO 21                 // GPIO 21
+#define RTC_SCL_GPIO 22                 // GPIO 22
+#define PH_UP_PUMP_GPIO 25              // GPIO 25
+#define PH_DOWN_PUMP_GPIO 26            // GPIO 26
 #define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
@@ -456,21 +458,22 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 }
 
 void ph_up_pump() {
-	// Turn ph up pump on
+	gpio_set_level(PH_UP_PUMP_GPIO, 1);
 	ESP_LOGI("", "pH up pump on");
 
 	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
 void ph_down_pump() {
-	// Turn ph down pump on
+	gpio_set_level(PH_DOWN_PUMP_GPIO, 1);
 	ESP_LOGI("", "pH down pump on");
 
 	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
 void ph_pump_off() {
-	// Turn pumps off
+	gpio_set_level(PH_UP_PUMP_GPIO, 0);
+	gpio_set_level(PH_DOWN_PUMP_GPIO, 0);
 	ESP_LOGI("", "pH pumps off");
 
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
@@ -790,6 +793,11 @@ void port_setup() {								// ADC Port Setup Method
 	gpio_set_direction(32, GPIO_MODE_OUTPUT);
 }
 
+void gpio_setup() {
+	gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
+}
+
 void app_main(void) {							// Main Method
 		// Check if space available in NVS, if not reset NVS
 		esp_err_t ret = nvs_flash_init();
@@ -834,6 +842,8 @@ void app_main(void) {							// Main Method
 				ESP_LOGE(_TAG,
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
+
+			gpio_setup();
 
 			// Set all sync bits var
 			set_sensor_sync_bits(&sensor_sync_bits);
