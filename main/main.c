@@ -476,6 +476,12 @@ void ph_pump_off() {
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time);
 }
 
+void reset_ph_checks() {
+	for(int i = 0; i < sizeof(ph_checks); i++) {
+		ph_checks[i] = false;
+	}
+}
+
 void check_ph() {
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
@@ -483,10 +489,8 @@ void check_ph() {
 		if(_ph < target_ph - ph_margin_error) {
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				ph_up_pump();
+				reset_ph_checks();
 
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					ph_checks[i] = false;
-				}
 			} else {
 				for(int i = 0; i < sizeof(ph_checks); i++) {
 					if(!ph_checks[i]) {
@@ -499,10 +503,7 @@ void check_ph() {
 		} else if(_ph > target_ph + ph_margin_error) {
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				ph_down_pump();
-
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					ph_checks[i] = false;
-				}
+				reset_ph_checks();
 			} else {
 				for(int i = 0; i < sizeof(ph_checks); i++) {
 					if(!ph_checks[i]) {
@@ -512,6 +513,8 @@ void check_ph() {
 					}
 				}
 			}
+		} else {
+			reset_ph_checks();
 		}
 	}
 }
@@ -610,7 +613,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
 	ph_begin();	// Setup pH sensor and get calibrated values stored in NVS
-
+	bool ph_done = false;
 	for (;;) {
 		if(ph_calibration) {
 			ESP_LOGI(TAG, "Start Calibration");
@@ -646,7 +649,10 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 			ESP_LOGI(TAG, "voltage: %f", voltage);
-			_ph = readPH(voltage);		// Calculate pH from voltage Reading
+			//_ph = readPH(voltage);		// Calculate pH from voltage Reading
+			if(ph_wait_timer.active) ph_done = true;
+			if(!ph_done) _ph = 4.57;
+			else _ph = 5.13;
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
