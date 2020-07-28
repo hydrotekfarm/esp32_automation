@@ -91,7 +91,7 @@ static float target_ph = 5;
 static float ph_margin_error = 0.3;
 static bool ph_checks[6] = {false, false, false, false, false, false};
 static float ph_dose_time = 5;
-static float ph_wait_time = 2 * 60;
+static float ph_wait_time = 10 * 60;
 
 // RTC Components
 i2c_dev_t dev;
@@ -457,66 +457,83 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 	lights_off_time->tm_sec = 0;
 }
 
-void ph_up_pump() {
+void ph_up_pump() { // Turn ph up pump on
 	gpio_set_level(PH_UP_PUMP_GPIO, 1);
 	ESP_LOGI("", "pH up pump on");
 
+	// Enable dose timer
 	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
-void ph_down_pump() {
+void ph_down_pump() { // Turn ph down pump on
 	gpio_set_level(PH_DOWN_PUMP_GPIO, 1);
 	ESP_LOGI("", "pH down pump on");
 
+	// Enable dose timer
 	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
-void ph_pump_off() {
+void ph_pump_off() { // Turn ph pumps off
 	gpio_set_level(PH_UP_PUMP_GPIO, 0);
 	gpio_set_level(PH_DOWN_PUMP_GPIO, 0);
 	ESP_LOGI("", "pH pumps off");
 
-	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
+	// Enable wait timer
+	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
 }
 
-void reset_ph_checks() {
+void reset_ph_checks() { // Reset ph_checks var
 	for(int i = 0; i < sizeof(ph_checks); i++) {
 		ph_checks[i] = false;
 	}
 }
 
-void check_ph() {
+void check_ph() { // Check ph
+	char *TAG = "PH_CONTROL";
+
+	// Check if ph is currently being altered
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
+	// Only proceed if ph not being altered
 	if(!ph_control) {
+		// Check if ph is too low
 		if(_ph < target_ph - ph_margin_error) {
+			// Check if all checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
+				// Turn pump on and reset checks
 				ph_up_pump();
 				reset_ph_checks();
-
 			} else {
+				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						printf("i: %d\n", i);
+						ESP_LOGI(TAG, "Check %d done", i+1);
 						break;
 					}
 				}
 			}
+			// Check if ph is too high
 		} else if(_ph > target_ph + ph_margin_error) {
+			// Check if ph checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
+				// Turn pump on and reset checks
 				ph_down_pump();
 				reset_ph_checks();
 			} else {
+				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						printf("i: %d\n", i);
+						ESP_LOGI(TAG, "Check %d done", i+1);
 						break;
 					}
 				}
 			}
 		} else {
+			// Reset checks if ph is good
 			reset_ph_checks();
 		}
 	}
@@ -524,8 +541,10 @@ void check_ph() {
 
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
+		// Check sensors
 		check_ph();
 
+		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
@@ -652,8 +671,7 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
 			ESP_LOGI(TAG, "voltage: %f", voltage);
-			//_ph = readPH(voltage);		// Calculate pH from voltage Reading
-			_ph = 5.42;
+			_ph = readPH(voltage);		// Calculate pH from voltage Reading
 			ESP_LOGI(TAG, "PH: %.4f\n", _ph);
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end
@@ -793,7 +811,7 @@ void port_setup() {								// ADC Port Setup Method
 	gpio_set_direction(32, GPIO_MODE_OUTPUT);
 }
 
-void gpio_setup() {
+void gpio_setup() {  // Setup GPIO ports that are controlled through high/low mechanism
 	gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
 	gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
 }
@@ -843,6 +861,7 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 
+			// Setup gpio ports
 			gpio_setup();
 
 			// Set all sync bits var
