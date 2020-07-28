@@ -43,6 +43,7 @@ static EventGroupHandle_t sensor_event_group;
 // Core 0 Task Priorities
 #define TIMER_ALARM_TASK_PRIORITY 1
 #define MQTT_PUBLISH_TASK_PRIORITY 2
+#define SENSOR_CONTROL_TASK_PRIORITY 3
 
 // Core 1 Task Priorities
 #define ULTRASONIC_TASK_PRIORITY 1
@@ -54,11 +55,13 @@ static EventGroupHandle_t sensor_event_group;
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
+#define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
 #define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
-#define RTC_SCL_GPIO 22                 // GPIO 22
 #define RTC_SDA_GPIO 21                 // GPIO 21
+#define RTC_SCL_GPIO 22                 // GPIO 22
+#define PH_UP_PUMP_GPIO 25              // GPIO 25
+#define PH_DOWN_PUMP_GPIO 26            // GPIO 26
 #define RF_TRANSMITTER_GPIO 32			// GPIO 32
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
@@ -83,11 +86,20 @@ static float _ec = 0;
 static float _distance = 0;
 static float _ph = 0;
 
+// pH control
+static float target_ph = 5;
+static float ph_margin_error = 0.3;
+static bool ph_checks[6] = {false, false, false, false, false, false};
+static float ph_dose_time = 5;
+static float ph_wait_time = 10 * 60;
+
 // RTC Components
 i2c_dev_t dev;
 
 // Timers
 struct timer water_pump_timer;
+struct timer ph_dose_timer;
+struct timer ph_wait_timer;
 
 // Alarms
 struct alarm lights_on_alarm;
@@ -114,6 +126,7 @@ static TaskHandle_t ultrasonic_task_handle = NULL;
 static TaskHandle_t sync_task_handle = NULL;
 static TaskHandle_t publish_task_handle = NULL;
 static TaskHandle_t timer_alarm_task_handle = NULL;
+static TaskHandle_t sensor_control_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
@@ -444,46 +457,95 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 	lights_off_time->tm_sec = 0;
 }
 
+void ph_up_pump() { // Turn ph up pump on
+	gpio_set_level(PH_UP_PUMP_GPIO, 1);
+	ESP_LOGI("", "pH up pump on");
 
-static void manage_timers_alarms(void *parameter) {
-	const char *TAG = "TIMER_TASK";
+	// Enable dose timer
+	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+}
 
-	// Initialize timers
-	init_timer(&water_pump_timer, &water_pump, false, false);
-	enable_timer(&dev, &water_pump_timer, water_pump_on_time);
+void ph_down_pump() { // Turn ph down pump on
+	gpio_set_level(PH_DOWN_PUMP_GPIO, 1);
+	ESP_LOGI("", "pH down pump on");
 
-	// Get alarm times
-	struct tm lights_on_time;
-	struct tm lights_off_time;
-	get_lights_times(&lights_on_time, &lights_off_time);
+	// Enable dose timer
+	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+}
 
-	// Initialize alarms
-	init_alarm(&lights_on_alarm, &lights_on, true, false);
-	enable_alarm(&lights_on_alarm, lights_on_time);
+void ph_pump_off() { // Turn ph pumps off
+	gpio_set_level(PH_UP_PUMP_GPIO, 0);
+	gpio_set_level(PH_DOWN_PUMP_GPIO, 0);
+	ESP_LOGI("", "pH pumps off");
 
-	init_alarm(&lights_off_alarm, &lights_off, true, false);
-	enable_alarm(&lights_off_alarm, lights_off_time);
+	// Enable wait timer
+	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
+}
 
-	ESP_LOGI(TAG, "Timers initialized");
+void reset_ph_checks() { // Reset ph_checks var
+	for(int i = 0; i < sizeof(ph_checks); i++) {
+		ph_checks[i] = false;
+	}
+}
 
-	for(;;) {
-		// Get current unix time
-		time_t unix_time;
-		get_unix_time(&dev, &unix_time);
+void check_ph() { // Check ph
+	char *TAG = "PH_CONTROL";
 
-		// Check if timers are done
-		check_timer(&dev, &water_pump_timer, unix_time);
+	// Check if ph is currently being altered
+	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
-		// Check if alarms are done
-		check_alarm(&dev, &lights_on_alarm, unix_time);
-		check_alarm(&dev, &lights_off_alarm, unix_time);
+	// Only proceed if ph not being altered
+	if(!ph_control) {
+		// Check if ph is too low
+		if(_ph < target_ph - ph_margin_error) {
+			// Check if all checks are complete
+			if(ph_checks[sizeof(ph_checks) - 1]) {
+				// Turn pump on and reset checks
+				ph_up_pump();
+				reset_ph_checks();
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ph_checks[i]) {
+						ph_checks[i] = true;
+						ESP_LOGI(TAG, "Check %d done", i+1);
+						break;
+					}
+				}
+			}
+			// Check if ph is too high
+		} else if(_ph > target_ph + ph_margin_error) {
+			// Check if ph checks are complete
+			if(ph_checks[sizeof(ph_checks) - 1]) {
+				// Turn pump on and reset checks
+				ph_down_pump();
+				reset_ph_checks();
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ph_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ph_checks[i]) {
+						ph_checks[i] = true;
+						ESP_LOGI(TAG, "Check %d done", i+1);
+						break;
+					}
+				}
+			}
+		} else {
+			// Reset checks if ph is good
+			reset_ph_checks();
+		}
+	}
+}
 
-		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (lights_on_alarm->alarm_timer.active && lights_on_alarm->alarm_timer.high_priority) || (lights_off_alarm->alarm_timer.active && lights_off_alarm->alarm_timer.high_priority);
+void sensor_control (void *parameter) { // Sensor Control Task
+	for(;;)  {
+		// Check sensors
+		check_ph();
 
-		// Set priority and delay based on urgency of timers and alarms
-		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
-		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
+		// Wait till next sensor readings
+		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
@@ -677,6 +739,50 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 	}
 }
 
+void do_nothing() {}
+
+static void manage_timers_alarms(void *parameter) {
+	const char *TAG = "TIMER_TASK";
+
+	// Initialize timers
+	init_timer(&water_pump_timer, &water_pump, false, false);
+	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
+	init_timer(&ph_wait_timer, &do_nothing, false, false);
+
+	// Get alarm times
+	struct tm lights_on_time;
+	struct tm lights_off_time;
+	get_lights_times(&lights_on_time, &lights_off_time);
+
+	// Initialize alarms
+	init_alarm(&lights_on_alarm, &lights_on, true, false);
+	init_alarm(&lights_off_alarm, &lights_off, true, false);
+
+	ESP_LOGI(TAG, "Timers initialized");
+
+	for(;;) {
+		// Get current unix time
+		time_t unix_time;
+		get_unix_time(&dev, &unix_time);
+
+		// Check if timers are done
+		check_timer(&dev, &water_pump_timer, unix_time);
+		check_timer(&dev, &ph_dose_timer, unix_time);
+		check_timer(&dev, &ph_wait_timer, unix_time);
+
+		// Check if alarms are done
+		check_alarm(&dev, &lights_on_alarm, unix_time);
+		check_alarm(&dev, &lights_off_alarm, unix_time);
+
+		// Check if any timer or alarm is urgent
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
+
+		// Set priority and delay based on urgency of timers and alarms
+		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
+		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
+	}
+}
+
 void send_rf_transmission(){
 	// Setup Transmission Protocol
 	struct binary_bits low_bit = {3, 1};
@@ -703,6 +809,11 @@ void port_setup() {								// ADC Port Setup Method
 	adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
 
 	gpio_set_direction(32, GPIO_MODE_OUTPUT);
+}
+
+void gpio_setup() {  // Setup GPIO ports that are controlled through high/low mechanism
+	gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
 }
 
 void app_main(void) {							// Main Method
@@ -750,6 +861,9 @@ void app_main(void) {							// Main Method
 						"EFUSE_VREF not supported, use a different ESP 32 board");
 			}
 
+			// Setup gpio ports
+			gpio_setup();
+
 			// Set all sync bits var
 			set_sensor_sync_bits(&sensor_sync_bits);
 
@@ -760,6 +874,7 @@ void app_main(void) {							// Main Method
 			// Create core 0 tasks
 			xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 			xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+			xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 			// Create core 1 tasks
 			if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
