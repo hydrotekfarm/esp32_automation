@@ -100,6 +100,8 @@ i2c_dev_t dev;
 struct timer water_pump_timer;
 struct timer ph_dose_timer;
 struct timer ph_wait_timer;
+struct timer ec_dose_timer;
+struct timer ec_wait_timer;
 
 // Alarms
 struct alarm lights_on_alarm;
@@ -539,10 +541,19 @@ void check_ph() { // Check ph
 	}
 }
 
+void ec_dose() {
+
+}
+
+void check_ec() {
+
+}
+
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		// Check sensors
 		check_ph();
+		check_ec();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -748,6 +759,8 @@ static void manage_timers_alarms(void *parameter) {
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
 	init_timer(&ph_wait_timer, &do_nothing, false, false);
+	init_timer(&ec_dose_timer, &ec_dose, false, true);
+	init_timer(&ec_wait_timer, &do_nothing, false, false);
 
 	// Get alarm times
 	struct tm lights_on_time;
@@ -769,13 +782,15 @@ static void manage_timers_alarms(void *parameter) {
 		check_timer(&dev, &water_pump_timer, unix_time);
 		check_timer(&dev, &ph_dose_timer, unix_time);
 		check_timer(&dev, &ph_wait_timer, unix_time);
+		check_timer(&dev, &ec_dose_timer, unix_time);
+		check_timer(&dev, &ec_wait_timer, unix_time);
 
 		// Check if alarms are done
 		check_alarm(&dev, &lights_on_alarm, unix_time);
 		check_alarm(&dev, &lights_off_alarm, unix_time);
 
 		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (ec_dose_timer.active && ec_dose_timer.high_priority) || (ec_wait_timer.active && ec_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
