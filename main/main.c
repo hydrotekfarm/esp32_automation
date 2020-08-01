@@ -492,8 +492,8 @@ void ph_pump_off() { // Turn ph pumps off
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
 }
 
-void reset_sensor_checks(bool *sensor_checks) { // Reset ph_checks var
-	for(int i = 0; i < sizeof(*sensor_checks); i++) {
+void reset_sensor_checks(bool *sensor_checks) { // Reset sensor check vars
+	for(int i = 0; i < sizeof(sensor_checks); i++) {
 		sensor_checks[i] = false;
 	}
 }
