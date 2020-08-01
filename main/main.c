@@ -93,6 +93,14 @@ static bool ph_checks[6] = {false, false, false, false, false, false};
 static float ph_dose_time = 5;
 static float ph_wait_time = 10 * 60;
 
+// ec control
+static float target_ec = 4;
+static float ec_margin_error = 0.5;
+static bool ec_checks[6] = {false, false, false, false, false, false};
+static float ec_dose_time = 5;
+static float ec_wait_time = 10 * 60;
+static float ec_nutrient_proportions[6] = {0.10, 0.15, 0.20, 0.25, 0.30, 0};
+
 // RTC Components
 i2c_dev_t dev;
 
@@ -484,9 +492,9 @@ void ph_pump_off() { // Turn ph pumps off
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
 }
 
-void reset_ph_checks() { // Reset ph_checks var
-	for(int i = 0; i < sizeof(ph_checks); i++) {
-		ph_checks[i] = false;
+void reset_sensor_checks(bool *sensor_checks) { // Reset ph_checks var
+	for(int i = 0; i < sizeof(*sensor_checks); i++) {
+		sensor_checks[i] = false;
 	}
 }
 
@@ -504,7 +512,7 @@ void check_ph() { // Check ph
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
 				ph_up_pump();
-				reset_ph_checks();
+				reset_sensor_checks(ph_checks);
 			} else {
 				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
@@ -522,7 +530,7 @@ void check_ph() { // Check ph
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
 				ph_down_pump();
-				reset_ph_checks();
+				reset_sensor_checks(ph_checks);
 			} else {
 				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
@@ -536,7 +544,7 @@ void check_ph() { // Check ph
 			}
 		} else {
 			// Reset checks if ph is good
-			reset_ph_checks();
+			reset_sensor_checks(ph_checks);
 		}
 	}
 }
