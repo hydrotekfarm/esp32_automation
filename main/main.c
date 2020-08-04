@@ -96,10 +96,12 @@ static float ph_wait_time = 10 * 60;
 // ec control
 static float target_ec = 4;
 static float ec_margin_error = 0.5;
-static bool ec_checks[6] = {false, false, false, false, false, false};
-static float ec_dose_time = 5;
-static float ec_wait_time = 10 * 60;
-static float ec_nutrient_proportions[6] = {0.10, 0.15, 0.20, 0.25, 0.30, 0};
+static bool ec_checks[2] = {false, false};
+static float ec_dose_time = 30;
+static float ec_wait_time = 2 * 60;
+static int ec_num_pumps = 6;
+static int ec_nutrient_index = 0;
+static float ec_nutrient_proportions[6] = {0.10, 0.20, 0.30, 0.10, 0, 0.30};
 
 // RTC Components
 i2c_dev_t dev;
@@ -140,7 +142,7 @@ static TaskHandle_t sensor_control_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
-static bool ec_active = false;
+static bool ec_active = true;
 static bool ph_active = true;
 static bool ultrasonic_active = false;
 
@@ -519,7 +521,7 @@ void check_ph() { // Check ph
 					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						ESP_LOGI(TAG, "Check %d done", i+1);
+						ESP_LOGI(TAG, "PH check %d done", i+1);
 						break;
 					}
 				}
@@ -537,7 +539,7 @@ void check_ph() { // Check ph
 					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						ESP_LOGI(TAG, "Check %d done", i+1);
+						ESP_LOGI(TAG, "PH check %d done", i+1);
 						break;
 					}
 				}
@@ -550,17 +552,63 @@ void check_ph() { // Check ph
 }
 
 void ec_dose() {
-
+	if(ec_nutrient_index == ec_num_pumps) {
+		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
+		ec_nutrient_index = 0;
+		ESP_LOGI("", "EC dosing done");
+	} else {
+		enable_timer(&dev, &ec_dose_timer, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
+		ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
+		ec_nutrient_index++;
+	}
 }
 
 void check_ec() {
+	char *TAG = "EC_CONTROL";
 
+	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
+
+	if(!ec_control) {
+		if(_ec < target_ec - ec_margin_error) {
+			// Check if all checks are complete
+			if(ec_checks[sizeof(ec_checks) - 1]) {
+				ec_dose();
+				reset_sensor_checks(ec_checks);
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ec_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ec_checks[i]) {
+						ec_checks[i] = true;
+						ESP_LOGI(TAG, "EC check %d done", i+1);
+						break;
+					}
+				}
+			}
+		} else if(_ec > target_ec + ec_margin_error) {
+			// Check if all checks are complete
+			if(ec_checks[sizeof(ec_checks) - 1]) {
+				// TODO dilute ec with  water
+				reset_sensor_checks(ec_checks);
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ec_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ec_checks[i]) {
+						ec_checks[i] = true;
+						ESP_LOGI(TAG, "EC check %d done", i+1);
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		// Check sensors
-		check_ph();
+		//check_ph();
 		check_ec();
 
 		// Wait till next sensor readings
@@ -641,7 +689,8 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			}
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
+			//_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
+			_ec = 2;
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
 
 			// Sync with other sensor tasks
