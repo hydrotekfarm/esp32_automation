@@ -503,11 +503,12 @@ void reset_sensor_checks(bool *sensor_checks) { // Reset sensor check vars
 void check_ph() { // Check ph
 	char *TAG = "PH_CONTROL";
 
-	// Check if ph is currently being altered
+	// Check if ph and ec is currently being altered
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
+	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
 
-	// Only proceed if ph not being altered
-	if(!ph_control) {
+	// Only proceed if ph and ec are not being altered
+	if(!ph_control && !ec_control) {
 		// Check if ph is too low
 		if(_ph < target_ph - ph_margin_error) {
 			// Check if all checks are complete
@@ -548,6 +549,9 @@ void check_ph() { // Check ph
 			// Reset checks if ph is good
 			reset_sensor_checks(ph_checks);
 		}
+		// Reset sensor checks if ec is active
+	} else if(ec_active) {
+		reset_sensor_checks(ph_checks);
 	}
 }
 
@@ -566,9 +570,11 @@ void ec_dose() {
 void check_ec() {
 	char *TAG = "EC_CONTROL";
 
+	// Check if ph and ec is currently being altered
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
+	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
-	if(!ec_control) {
+	if(!ec_control && !ph_control) {
 		if(_ec < target_ec - ec_margin_error) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
@@ -602,6 +608,9 @@ void check_ec() {
 				}
 			}
 		}
+		// Reset sensor checks if ph is active
+	} else if(ph_control) {
+		reset_sensor_checks(ec_checks);
 	}
 }
 
