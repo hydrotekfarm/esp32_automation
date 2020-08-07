@@ -103,8 +103,8 @@ static float ph_wait_time = 10 * 60;
 static float target_ec = 4;
 static float ec_margin_error = 0.5;
 static bool ec_checks[2] = {false, false};
-static float ec_dose_time = 30;
-static float ec_wait_time = 2 * 60;
+static float ec_dose_time = 10;
+static float ec_wait_time = 10 * 60;
 static uint32_t ec_num_pumps = 6;
 static uint32_t ec_nutrient_index = 0;
 static float ec_nutrient_proportions[6] = {0.10, 0.20, 0.30, 0.10, 0, 0.30};
@@ -563,16 +563,23 @@ void check_ph() { // Check ph
 }
 
 void ec_dose() {
+	// Check if last nutrient was pumped
 	if(ec_nutrient_index == ec_num_pumps) {
+		// Turn off last pump
 		gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
 
-		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
+		// Enable wait timer and reset nutrient index
+		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset timer based on check durations
 		ec_nutrient_index = 0;
 		ESP_LOGI("", "EC dosing done");
+
+		// Still nutrients left
 	} else {
+		// Turn off last pump as long as this isn't first pump and turn on next pump
 		if(ec_nutrient_index != 0) gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
 		gpio_set_level(ec_pump_gpios[ec_nutrient_index], 1);
 
+		// Enable dose timer based on nutrient proportion
 		enable_timer(&dev, &ec_dose_timer, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
 		ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
 		ec_nutrient_index++;
@@ -629,7 +636,7 @@ void check_ec() {
 void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		// Check sensors
-		//check_ph();
+		check_ph();
 		check_ec();
 
 		// Wait till next sensor readings
@@ -710,8 +717,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			}
 			adc_reading /= 64;
 			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			//_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
-			_ec = 2;
+			_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
 			ESP_LOGI(TAG, "EC: %f\n", _ec);
 
 			// Sync with other sensor tasks
