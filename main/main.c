@@ -105,9 +105,10 @@ static float ec_margin_error = 0.5;
 static bool ec_checks[2] = {false, false};
 static float ec_dose_time = 30;
 static float ec_wait_time = 2 * 60;
-static int ec_num_pumps = 6;
-static int ec_nutrient_index = 0;
+static uint32_t ec_num_pumps = 6;
+static uint32_t ec_nutrient_index = 0;
 static float ec_nutrient_proportions[6] = {0.10, 0.20, 0.30, 0.10, 0, 0.30};
+static uint32_t ec_pump_gpios[6] = {EC_NUTRIENT_1_PUMP_GPIO, EC_NUTRIENT_2_PUMP_GPIO, EC_NUTRIENT_3_PUMP_GPIO, EC_NUTRIENT_4_PUMP_GPIO, EC_NUTRIENT_5_PUMP_GPIO, EC_NUTRIENT_6_PUMP_GPIO};
 
 // RTC Components
 i2c_dev_t dev;
@@ -563,10 +564,15 @@ void check_ph() { // Check ph
 
 void ec_dose() {
 	if(ec_nutrient_index == ec_num_pumps) {
+		gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
+
 		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000)));
 		ec_nutrient_index = 0;
 		ESP_LOGI("", "EC dosing done");
 	} else {
+		if(ec_nutrient_index != 0) gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
+		gpio_set_level(ec_pump_gpios[ec_nutrient_index], 1);
+
 		enable_timer(&dev, &ec_dose_timer, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
 		ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
 		ec_nutrient_index++;
@@ -901,6 +907,12 @@ void port_setup() {								// ADC Port Setup Method
 void gpio_setup() {  // Setup GPIO ports that are controlled through high/low mechanism
 	gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
 	gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_1_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_2_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_3_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_4_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_5_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
 }
 
 void app_main(void) {							// Main Method
