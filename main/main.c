@@ -55,14 +55,20 @@ static EventGroupHandle_t sensor_event_group;
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
-#define ULTRASONIC_ECHO_GPIO 17			// GPIO 17
-#define ULTRASONIC_TRIGGER_GPIO 18		// GPIO 18
-#define TEMPERATURE_SENSOR_GPIO 19		// GPIO 19
+#define RF_TRANSMITTER_GPIO 4			// GPIO 4
+#define ULTRASONIC_ECHO_GPIO 13			// GPIO 13
+#define ULTRASONIC_TRIGGER_GPIO 16		// GPIO 16
+#define TEMPERATURE_SENSOR_GPIO 17		// GPIO 17
+#define PH_UP_PUMP_GPIO 18              // GPIO 18
+#define PH_DOWN_PUMP_GPIO 19            // GPIO 19
 #define RTC_SDA_GPIO 21                 // GPIO 21
 #define RTC_SCL_GPIO 22                 // GPIO 22
-#define PH_UP_PUMP_GPIO 25              // GPIO 25
-#define PH_DOWN_PUMP_GPIO 26            // GPIO 26
-#define RF_TRANSMITTER_GPIO 32			// GPIO 32
+#define EC_NUTRIENT_1_PUMP_GPIO 23      // GPIO 23
+#define EC_NUTRIENT_2_PUMP_GPIO 25      // GPIO 25
+#define EC_NUTRIENT_3_PUMP_GPIO 26      // GPIO 26
+#define EC_NUTRIENT_4_PUMP_GPIO 27      // GPIO 27
+#define EC_NUTRIENT_5_PUMP_GPIO 32      // GPIO 32
+#define EC_NUTRIENT_6_PUMP_GPIO 33      // GPIO 33
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
@@ -93,6 +99,17 @@ static bool ph_checks[6] = {false, false, false, false, false, false};
 static float ph_dose_time = 5;
 static float ph_wait_time = 10 * 60;
 
+// ec control
+static float target_ec = 4;
+static float ec_margin_error = 0.5;
+static bool ec_checks[2] = {false, false};
+static float ec_dose_time = 10;
+static float ec_wait_time = 10 * 60;
+static uint32_t ec_num_pumps = 6;
+static uint32_t ec_nutrient_index = 0;
+static float ec_nutrient_proportions[6] = {0.10, 0.20, 0.30, 0.10, 0, 0.30};
+static uint32_t ec_pump_gpios[6] = {EC_NUTRIENT_1_PUMP_GPIO, EC_NUTRIENT_2_PUMP_GPIO, EC_NUTRIENT_3_PUMP_GPIO, EC_NUTRIENT_4_PUMP_GPIO, EC_NUTRIENT_5_PUMP_GPIO, EC_NUTRIENT_6_PUMP_GPIO};
+
 // RTC Components
 i2c_dev_t dev;
 
@@ -100,6 +117,8 @@ i2c_dev_t dev;
 struct timer water_pump_timer;
 struct timer ph_dose_timer;
 struct timer ph_wait_timer;
+struct timer ec_dose_timer;
+struct timer ec_wait_timer;
 
 // Alarms
 struct alarm lights_on_alarm;
@@ -130,7 +149,7 @@ static TaskHandle_t sensor_control_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;
-static bool ec_active = false;
+static bool ec_active = true;
 static bool ph_active = true;
 static bool ultrasonic_active = false;
 
@@ -482,34 +501,35 @@ void ph_pump_off() { // Turn ph pumps off
 	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
 }
 
-void reset_ph_checks() { // Reset ph_checks var
-	for(int i = 0; i < sizeof(ph_checks); i++) {
-		ph_checks[i] = false;
+void reset_sensor_checks(bool *sensor_checks) { // Reset sensor check vars
+	for(int i = 0; i < sizeof(sensor_checks); i++) {
+		sensor_checks[i] = false;
 	}
 }
 
 void check_ph() { // Check ph
 	char *TAG = "PH_CONTROL";
 
-	// Check if ph is currently being altered
+	// Check if ph and ec is currently being altered
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
+	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
 
-	// Only proceed if ph not being altered
-	if(!ph_control) {
+	// Only proceed if ph and ec are not being altered
+	if(!ph_control && !ec_control) {
 		// Check if ph is too low
 		if(_ph < target_ph - ph_margin_error) {
 			// Check if all checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
 				ph_up_pump();
-				reset_ph_checks();
+				reset_sensor_checks(ph_checks);
 			} else {
 				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
 					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						ESP_LOGI(TAG, "Check %d done", i+1);
+						ESP_LOGI(TAG, "PH check %d done", i+1);
 						break;
 					}
 				}
@@ -520,22 +540,96 @@ void check_ph() { // Check ph
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
 				ph_down_pump();
-				reset_ph_checks();
+				reset_sensor_checks(ph_checks);
 			} else {
 				// Iterate through checks
 				for(int i = 0; i < sizeof(ph_checks); i++) {
 					// Once false check is reached, set it to true and leave loop
 					if(!ph_checks[i]) {
 						ph_checks[i] = true;
-						ESP_LOGI(TAG, "Check %d done", i+1);
+						ESP_LOGI(TAG, "PH check %d done", i+1);
 						break;
 					}
 				}
 			}
 		} else {
 			// Reset checks if ph is good
-			reset_ph_checks();
+			reset_sensor_checks(ph_checks);
 		}
+		// Reset sensor checks if ec is active
+	} else if(ec_active) {
+		reset_sensor_checks(ph_checks);
+	}
+}
+
+void ec_dose() {
+	// Check if last nutrient was pumped
+	if(ec_nutrient_index == ec_num_pumps) {
+		// Turn off last pump
+		gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
+
+		// Enable wait timer and reset nutrient index
+		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset timer based on check durations
+		ec_nutrient_index = 0;
+		ESP_LOGI("", "EC dosing done");
+
+		// Still nutrients left
+	} else {
+		// Turn off last pump as long as this isn't first pump and turn on next pump
+		if(ec_nutrient_index != 0) gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
+		gpio_set_level(ec_pump_gpios[ec_nutrient_index], 1);
+
+		// Enable dose timer based on nutrient proportion
+		enable_timer(&dev, &ec_dose_timer, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
+		ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);
+		ec_nutrient_index++;
+	}
+}
+
+void check_ec() {
+	char *TAG = "EC_CONTROL";
+
+	// Check if ph and ec is currently being altered
+	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
+	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
+
+	if(!ec_control && !ph_control) {
+		if(_ec < target_ec - ec_margin_error) {
+			// Check if all checks are complete
+			if(ec_checks[sizeof(ec_checks) - 1]) {
+				ec_dose();
+				reset_sensor_checks(ec_checks);
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ec_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ec_checks[i]) {
+						ec_checks[i] = true;
+						ESP_LOGI(TAG, "EC check %d done", i+1);
+						break;
+					}
+				}
+			}
+		} else if(_ec > target_ec + ec_margin_error) {
+			// Check if all checks are complete
+			if(ec_checks[sizeof(ec_checks) - 1]) {
+				// TODO dilute ec with  water
+				reset_sensor_checks(ec_checks);
+			} else {
+				// Iterate through checks
+				for(int i = 0; i < sizeof(ec_checks); i++) {
+					// Once false check is reached, set it to true and leave loop
+					if(!ec_checks[i]) {
+						ec_checks[i] = true;
+						ESP_LOGI(TAG, "EC check %d done", i+1);
+						break;
+					}
+				}
+			}
+		}
+		// Reset sensor checks if ph is active
+	} else if(ph_control) {
+		reset_sensor_checks(ec_checks);
 	}
 }
 
@@ -543,6 +637,7 @@ void sensor_control (void *parameter) { // Sensor Control Task
 	for(;;)  {
 		// Check sensors
 		check_ph();
+		check_ec();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -748,6 +843,8 @@ static void manage_timers_alarms(void *parameter) {
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
 	init_timer(&ph_wait_timer, &do_nothing, false, false);
+	init_timer(&ec_dose_timer, &ec_dose, false, true);
+	init_timer(&ec_wait_timer, &do_nothing, false, false);
 
 	// Get alarm times
 	struct tm lights_on_time;
@@ -769,13 +866,15 @@ static void manage_timers_alarms(void *parameter) {
 		check_timer(&dev, &water_pump_timer, unix_time);
 		check_timer(&dev, &ph_dose_timer, unix_time);
 		check_timer(&dev, &ph_wait_timer, unix_time);
+		check_timer(&dev, &ec_dose_timer, unix_time);
+		check_timer(&dev, &ec_wait_timer, unix_time);
 
 		// Check if alarms are done
 		check_alarm(&dev, &lights_on_alarm, unix_time);
 		check_alarm(&dev, &lights_off_alarm, unix_time);
 
 		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (ec_dose_timer.active && ec_dose_timer.high_priority) || (ec_wait_timer.active && ec_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
@@ -814,6 +913,12 @@ void port_setup() {								// ADC Port Setup Method
 void gpio_setup() {  // Setup GPIO ports that are controlled through high/low mechanism
 	gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
 	gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_1_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_2_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_3_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_4_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_5_PUMP_GPIO, GPIO_MODE_OUTPUT);
+	gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
 }
 
 void app_main(void) {							// Main Method
