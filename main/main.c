@@ -101,7 +101,7 @@ static float ph_wait_time = 10 * 60;
 // ec control
 static float target_ec = 4;
 static float ec_margin_error = 0.5;
-static bool ec_checks[2] = {false, false};
+static bool ec_checks[6] = {false, false, false, false, false, false};
 static float ec_dose_time = 10;
 static float ec_wait_time = 10 * 60;
 static uint32_t ec_num_pumps = 6;
@@ -315,15 +315,15 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = { .host = "70.94.9.135", .port = 1883 };
-
-	// Create and initialize MQTT client
-	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler,
-			client);
-	esp_mqtt_client_start(client);
-	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
+//	// Set broker configuration
+//	esp_mqtt_client_config_t mqtt_cfg = { .host = "70.94.9.135", .port = 1883 };
+//
+//	// Create and initialize MQTT client
+//	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+//	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler,
+//			client);
+//	esp_mqtt_client_start(client);
+//	ulTaskNotifyTake( pdTRUE, portMAX_DELAY);
 	for (;;) {
 		// Create and structure topic for publishing data through MQTT
 		char *topic = NULL;
@@ -405,8 +405,8 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Add closing tag
 		append_str(&data, "]}");
 
-		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+//		// Publish data to MQTT broker using topic and data
+//		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 
 		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);
@@ -415,8 +415,8 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		free(data);
 		data = NULL;
 
-		// Publish data every 20 seconds
-		vTaskDelay(pdMS_TO_TICKS(5000));
+		// Publish data every sensor reading
+		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
 }
 
