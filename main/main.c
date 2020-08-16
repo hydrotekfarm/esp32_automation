@@ -41,16 +41,16 @@ static EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_BIT    (1<<4)
 
 // Core 0 Task Priorities
-#define TIMER_ALARM_TASK_PRIORITY 1
-#define MQTT_PUBLISH_TASK_PRIORITY 2
-#define SENSOR_CONTROL_TASK_PRIORITY 3
+#define TIMER_ALARM_TASK_PRIORITY 0
+#define MQTT_PUBLISH_TASK_PRIORITY 1
+#define SENSOR_CONTROL_TASK_PRIORITY 2
 
 // Core 1 Task Priorities
-#define ULTRASONIC_TASK_PRIORITY 1
-#define PH_TASK_PRIORITY 2
-#define EC_TASK_PRIORITY 3
-#define WATER_TEMPERATURE_TASK_PRIORITY 4
-#define SYNC_TASK_PRIORITY 5
+#define ULTRASONIC_TASK_PRIORITY 0
+#define PH_TASK_PRIORITY 1
+#define EC_TASK_PRIORITY 2
+#define WATER_TEMPERATURE_TASK_PRIORITY 3
+#define SYNC_TASK_PRIORITY 4
 
 #define MAX_DISTANCE_CM 500
 
@@ -73,7 +73,6 @@ static EventGroupHandle_t sensor_event_group;
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
 #define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
-#define SENSOR_DISABLED_PERIOD SENSOR_MEASUREMENT_PERIOD / 2 // Disabled increment is half of measure period so task always finishes on time
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
@@ -113,6 +112,10 @@ static uint32_t ec_pump_gpios[6] = {EC_NUTRIENT_1_PUMP_GPIO, EC_NUTRIENT_2_PUMP_
 // RTC Components
 i2c_dev_t dev;
 
+// Timer and alarm periods
+static const uint32_t timer_alarm_urgent_delay = 10;
+static const uint32_t timer_alarm_regular_delay = 50;
+
 // Timers
 struct timer water_pump_timer;
 struct timer ph_dose_timer;
@@ -123,9 +126,6 @@ struct timer ec_wait_timer;
 // Alarms
 struct alarm lights_on_alarm;
 struct alarm lights_off_alarm;
-
-static const uint32_t timer_alarm_urgent_delay = 10;
-static const uint32_t timer_alarm_regular_delay = 50;
 
 // Water pump timings
 static uint32_t water_pump_on_time = 15 * 60;
@@ -165,7 +165,6 @@ static void restart_esp32() { // Restart ESP32
 }
 
 static void init_rtc() { // Init RTC
-	ESP_ERROR_CHECK(i2cdev_init());
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
 }
@@ -971,6 +970,9 @@ void app_main(void) {							// Main Method
 
 			// Set all sync bits var
 			set_sensor_sync_bits(&sensor_sync_bits);
+
+			// Init i2cdev
+			ESP_ERROR_CHECK(i2cdev_init());
 
 			// Init rtc and check if time needs to be set
 			init_rtc();
