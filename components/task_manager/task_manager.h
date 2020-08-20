@@ -13,6 +13,8 @@
 #define WATER_TEMPERATURE_TASK_PRIORITY 3
 #define SYNC_TASK_PRIORITY 4
 
+#define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
+
 // Task Handles
 static TaskHandle_t water_temperature_task_handle = NULL;
 static TaskHandle_t ec_task_handle = NULL;

@@ -6,9 +6,9 @@
 #include <esp_event_loop.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
-#include <esp_adc_cal.h>
 #include <nvs_flash.h>
 
+#include "port_manager.h"
 #include "task_manager.h"
 
 void boot_sequence() {
@@ -51,15 +51,11 @@ void boot_sequence() {
 	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 		//sensor_event_group = xEventGroupCreate();
 
-		//port_setup();	// Setup ADC ports
-		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
-		if (error != ESP_OK) {
-			ESP_LOGE(TAG,
-					"EFUSE_VREF not supported, use a different ESP 32 board");
-		}
+		// Setup ADC ports
+		port_setup();
 
 		// Setup gpio ports
-		//gpio_setup();
+		gpio_setup();
 
 		// Set all sync bits var
 		//set_sensor_sync_bits(&sensor_sync_bits);
