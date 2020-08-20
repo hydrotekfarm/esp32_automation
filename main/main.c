@@ -37,18 +37,6 @@ static EventGroupHandle_t sensor_event_group;
 #define PH_BIT		    (1<<3)
 #define ULTRASONIC_BIT    (1<<4)
 
-// Core 0 Task Priorities
-#define TIMER_ALARM_TASK_PRIORITY 0
-#define MQTT_PUBLISH_TASK_PRIORITY 1
-#define SENSOR_CONTROL_TASK_PRIORITY 2
-
-// Core 1 Task Priorities
-#define ULTRASONIC_TASK_PRIORITY 0
-#define PH_TASK_PRIORITY 1
-#define EC_TASK_PRIORITY 2
-#define WATER_TEMPERATURE_TASK_PRIORITY 3
-#define SYNC_TASK_PRIORITY 4
-
 #define MAX_DISTANCE_CM 500
 
 // GPIO and ADC Ports
@@ -133,16 +121,6 @@ static uint32_t lights_on_hour = 21;
 static uint32_t lights_on_min = 0;
 static uint32_t lights_off_hour  = 6;
 static uint32_t lights_off_min = 0;
-
-// Task Handles
-static TaskHandle_t water_temperature_task_handle = NULL;
-static TaskHandle_t ec_task_handle = NULL;
-static TaskHandle_t ph_task_handle = NULL;
-static TaskHandle_t ultrasonic_task_handle = NULL;
-static TaskHandle_t sync_task_handle = NULL;
-static TaskHandle_t publish_task_handle = NULL;
-static TaskHandle_t timer_alarm_task_handle = NULL;
-static TaskHandle_t sensor_control_task_handle = NULL;
 
 // Sensor Active Status
 static bool water_temperature_active = false;

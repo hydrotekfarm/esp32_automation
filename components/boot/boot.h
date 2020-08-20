@@ -5,5 +5,5 @@ static EventGroupHandle_t wifi_event_group;
 #define WIFI_CONNECTED_BIT (1<<0)
 #define WIFI_FAIL_BIT      (1<<1)
 
-
+// Contains all the boot code for esp32
 void boot_sequence();

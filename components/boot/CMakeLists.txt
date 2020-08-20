@@ -2,6 +2,9 @@ set(COMPONENT_SRCDIRS .)
 set(COMPONENT_ADD_INCLUDEDIRS .)
 
 set(COMPONENT_REQUIRES log nvs_flash esp_adc_cal)
-set(COMPONENT_ADD_INCLUDEDIRS "../../main/")
+set(COMPONENT_ADD_INCLUDEDIRS 
+	"../../main/"
+	"../task_manager/"
+)
 
 register_component()
