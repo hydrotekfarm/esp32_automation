@@ -10,4 +10,4 @@ static bool ec_active = true;
 static bool ec_calibration = false;
 
 // Measures water ph
-void measure_ph();
+void measure_ec();

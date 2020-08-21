@@ -4,6 +4,11 @@
 #include <freertos/event_groups.h>
 
 #include "mqtt_manager.h"
+#include "ec_reading.h"
+#include "ph_reading.h"
+#include "ultrasonic_reading.h"
+#include "water_temp_reading.h"
+#include "sync_sensors.h"
 
 void create_tasks() {
 	// Create core 0 tasks
