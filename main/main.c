@@ -39,14 +39,6 @@ static EventGroupHandle_t sensor_event_group;
 
 #define MAX_DISTANCE_CM 500
 
-#define RETRYMAX 5 // WiFi MAX Reconnection Attempts
-
-static int retryNumber = 0;  // WiFi Reconnection Attempts
-
-// IDs
-static char growroom_id[] = "Grow Room 1";
-static char system_id[] = "System 1";
-
 // Sensor Measurement Variables
 static float _water_temp = 0;
 static float _ec = 0;
@@ -151,34 +143,6 @@ static void get_date_time(struct tm *time) {
 	if(time->tm_year < 120) {
 		set_time();
 		ds3231_get_time(&dev, &(*time));
-	}
-}
-
-static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
-		int32_t event_id, void *event_data) {
-	const char *TAG = "Event_Handler";
-	ESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n",
-			event_base, event_id);
-
-	// Check Event Type
-	if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-		ip_event_got_ip_t *event = (ip_event_got_ip_t*) event_data;
-		ESP_LOGI(TAG, "got IP:%s", ip4addr_ntoa(&event->ip_info.ip));
-		retryNumber = 0;
-		xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
-	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-		ESP_ERROR_CHECK(esp_wifi_connect());
-		retryNumber = 0;
-	} else if (event_base == WIFI_EVENT
-			&& event_id == WIFI_EVENT_STA_DISCONNECTED) {
-		// Attempt Reconnection
-		if (retryNumber < RETRYMAX) {
-			esp_wifi_connect();
-			retryNumber++;
-		} else {
-			xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
-		}
-		ESP_LOGI(TAG, "WIFI Connection Failed; Reconnecting....\n");
 	}
 }
 
