@@ -7,11 +7,11 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <nvs_flash.h>
-#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 
 #include "port_manager.h"
 #include "task_manager.h"
+#include "sync_sensors.h"
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -77,7 +77,7 @@ void boot_sequence() {
 	portMAX_DELAY);
 
 	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
-		//sensor_event_group = xEventGroupCreate();
+		sensor_event_group = xEventGroupCreate();
 
 		// Setup ADC ports
 		port_setup();
@@ -86,14 +86,14 @@ void boot_sequence() {
 		gpio_setup();
 
 		// Set all sync bits var
-		//set_sensor_sync_bits(&sensor_sync_bits);
+		set_sensor_sync_bits(&sensor_sync_bits);
 
 		// Init i2cdev
 		//ESP_ERROR_CHECK(i2cdev_init());
 
 		// Init rtc and check if time needs to be set
-		//init_rtc();
-		//check_rtc_reset();
+		init_rtc();
+		check_rtc_reset();
 
 		create_tasks();
 
@@ -104,7 +104,7 @@ void boot_sequence() {
 	}
 }
 
-static void restart_esp32() { // Restart ESP32
+void restart_esp32() { // Restart ESP32
 	fflush(stdout);
 	esp_restart();
 }
