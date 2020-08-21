@@ -103,3 +103,8 @@ void boot_sequence() {
 		ESP_LOGE(TAG, "Unexpected Event\n");
 	}
 }
+
+static void restart_esp32() { // Restart ESP32
+	fflush(stdout);
+	esp_restart();
+}
