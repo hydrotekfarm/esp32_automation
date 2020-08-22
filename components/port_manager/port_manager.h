@@ -1,6 +1,6 @@
 #include <esp_adc_cal.h>
 
-const char* TAG = "PORT_MANAGER";
+char* PORT_TAG = "PORT_MANAGER";
 
 // GPIO and ADC Ports
 #define RF_TRANSMITTER_GPIO 4			// GPIO 4

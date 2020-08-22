@@ -36,5 +36,3 @@ void set_priority(TaskHandle_t task_handle, uint32_t priority) {
 void set_max_priority(TaskHandle_t task_handle) {
 	vTaskPrioritySet(task_handle, configMAX_PRIORITIES - 1);
 }
-
-

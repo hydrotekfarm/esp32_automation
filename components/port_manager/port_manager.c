@@ -1,7 +1,7 @@
 #include "port_manager.h"
 
-#include <esp_err.h>
 #include <esp_log.h>
+#include <esp_err.h>
 
 void port_setup() {								// ADC Port Setup Method
 	// ADC 1 setup
@@ -15,10 +15,9 @@ void port_setup() {								// ADC Port Setup Method
 	adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
 
 	gpio_set_direction(32, GPIO_MODE_OUTPUT);
-	ESP_LOGI(TAG, "Hello");
 	esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
 	if (error != ESP_OK) {
-		ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
+		ESP_LOGE(PORT_TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
 	}
 }
 
