@@ -12,6 +12,7 @@
 #include "port_manager.h"
 #include "task_manager.h"
 #include "sync_sensors.h"
+#include "rtc.h"
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {

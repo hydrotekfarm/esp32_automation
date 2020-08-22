@@ -9,6 +9,7 @@ set(COMPONENT_ADD_INCLUDEDIRS
 	"../sensor_readings/ph_reading/"
 	"../sensor_readings/ultrasonic_reading/"
 	"../sensor_readings/water_temp_reading/"
+	"../rtc/"
 )
 
 register_component()

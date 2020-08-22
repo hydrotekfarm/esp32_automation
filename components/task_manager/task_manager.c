@@ -9,6 +9,7 @@
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
+#include "rtc.h"
 
 void create_tasks() {
 	// Create core 0 tasks
