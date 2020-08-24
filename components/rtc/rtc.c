@@ -106,6 +106,17 @@ void do_nothing() {}
 void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
+	// Water pump timings
+	water_pump_on_time = 15 * 60;
+	water_pump_off_time  = 45 * 60;
+
+	// Lights
+	lights_on_hour = 21;
+	lights_on_min = 0;
+	lights_off_hour  = 6;
+	lights_off_min = 0;
+
+
 	// Initialize timers
 	init_timer(&water_pump_timer, &water_pump, false, false);
 	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
@@ -145,6 +156,6 @@ void manage_timers_alarms(void *parameter) {
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
-		vTaskDelay(pdMS_TO_TICKS(urgent ? timer_alarm_urgent_delay : timer_alarm_regular_delay));
+		vTaskDelay(pdMS_TO_TICKS(urgent ? TIMER_ALARM_URGENT_DELAY : TIMER_ALARM_REGULAR_DELAY));
 	}
 }

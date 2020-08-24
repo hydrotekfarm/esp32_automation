@@ -43,6 +43,8 @@ static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event
 }
 
 void boot_sequence() {
+	const char *TAG = "BOOT_SEQUENCE";
+
 	// Check if space available in NVS, if not reset NVS
 	esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
@@ -61,6 +63,7 @@ void boot_sequence() {
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 	// TODO: Update to esp_event_handler_instance_register()
+	retryNumber = 0;
 	esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL);
 	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));

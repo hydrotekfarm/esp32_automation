@@ -10,6 +10,11 @@
 
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
+
+	ec_active = true;
+	_ec = 0;
+	ec_calibration = false;
+
 	ec_begin();		// Setup EC sensor and get calibrated values stored in NVS
 
 	for (;;) {

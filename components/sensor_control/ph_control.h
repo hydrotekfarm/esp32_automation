@@ -1,17 +1,17 @@
 #include <stdbool.h>
 
-// Target value
-float target_ph = 5;
-
 // Margin of error
-float ph_margin_error = 0.3;
+#define PH_MARGIN_ERROR 0.3
+
+// Target value
+float target_ph;
 
 // Checks needed until dose
-bool ph_checks[6] = {false, false, false, false, false, false};
+bool ph_checks[6];
 
 // Timings
-float ph_dose_time = 5;
-float ph_wait_time = 10 * 60;
+float ph_dose_time;
+float ph_wait_time;
 
 // Checks and adjust ph
 void check_ph();

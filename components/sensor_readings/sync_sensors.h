@@ -10,10 +10,10 @@ EventGroupHandle_t sensor_event_group;
 #define ULTRASONIC_BIT    (1<<4)
 
 // Sensor sync bits
-uint32_t sensor_sync_bits = 0;
+uint32_t sensor_sync_bits;
 
 // Set sync bit based on active sensors
 void set_sensor_sync_bits();
 
-//
+// Sync sensors together
 void sync_task();

@@ -17,9 +17,10 @@ void check_ec() {
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
 	if(!ec_control && !ph_control) {
-		if(_ec < target_ec - ec_margin_error) {
+		if(_ec < target_ec - EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
+				ec_nutrient_index = 0;
 				ec_dose();
 				reset_sensor_checks(ec_checks);
 			} else {
@@ -33,7 +34,7 @@ void check_ec() {
 					}
 				}
 			}
-		} else if(_ec > target_ec + ec_margin_error) {
+		} else if(_ec > target_ec + EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
 				// TODO dilute ec with  water
@@ -58,7 +59,7 @@ void check_ec() {
 
 void ec_dose() {
 	// Check if last nutrient was pumped
-	if(ec_nutrient_index == ec_num_pumps) {
+	if(ec_nutrient_index == EC_NUM_PUMPS) {
 		// Turn off last pump
 		gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
 

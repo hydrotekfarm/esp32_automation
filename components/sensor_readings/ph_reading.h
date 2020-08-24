@@ -1,13 +1,13 @@
 #include <stdbool.h>
 
 // Global ph variable
-float _ph = 0;
+float _ph;
 
 // PH measuring status
-bool ph_active = true;
+bool ph_active;
 
 // Calibration status
-bool ph_calibration = false;
+bool ph_calibration;
 
 // Measures water ph
 void measure_ph();

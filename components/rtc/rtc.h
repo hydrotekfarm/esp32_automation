@@ -4,8 +4,8 @@
 i2c_dev_t dev;
 
 // Timer and alarm periods
-static const uint32_t timer_alarm_urgent_delay = 10;
-static const uint32_t timer_alarm_regular_delay = 50;
+#define TIMER_ALARM_URGENT_DELAY 10
+#define TIMER_ALARM_REGULAR_DELAY 50
 
 // Timers
 struct timer water_pump_timer;
@@ -19,14 +19,14 @@ struct alarm lights_on_alarm;
 struct alarm lights_off_alarm;
 
 // Water pump timings
-uint32_t water_pump_on_time = 15 * 60;
-uint32_t water_pump_off_time  = 45 * 60;
+uint32_t water_pump_on_time;
+uint32_t water_pump_off_time;
 
 // Lights
-uint32_t lights_on_hour = 21;
-uint32_t lights_on_min = 0;
-uint32_t lights_off_hour  = 6;
-uint32_t lights_off_min = 0;
+uint32_t lights_on_hour;
+uint32_t lights_on_min;
+uint32_t lights_off_hour;
+uint32_t lights_off_min;
 
 // Initialize rtc
 void init_rtc();

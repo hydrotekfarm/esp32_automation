@@ -11,6 +11,9 @@
 void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurement Task
 	const char *TAG = "ULTRASONIC_TASK";
 
+	ultrasonic_active = false;
+	_distance = 0;
+
 	// Setting sensor ports and initializing
 	ultrasonic_sensor_t sensor = { .trigger_pin = ULTRASONIC_TRIGGER_GPIO,
 			.echo_pin = ULTRASONIC_ECHO_GPIO };
@@ -20,7 +23,7 @@ void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurem
 	for (;;) {
 		// Measures distance and returns error code
 		float distance;
-		esp_err_t res = ultrasonic_measure_cm(&sensor, max_distance_cm, &distance);
+		esp_err_t res = ultrasonic_measure_cm(&sensor, MAX_DISTANCE_CM, &distance);
 
 		// TODO check if value is beyond acceptable margin of error and react appropriately
 

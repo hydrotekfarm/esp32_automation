@@ -1,13 +1,13 @@
 #include <stdbool.h>
 
 // Global ec variable
-float _ec = 0;
+float _ec;
 
 // EC measuring status
-bool ec_active = true;
+bool ec_active;
 
 // Calibration status
-bool ec_calibration = false;
+bool ec_calibration;
 
 // Measures water ph
 void measure_ec();

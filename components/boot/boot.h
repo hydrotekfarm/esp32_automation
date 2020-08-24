@@ -1,8 +1,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 
-char *TAG = "BOOT";
-
 // WiFi Coordination with Event Group
 EventGroupHandle_t wifi_event_group;
 
@@ -12,7 +10,7 @@ EventGroupHandle_t wifi_event_group;
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 
-int retryNumber = 0;  // WiFi Reconnection Attempts
+int retryNumber;  // WiFi Reconnection Attempts
 
 // Contains all the boot code for esp32
 void boot_sequence();

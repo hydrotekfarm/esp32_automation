@@ -9,6 +9,11 @@
 
 void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
+
+	ph_active = false;
+	_ph = 0;
+	ph_calibration = false;
+
 	ph_begin();	// Setup pH sensor and get calibrated values stored in NVS
 
 	for (;;) {
