@@ -6,28 +6,16 @@
 #include <esp_system.h>
 #include <esp_event.h>
 #include <esp_event_loop.h>
-#include <nvs_flash.h>
 #include <driver/gpio.h>
 #include <esp_err.h>
 #include <freertos/task.h>
 #include <esp_log.h>
-#include <mqtt_client.h>
 #include <lwip/sockets.h>
 #include <lwip/dns.h>
 #include <lwip/netdb.h>
-#include <esp_adc_cal.h>
 #include <stdbool.h>
 
-// From  boot
 #include "boot.h"
-
-// From sensor_libs
-#include "ec_sensor.h"
-#include "ds18x20.h"
-#include "ph_sensor.h"
-#include "ultrasonic.h"
-#include "ds3231.h"
-#include "rf_transmission.h"
 
 // pH control
 static float target_ph = 5;
