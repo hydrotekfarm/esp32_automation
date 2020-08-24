@@ -9,6 +9,7 @@
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "rtc.h"
+#include "control_task.h"
 
 void create_tasks() {
 	// Create core 0 tasks

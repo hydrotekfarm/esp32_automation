@@ -19,14 +19,14 @@ struct alarm lights_on_alarm;
 struct alarm lights_off_alarm;
 
 // Water pump timings
-static uint32_t water_pump_on_time = 15 * 60;
-static uint32_t water_pump_off_time  = 45 * 60;
+uint32_t water_pump_on_time = 15 * 60;
+uint32_t water_pump_off_time  = 45 * 60;
 
 // Lights
-static uint32_t lights_on_hour = 21;
-static uint32_t lights_on_min = 0;
-static uint32_t lights_off_hour  = 6;
-static uint32_t lights_off_min = 0;
+uint32_t lights_on_hour = 21;
+uint32_t lights_on_min = 0;
+uint32_t lights_off_hour  = 6;
+uint32_t lights_off_min = 0;
 
 // Initialize rtc
 void init_rtc();

@@ -1,7 +1,5 @@
 #include <esp_adc_cal.h>
 
-char* PORT_TAG = "PORT_MANAGER";
-
 // GPIO and ADC Ports
 #define RF_TRANSMITTER_GPIO 4			// GPIO 4
 #define ULTRASONIC_ECHO_GPIO 13			// GPIO 13
@@ -22,7 +20,7 @@ char* PORT_TAG = "PORT_MANAGER";
 
 #define DEFAULT_VREF 1100  // ADC Voltage Reference
 
-static esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
+esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
 // Setup ports
 void port_setup();

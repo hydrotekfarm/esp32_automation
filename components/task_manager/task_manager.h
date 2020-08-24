@@ -17,14 +17,14 @@
 #define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
 
 // Task Handles
-static TaskHandle_t water_temperature_task_handle = NULL;
-static TaskHandle_t ec_task_handle = NULL;
-static TaskHandle_t ph_task_handle = NULL;
-static TaskHandle_t ultrasonic_task_handle = NULL;
-static TaskHandle_t sync_task_handle = NULL;
-static TaskHandle_t publish_task_handle = NULL;
-static TaskHandle_t timer_alarm_task_handle = NULL;
-static TaskHandle_t sensor_control_task_handle = NULL;
+TaskHandle_t water_temperature_task_handle = NULL;
+TaskHandle_t ec_task_handle = NULL;
+TaskHandle_t ph_task_handle = NULL;
+TaskHandle_t ultrasonic_task_handle = NULL;
+TaskHandle_t sync_task_handle = NULL;
+TaskHandle_t publish_task_handle = NULL;
+TaskHandle_t timer_alarm_task_handle = NULL;
+TaskHandle_t sensor_control_task_handle = NULL;
 
 // Create tasks
 void create_tasks();

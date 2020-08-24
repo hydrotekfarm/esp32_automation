@@ -5,6 +5,8 @@
 
 #include "port_manager.h"
 #include "task_manager.h"
+#include "ec_control.h"
+#include "ph_control.h"
 
 void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
@@ -98,6 +100,8 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 	lights_off_time->tm_min  = lights_off_min;
 	lights_off_time->tm_sec = 0;
 }
+
+void do_nothing() {}
 
 void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
