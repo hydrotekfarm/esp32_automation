@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
 // Core 0 Task Priorities

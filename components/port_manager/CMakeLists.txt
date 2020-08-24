@@ -1,7 +1,5 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES log nvs_flash esp_adc_cal)
-set(COMPONENT_ADD_INCLUDEDIRS )
-
-register_component()
+idf_component_register(
+	SRCS "port_manager.c"
+	INCLUDE_DIRS "." 	
+	REQUIRES esp_adc_cal
+)

@@ -1,6 +1,5 @@
 #include "task_manager.h"
 
-#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 
 #include "mqtt_manager.h"

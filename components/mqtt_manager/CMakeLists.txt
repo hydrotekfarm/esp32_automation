@@ -1,15 +1,6 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES log nvs_flash mqtt)
-set(COMPONENT_ADD_INCLUDEDIRS
-	"../task_manager/"
-	"../boot/"
-	"../sensor_readings/ec_reading/"
-	"../sensor_readings/ph_reading/"
-	"../sensor_readings/ultrasonic_reading/"
-	"../sensor_readings/water_temp_reading/"
-	"../rtc/"
+idf_component_register(
+	SRCS "mqtt_manager.c"
+	INCLUDE_DIRS "." 	
+	PRIV_REQUIRES mqtt task_manager boot ec_reading ph_reading ultrasonic_reading water_temp_reading rtc
 )
 
-register_component()

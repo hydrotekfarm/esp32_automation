@@ -1,11 +1,5 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES log nvs_flash esp_adc_cal freertos port_manager task_manager)
-set(COMPONENT_ADD_INCLUDEDIRS 
-	"../port_manager"
-	"../task_manager"
-	"../sensor_readings/sync_sensors/"
+idf_component_register(
+	SRCS "boot.c"
+	INCLUDE_DIRS "." 	
+	PRIV_REQUIRES nvs_flash port_manager task_manager sync_sensors rtc
 )
-
-register_component()

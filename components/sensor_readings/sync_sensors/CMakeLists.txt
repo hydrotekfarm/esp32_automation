@@ -1,12 +1,5 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES log nvs_flash freertos)
-set(COMPONENT_ADD_INCLUDEDIRS
-	"../ec_reading/"
-	"../ph_reading/"
-	"../ultrasonic_reading/"
-	"../water_temp_reading/"
+idf_component_register(
+	SRCS "sync_sensors.c"
+	INCLUDE_DIRS "." 	
+	PRIV_REQUIRES ec_reading ph_reading ultrasonic_reading water_temp_reading
 )
-
-register_component()

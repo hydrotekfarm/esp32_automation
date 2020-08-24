@@ -1,12 +1,6 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES log nvs_flash )
-set(COMPONENT_ADD_INCLUDEDIRS 
-	"../sensor_libs/ds3231/"
-	"../port_manager"
-	"../task_manager"
-	"../rtc/"
+idf_component_register(
+	SRCS "rtc.c"
+	INCLUDE_DIRS "." 	
+	REQUIRES ds3231
+	PRIV_REQUIRES port_manager task_manager
 )
-
-register_component()

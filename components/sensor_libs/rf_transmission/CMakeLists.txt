@@ -1,6 +1,5 @@
-set(COMPONENT_SRCDIRS .)
-set(COMPONENT_ADD_INCLUDEDIRS .)
-
-set(COMPONENT_REQUIRES freertos log)
-
-register_component()
+idf_component_register(
+	SRCS "rf_transmission.c"
+	INCLUDE_DIRS "." 	
+	REQUIRES 
+)

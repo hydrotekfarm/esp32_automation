@@ -1,5 +1,6 @@
 #include "ultrasonic_reading.h"
 
+#include <esp_log.h>
 #include <esp_err.h>
 
 #include "ultrasonic.h"

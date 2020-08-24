@@ -1,15 +1,16 @@
 #include "rtc.h"
-
+#include <string.h>
+#include <esp_log.h>
 #include "freertos/FreeRTOS.h"
 
 #include "port_manager.h"
 #include "task_manager.h"
 
-static void init_rtc() { // Init RTC
+void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, RTC_SDA_GPIO, RTC_SCL_GPIO));
 }
-static void set_time() { // Set current time to some date
+void set_time() { // Set current time to some date
 	// TODO Have user input for time so actual time is set
 	struct tm time;
 
@@ -23,7 +24,7 @@ static void set_time() { // Set current time to some date
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
 }
 
-static void check_rtc_reset() {
+void check_rtc_reset() {
 	// Get current time
 	struct tm time;
 	ds3231_get_time(&dev, &time);
@@ -32,7 +33,7 @@ static void check_rtc_reset() {
 	if(time.tm_year < 120) set_time();
 }
 
-static void get_date_time(struct tm *time) {
+void get_date_time(struct tm *time) {
 	// Get current time and set it to return var
 	ds3231_get_time(&dev, &(*time));
 
@@ -98,7 +99,7 @@ void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
 	lights_off_time->tm_sec = 0;
 }
 
-static void manage_timers_alarms(void *parameter) {
+void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
 	// Initialize timers

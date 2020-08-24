@@ -1,6 +1,7 @@
 #include "water_temp_reading.h"
 
 #include <esp_err.h>
+#include <esp_log.h>
 
 #include "ds18x20.h"
 #include "sync_sensors.h"

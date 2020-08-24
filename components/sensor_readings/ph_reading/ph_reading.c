@@ -1,5 +1,7 @@
 #include "ph_reading.h"
 
+#include <esp_log.h>
+
 #include "ph_sensor.h"
 #include "sync_sensors.h"
 #include "port_manager.h"
