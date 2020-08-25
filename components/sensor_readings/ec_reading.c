@@ -5,7 +5,7 @@
 #include "ec_sensor.h"
 #include "sync_sensors.h"
 #include "port_manager.h"
-#include "task_manager.h"
+#include "task_priorities.h"
 #include "water_temp_reading.h"
 
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task

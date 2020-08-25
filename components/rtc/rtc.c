@@ -4,9 +4,9 @@
 #include "freertos/FreeRTOS.h"
 
 #include "port_manager.h"
-#include "task_manager.h"
 #include "ec_control.h"
 #include "ph_control.h"
+#include "task_priorities.h"
 
 void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));

@@ -1,8 +1,8 @@
 #include "control_task.h"
 
-#include "task_manager.h"
 #include "ph_control.h"
 #include "ec_control.h"
+#include "sync_sensors.h"
 
 void sensor_control (void *parameter) {
 	reset_sensor_checks(&ph_checks);
@@ -21,6 +21,13 @@ void sensor_control (void *parameter) {
 	ec_nutrient_proportions[3] = 0.10;
 	ec_nutrient_proportions[4] = 0.00;
 	ec_nutrient_proportions[5] = 0.30;
+
+	ec_pump_gpios[0] = EC_NUTRIENT_1_PUMP_GPIO;
+	ec_pump_gpios[1] = EC_NUTRIENT_2_PUMP_GPIO;
+	ec_pump_gpios[2] = EC_NUTRIENT_3_PUMP_GPIO;
+	ec_pump_gpios[3] = EC_NUTRIENT_4_PUMP_GPIO;
+	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
+	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
 	for(;;)  {
 		// Check sensors

@@ -1,5 +1,11 @@
 #include <freertos/FreeRTOS.h>
+#include <Freertos/task.h>
 #include <freertos/event_groups.h>
+
+#define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
+
+// Task handle
+TaskHandle_t sync_task_handle;
 
 // Sensor Task Coordination with Event Group
 EventGroupHandle_t sensor_event_group;

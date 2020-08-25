@@ -7,6 +7,9 @@ i2c_dev_t dev;
 #define TIMER_ALARM_URGENT_DELAY 10
 #define TIMER_ALARM_REGULAR_DELAY 50
 
+// Task handle
+TaskHandle_t timer_alarm_task_handle;
+
 // Timers
 struct timer water_pump_timer;
 struct timer ph_dose_timer;

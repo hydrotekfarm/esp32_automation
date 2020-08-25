@@ -5,9 +5,9 @@
 
 #include "ph_control.h"
 #include "rtc.h"
-#include "task_manager.h"
 #include "ec_reading.h"
 #include "control_task.h"
+#include "sync_sensors.h"
 
 void check_ec() {
 	char *TAG = "EC_CONTROL";

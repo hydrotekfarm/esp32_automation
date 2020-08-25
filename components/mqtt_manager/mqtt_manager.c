@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "task_manager.h"
 #include "boot.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
+#include "sync_sensors.h"
 #include "rtc.h"
 
 static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT Event Callback Functions
@@ -99,6 +99,9 @@ void add_entry(char** data, bool* first, char* name, float num) {
 
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
+
+	growroom_id = "Grow Room 1";
+	system_id = "System 1";
 
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = { .host = "136.37.190.205", .port = 1883 };

@@ -6,7 +6,6 @@
 #include "ultrasonic.h"
 #include "sync_sensors.h"
 #include "port_manager.h"
-#include "task_manager.h"
 
 void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurement Task
 	const char *TAG = "ULTRASONIC_TASK";

@@ -23,7 +23,7 @@ uint32_t ec_nutrient_index;
 float ec_nutrient_proportions[6];
 
 // GPIOS of pumps
-uint32_t ec_pump_gpios[6] = {EC_NUTRIENT_1_PUMP_GPIO, EC_NUTRIENT_2_PUMP_GPIO, EC_NUTRIENT_3_PUMP_GPIO, EC_NUTRIENT_4_PUMP_GPIO, EC_NUTRIENT_5_PUMP_GPIO, EC_NUTRIENT_6_PUMP_GPIO};
+uint32_t ec_pump_gpios[6];
 
 // Check ec and adjust accordingly
 void check_ec();
