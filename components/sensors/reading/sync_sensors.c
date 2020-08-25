@@ -13,7 +13,6 @@ void set_sensor_sync_bits() {
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task
 	const char *TAG = "Sync_Task";
-	sensor_sync_bits = 0;
 	EventBits_t returnBits;
 	for (;;) {
 		// Provide a minimum amount of time before event group round resets

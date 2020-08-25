@@ -10,7 +10,6 @@
 void measure_distance(void *parameter) {		// Ultrasonic Sensor Distance Measurement Task
 	const char *TAG = "ULTRASONIC_TASK";
 
-	ultrasonic_active = false;
 	_distance = 0;
 
 	// Setting sensor ports and initializing

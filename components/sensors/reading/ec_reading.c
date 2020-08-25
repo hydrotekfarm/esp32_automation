@@ -11,7 +11,6 @@
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
-	ec_active = true;
 	_ec = 0;
 	ec_calibration = false;
 

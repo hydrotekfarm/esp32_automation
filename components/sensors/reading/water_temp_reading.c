@@ -10,7 +10,6 @@
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 
-	water_temperature_active = false;
 	_water_temp = 0;
 
 	ds18x20_addr_t ds18b20_address[1];
