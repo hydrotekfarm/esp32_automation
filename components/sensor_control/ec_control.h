@@ -1,4 +1,5 @@
-#include "port_manager.h"
+#include <stdbool.h>
+#include <esp_system.h>
 
 // Margin of error
 #define EC_MARGIN_ERROR 0.5

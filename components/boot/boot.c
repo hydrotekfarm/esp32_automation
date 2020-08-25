@@ -9,8 +9,8 @@
 #include <nvs_flash.h>
 #include <freertos/event_groups.h>
 
-#include "port_manager.h"
 #include "task_priorities.h"
+#include "ports.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
@@ -89,11 +89,30 @@ void boot_sequence() {
 	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 		sensor_event_group = xEventGroupCreate();
 
-		// Setup ADC ports
-		port_setup();
+		// ADC 1 setup
+		adc1_config_width(ADC_WIDTH_BIT_12);
+		adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+		esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12,
+				DEFAULT_VREF, adc_chars);
 
-		// Setup gpio ports
-		gpio_setup();
+		// ADC Channel Setup
+		adc1_config_channel_atten(ADC_CHANNEL_0, ADC_ATTEN_DB_11);
+		adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
+
+		gpio_set_direction(32, GPIO_MODE_OUTPUT);
+		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
+		if (error != ESP_OK) {
+			ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
+		}
+
+		gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_1_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_2_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_3_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_4_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_5_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
 
 		// Set all sync bits var
 		set_sensor_sync_bits(&sensor_sync_bits);

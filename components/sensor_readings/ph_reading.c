@@ -4,8 +4,8 @@
 
 #include "ph_sensor.h"
 #include "sync_sensors.h"
-#include "port_manager.h"
 #include "task_priorities.h"
+#include "ports.h"
 
 void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";

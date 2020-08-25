@@ -3,6 +3,7 @@
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
+#include "ports.h"
 
 void sensor_control (void *parameter) {
 	reset_sensor_checks(&ph_checks);

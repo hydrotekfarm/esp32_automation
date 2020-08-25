@@ -18,12 +18,5 @@
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
 
-#define DEFAULT_VREF 1100  // ADC Voltage Reference
-
 esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
 
-// Setup ports
-void port_setup();
-
-// Setup gpios
-void gpio_setup();

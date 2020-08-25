@@ -3,11 +3,11 @@
 #include <stdbool.h>
 #include <esp_log.h>
 
-#include "port_manager.h"
 #include "rtc.h"
 #include "ph_reading.h"
 #include "control_task.h"
 #include "sync_sensors.h"
+#include "ports.h"
 
 void check_ph() { // Check ph
 	char *TAG = "PH_CONTROL";

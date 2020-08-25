@@ -5,7 +5,7 @@
 
 #include "ds18x20.h"
 #include "sync_sensors.h"
-#include "port_manager.h"
+#include "ports.h"
 
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
