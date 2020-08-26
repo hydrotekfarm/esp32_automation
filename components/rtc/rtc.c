@@ -68,37 +68,41 @@ void water_pump() {
 	}
 }
 
-// Turn lights on
-void lights_on() {
-	// TODO Turn lights on
-	ESP_LOGI("", "Turning lights on");
-}
+// Enable day time routine
+void day() {
+	is_day = true;
 
-// Turn lights off
-void lights_off() {
 	// TODO Turn lights off
 	ESP_LOGI("", "Turning lights off");
 }
 
-void get_lights_times(struct tm *lights_on_time, struct tm *lights_off_time) {
+// Enable night time routine
+void night() {
+	is_day = false;
+
+	// TODO Turn lights on
+	ESP_LOGI("", "Turning lights on");
+}
+
+void get_day_night_times(struct tm *day_time, struct tm *night_time) {
 	// Get current date time
 	struct tm current_date_time;
 	ds3231_get_time(&dev, &current_date_time);
 
 	// Set alarm times
-	lights_on_time->tm_year = current_date_time.tm_year;
-	lights_on_time->tm_mon = current_date_time.tm_mon;
-	lights_on_time->tm_mday = current_date_time.tm_mday;
-	lights_on_time->tm_hour = lights_on_hour;
-	lights_on_time->tm_min  = lights_on_min;
-	lights_on_time->tm_sec = 0;
+	day_time->tm_year = current_date_time.tm_year;
+	day_time->tm_mon = current_date_time.tm_mon;
+	day_time->tm_mday = current_date_time.tm_mday;
+	day_time->tm_hour = day_time_hour;
+	day_time->tm_min  = day_time_min;
+	day_time->tm_sec = 0;
 
-	lights_off_time->tm_year = current_date_time.tm_year;
-	lights_off_time->tm_mon = current_date_time.tm_mon;
-	lights_off_time->tm_mday = current_date_time.tm_mday;
-	lights_off_time->tm_hour = lights_off_hour;
-	lights_off_time->tm_min  = lights_off_min;
-	lights_off_time->tm_sec = 0;
+	night_time->tm_year = current_date_time.tm_year;
+	night_time->tm_mon = current_date_time.tm_mon;
+	night_time->tm_mday = current_date_time.tm_mday;
+	night_time->tm_hour = night_time_hour;
+	night_time->tm_min  = night_time_min;
+	night_time->tm_sec = 0;
 }
 
 void do_nothing() {}
@@ -111,10 +115,10 @@ void manage_timers_alarms(void *parameter) {
 	water_pump_off_time  = 45 * 60;
 
 	// Lights
-	lights_on_hour = 21;
-	lights_on_min = 0;
-	lights_off_hour  = 6;
-	lights_off_min = 0;
+	night_time_hour = 21;
+	night_time_min = 0;
+	day_time_hour  = 6;
+	day_time_min = 0;
 
 
 	// Initialize timers
@@ -127,11 +131,11 @@ void manage_timers_alarms(void *parameter) {
 	// Get alarm times
 	struct tm lights_on_time;
 	struct tm lights_off_time;
-	get_lights_times(&lights_on_time, &lights_off_time);
+	get_day_night_times(&lights_on_time, &lights_off_time);
 
 	// Initialize alarms
-	init_alarm(&lights_on_alarm, &lights_on, true, false);
-	init_alarm(&lights_off_alarm, &lights_off, true, false);
+	init_alarm(&night_time_alarm, &night, true, false);
+	init_alarm(&day_time_alarm, &day, true, false);
 
 	ESP_LOGI(TAG, "Timers initialized");
 
@@ -148,11 +152,11 @@ void manage_timers_alarms(void *parameter) {
 		check_timer(&dev, &ec_wait_timer, unix_time);
 
 		// Check if alarms are done
-		check_alarm(&dev, &lights_on_alarm, unix_time);
-		check_alarm(&dev, &lights_off_alarm, unix_time);
+		check_alarm(&dev, &night_time_alarm, unix_time);
+		check_alarm(&dev, &day_time_alarm, unix_time);
 
 		// Check if any timer or alarm is urgent
-		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (ec_dose_timer.active && ec_dose_timer.high_priority) || (ec_wait_timer.active && ec_wait_timer.high_priority) || (lights_on_alarm.alarm_timer.active && lights_on_alarm.alarm_timer.high_priority) || (lights_off_alarm.alarm_timer.active && lights_off_alarm.alarm_timer.high_priority);
+		bool urgent = (water_pump_timer.active && water_pump_timer.high_priority) || (ph_dose_timer.active && ph_dose_timer.high_priority) || (ph_wait_timer.active && ph_wait_timer.high_priority) || (ec_dose_timer.active && ec_dose_timer.high_priority) || (ec_wait_timer.active && ec_wait_timer.high_priority) || (night_time_alarm.alarm_timer.active && night_time_alarm.alarm_timer.high_priority) || (day_time_alarm.alarm_timer.active && day_time_alarm.alarm_timer.high_priority);
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
