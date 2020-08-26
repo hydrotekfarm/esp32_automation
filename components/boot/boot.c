@@ -19,6 +19,7 @@
 #include "mqtt_manager.h"
 #include "control_task.h"
 #include "rtc.h"
+#include "rf_transmitter.h"
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -128,6 +129,9 @@ void boot_sequence() {
 		// Init rtc and check if time needs to be set
 		init_rtc();
 		check_rtc_reset();
+
+		// Init rf transmitter
+		init_rf();
 
 		// Create core 0 tasks
 		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
