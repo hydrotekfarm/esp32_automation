@@ -32,8 +32,8 @@ void sensor_control (void *parameter) {
 
 	for(;;)  {
 		// Check sensors
-		check_ph();
-		check_ec();
+		if(ph_control_active) check_ph();
+		if(ec_control_active) check_ec();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

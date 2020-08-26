@@ -7,6 +7,9 @@
 // Number of pumps
 #define EC_NUM_PUMPS 6
 
+// Active control status
+bool ec_control_active;
+
 // Target ec
 float target_ec;
 

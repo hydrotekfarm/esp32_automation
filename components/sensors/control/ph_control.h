@@ -3,6 +3,9 @@
 // Margin of error
 #define PH_MARGIN_ERROR 0.3
 
+// Active control status
+bool ph_control_active;
+
 // Target value
 float target_ph;
 

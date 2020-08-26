@@ -16,6 +16,8 @@
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
+#include "ec_control.h"
+#include "ph_control.h"
 #include "mqtt_manager.h"
 #include "control_task.h"
 #include "rtc.h"
@@ -116,6 +118,9 @@ void boot_sequence() {
 		gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
 
 		ultrasonic_active = false;
+
+		ph_control_active = false;
+		ec_control_active = true;
 
 		// Set all sync bits var
 		set_sensor_sync_bits();
