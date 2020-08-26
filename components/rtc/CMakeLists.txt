@@ -1,5 +1,6 @@
 idf_component_register(
-	SRCS "main.c"
+	SRCS "rtc.c"
 	INCLUDE_DIRS "." 	
+	REQUIRES sensors
 	PRIV_REQUIRES boot
 )
