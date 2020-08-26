@@ -12,12 +12,15 @@
 void check_ec() {
 	char *TAG = "EC_CONTROL";
 
+	// Set current target based on time of day
+	float current_target = !is_day && ec_day_night_control ? night_target_ec : target_ec;
+
 	// Check if ph and ec is currently being altered
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
 	if(!ec_control && !ph_control) {
-		if(_ec < target_ec - EC_MARGIN_ERROR) {
+		if(_ec < current_target - EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
 				ec_nutrient_index = 0;
@@ -34,7 +37,7 @@ void check_ec() {
 					}
 				}
 			}
-		} else if(_ec > target_ec + EC_MARGIN_ERROR) {
+		} else if(_ec > current_target + EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
 				// TODO dilute ec with  water

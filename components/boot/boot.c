@@ -117,10 +117,15 @@ void boot_sequence() {
 		gpio_set_direction(EC_NUTRIENT_5_PUMP_GPIO, GPIO_MODE_OUTPUT);
 		gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
 
+		is_day = true;
+
 		ultrasonic_active = false;
 
 		ph_control_active = false;
+		ph_day_night_control = false;
 		ec_control_active = true;
+		ec_day_night_control = true;
+		night_target_ec = 3;
 
 		// Set all sync bits var
 		set_sensor_sync_bits();

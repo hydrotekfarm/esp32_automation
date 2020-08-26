@@ -6,8 +6,14 @@
 // Active control status
 bool ph_control_active;
 
+// Day night custom control
+bool ph_day_night_control;
+
 // Target value
 float target_ph;
+
+// Night target values
+float night_target_ph;
 
 // Checks needed until dose
 bool ph_checks[6];
