@@ -174,27 +174,16 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		bool first = true;
 
 		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
-		if(water_temperature_active) {
-			add_entry(&data, &first, "water temp", _water_temp);
-		}
-
-		if(ec_active) {
-			add_entry(&data, &first, "ec", _ec);
-		}
-
-		if(ph_active) {
-			add_entry(&data, &first, "ph", _ph);
-		}
-
-		if(ultrasonic_active) {
-			add_entry(&data, &first, "distance", _distance);
-		}
+		add_entry(&data, &first, "water temp", _water_temp);
+		add_entry(&data, &first, "ec", _ec);
+		add_entry(&data, &first, "ph", _ph);
+		if(ultrasonic_active) { add_entry(&data, &first, "distance", _distance); }
 
 		// Add closing tag
 		append_str(&data, "]}");
 
-//		// Publish data to MQTT broker using topic and data
-//		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+		// Publish data to MQTT broker using topic and data
+		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
 
 		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);

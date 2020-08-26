@@ -40,7 +40,6 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			}
 			// Disable calibration mode, activate EC sensor and revert task back to regular priority
 			ec_calibration = false;
-			ec_active = true;
 			vTaskPrioritySet(ec_task_handle, EC_TASK_PRIORITY);
 		} else {		// EC sensor is Active
 			uint32_t adc_reading = 0;

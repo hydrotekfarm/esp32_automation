@@ -39,7 +39,6 @@ void measure_ph(void *parameter) {				// pH Sensor Measurement Task
 			}
 			// Disable calibration mode, activate pH sensor and revert task back to regular priority
 			ph_calibration = false;
-			ph_active = true;
 			vTaskPrioritySet(ph_task_handle, PH_TASK_PRIORITY);
 		} else {	// pH sensor is Active
 			uint32_t adc_reading = 0;
