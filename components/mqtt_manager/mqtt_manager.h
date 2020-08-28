@@ -9,8 +9,8 @@
 TaskHandle_t publish_task_handle;
 
 // IDs
-char *growroom_id;
-char *system_id;
+char *cluster_id;
+char *device_id;
 
 // Topics
 char *sensor_data_topic;

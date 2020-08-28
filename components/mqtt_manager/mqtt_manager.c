@@ -99,8 +99,8 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	growroom_id = "Grow Room 1";
-	system_id = "System 1";
+	cluster_id = "Grow Room 1";
+	device_id = "System 1";
 
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
@@ -204,7 +204,11 @@ void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len
 	topic[topic_len] = '\0';
 	data[data_len] = '\0';
 
-	ESP_LOGI(TAG, "data: %s", data);
+	if(topic == settings_data_topic) {
+		ESP_LOGI(TAG, "Settings data received: %s", data);
+	} else {
+		ESP_LOGE(TAG, "Topic not recognized");
+	}
 }
 
 void create_sensor_data_topic() {
@@ -212,10 +216,10 @@ void create_sensor_data_topic() {
 
 	// Create and structure topic for publishing data through MQTT
 	char *topic = NULL;
-	create_str(&topic, growroom_id);
+	create_str(&topic, cluster_id);
 	append_str(&topic, "/");
 	append_str(&topic, "systems/");
-	append_str(&topic, system_id);
+	append_str(&topic, device_id);
 
 	// Assign variable
 	sensor_data_topic = topic;
@@ -226,5 +230,8 @@ void create_sensor_data_topic() {
 }
 
 void create_settings_data_topic() {
+	const char *TAG = "SETTINGS_DATA_TOPIC_CREATOR";
 
+	settings_data_topic = "settings_data";
+	ESP_LOGI(TAG, "Topic is: %s", settings_data_topic);
 }
