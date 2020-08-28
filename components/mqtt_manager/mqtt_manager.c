@@ -3,6 +3,7 @@
 #include <mqtt_client.h>
 #include <esp_event.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include <freertos/semphr.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -16,10 +17,9 @@
 #include "sync_sensors.h"
 #include "rtc.h"
 
-static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT Event Callback Functions
-		int32_t event_id, void *event_data) {
+static void mqtt_event_handler(esp_mqtt_event_handle_t event) {		// MQTT Event Callback Functions
 	const char *TAG = "MQTT_Event_Handler";
-	switch (event_id) {
+	switch (event->event_id) {
 	case MQTT_EVENT_CONNECTED:
 		xTaskNotifyGive(publish_task_handle);
 		ESP_LOGI(TAG, "Connected\n");
@@ -37,9 +37,7 @@ static void mqtt_event_handler(void *arg, esp_event_base_t event_base,		// MQTT 
 		ESP_LOGI(TAG, "Published\n");
 		break;
 	case MQTT_EVENT_DATA:
-//		if (true) {
-//			ec_calibration = true;
-//		}
+		data_handler(event->topic, event->topic_len, event->data, event->data_len);
 		break;
 	case MQTT_EVENT_ERROR:
 		ESP_LOGI(TAG, "Error\n");
@@ -105,26 +103,25 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	system_id = "System 1";
 
 	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = { .host = "136.37.190.205", .port = 1883 };
+	esp_mqtt_client_config_t mqtt_cfg = {
+			.host = "136.37.190.205",
+			.port = 1883,
+			.event_handle = mqtt_event_handler
+	};
 
 	// Create and initialize MQTT client
 	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-	esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler,
-			client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+	// Create topics
+	create_sensor_data_topic();
+	create_settings_data_topic();
 
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(client, "settings_data", SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
-		// Create and structure topic for publishing data through MQTT
-		char *topic = NULL;
-		create_str(&topic, growroom_id);
-		append_str(&topic, "/");
-		append_str(&topic, "systems/");
-		append_str(&topic, system_id);
-
 		// Create and initially assign JSON data
 		char *data = NULL;
 		create_str(&data, "{ \"time\": ");
@@ -188,9 +185,8 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&data, "]}");
 
 		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(client, topic, data, 0, PUBLISH_DATA_QOS, 0);
+		esp_mqtt_client_publish(client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
-		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);
 
 		// Free allocated memory
@@ -200,4 +196,35 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
+}
+
+void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
+	const char *TAG = "DATA_HANDLER";
+
+	topic[topic_len] = '\0';
+	data[data_len] = '\0';
+
+	ESP_LOGI(TAG, "data: %s", data);
+}
+
+void create_sensor_data_topic() {
+	const char *TAG = "SENSOR_DATA_TOPIC_CREATOR";
+
+	// Create and structure topic for publishing data through MQTT
+	char *topic = NULL;
+	create_str(&topic, growroom_id);
+	append_str(&topic, "/");
+	append_str(&topic, "systems/");
+	append_str(&topic, system_id);
+
+	// Assign variable
+	sensor_data_topic = topic;
+	ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+
+	// Free memory
+	free(topic);
+}
+
+void create_settings_data_topic() {
+
 }
