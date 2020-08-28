@@ -6,6 +6,7 @@
 #include <freertos/semphr.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <cjson.h>
 
 #include "boot.h"
 #include "ec_reading.h"
@@ -112,6 +113,10 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 			client);
 	esp_mqtt_client_start(client);
 	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+	// Subscribe to topics
+	esp_mqtt_client_subscribe(client, "settings_data", SUBSCRIBE_DATA_QOS);
+
 	for (;;) {
 		// Create and structure topic for publishing data through MQTT
 		char *topic = NULL;
@@ -183,7 +188,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&data, "]}");
 
 		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+		esp_mqtt_client_publish(client, topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Topic: %s", topic);
 		ESP_LOGI(TAG, "Message: %s", data);
