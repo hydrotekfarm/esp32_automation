@@ -92,6 +92,9 @@ void boot_sequence() {
 	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 		sensor_event_group = xEventGroupCreate();
 
+		// Init i2cdev
+		ESP_ERROR_CHECK(i2cdev_init());
+
 		// ADC 1 setup
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
@@ -119,19 +122,16 @@ void boot_sequence() {
 
 		is_day = true;
 
-		ultrasonic_active = false;
+		ultrasonic_active = true;
 
 		ph_control_active = false;
 		ph_day_night_control = false;
-		ec_control_active = true;
+		ec_control_active = false;
 		ec_day_night_control = true;
 		night_target_ec = 3;
 
 		// Set all sync bits var
 		set_sensor_sync_bits();
-
-		// Init i2cdev
-		ESP_ERROR_CHECK(i2cdev_init());
 
 		// Init rtc and check if time needs to be set
 		init_rtc();
