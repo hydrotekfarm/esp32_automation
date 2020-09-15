@@ -7,6 +7,7 @@
 #include <freertos/semphr.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <cjson.h>
 
 #include "boot.h"
@@ -37,6 +38,7 @@ static void mqtt_event_handler(esp_mqtt_event_handle_t event) {		// MQTT Event C
 		ESP_LOGI(TAG, "Published\n");
 		break;
 	case MQTT_EVENT_DATA:
+		ESP_LOGI(TAG, "Message received\n");
 		data_handler(event->topic, event->topic_len, event->data, event->data_len);
 		break;
 	case MQTT_EVENT_ERROR:
@@ -119,7 +121,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	create_settings_data_topic();
 
 	// Subscribe to topics
-	esp_mqtt_client_subscribe(client, "settings_data", SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(client, settings_data_topic, SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
 		// Create and initially assign JSON data
@@ -188,6 +190,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		esp_mqtt_client_publish(client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Message: %s", data);
+		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
 
 		// Free allocated memory
 		free(data);
@@ -203,8 +206,9 @@ void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len
 
 	topic[topic_len] = '\0';
 	data[data_len] = '\0';
+	ESP_LOGI(TAG, "Topic recieved: %s", topic);
 
-	if(topic == settings_data_topic) {
+	if(strcmp(topic, settings_data_topic) == 0) {
 		ESP_LOGI(TAG, "Settings data received: %s", data);
 
 	} else {
@@ -223,8 +227,8 @@ void create_sensor_data_topic() {
 	append_str(&topic, device_id);
 
 	// Assign variable
-	sensor_data_topic = topic;
-	ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+	sensor_data_topic = "test2";
+	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	// Free memory
 	free(topic);
@@ -242,8 +246,8 @@ void create_settings_data_topic() {
 	append_str(&topic, "device_settings");
 
 	// Assign variable
-	sensor_data_topic = topic;
-	ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+	settings_data_topic = "test";
+	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
 
 	// Free memory
 	free(topic);
