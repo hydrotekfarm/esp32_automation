@@ -169,6 +169,7 @@ void boot_sequence() {
 }
 
 void restart_esp32() { // Restart ESP32
+	ESP_LOGE("", "RESTARTING ESP32");
 	fflush(stdout);
 	esp_restart();
 }

@@ -120,6 +120,8 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	create_sensor_data_topic();
 	create_settings_data_topic();
 
+	ESP_LOGI(TAG, "Sensor data topic4: %s", sensor_data_topic);
+
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(client, settings_data_topic, SUBSCRIBE_DATA_QOS);
 
@@ -206,13 +208,12 @@ void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len
 
 	topic[topic_len] = '\0';
 	data[data_len] = '\0';
-	ESP_LOGI(TAG, "Topic recieved: %s", topic);
 
 	if(strcmp(topic, settings_data_topic) == 0) {
 		ESP_LOGI(TAG, "Settings data received: %s", data);
 
 	} else {
-		ESP_LOGE(TAG, "Topic not recognized");
+		ESP_LOGE(TAG, "Topic %s not recognized", topic);
 	}
 }
 
@@ -227,11 +228,12 @@ void create_sensor_data_topic() {
 	append_str(&topic, device_id);
 
 	// Assign variable
-	sensor_data_topic = "test2";
+	strcpy(sensor_data_topic, topic);
 	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	// Free memory
 	free(topic);
+
 }
 
 void create_settings_data_topic() {
@@ -246,9 +248,10 @@ void create_settings_data_topic() {
 	append_str(&topic, "device_settings");
 
 	// Assign variable
-	settings_data_topic = "test";
+	strcpy(settings_data_topic, topic);
 	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
 
 	// Free memory
 	free(topic);
+
 }

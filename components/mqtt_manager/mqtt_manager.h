@@ -13,8 +13,8 @@ char *cluster_id;
 char *device_id;
 
 // Topics
-char *sensor_data_topic;
-char *settings_data_topic;
+char sensor_data_topic[100];
+char settings_data_topic[100];
 
 // Send mqtt message to publish sensor data to broker
 void publish_data();
