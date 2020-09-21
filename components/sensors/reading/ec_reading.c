@@ -1,7 +1,7 @@
 #include "ec_reading.h"
 
 #include <esp_log.h>
-
+#include "string.h"
 #include "ec_sensor.h"
 #include "sync_sensors.h"
 #include "task_priorities.h"
@@ -12,45 +12,45 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
 	_ec = 0;
-	ec_calibration = false;
+	ec_calibration = true;
+	dry_ec_calibration = false;
 
-	ec_begin();		// Setup EC sensor and get calibrated values stored in NVS
+	ec_sensor_t dev;
+	memset(&dev, 0, sizeof(ec_sensor_t));
+	ESP_ERROR_CHECK(ec_init(&dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
 
 	for (;;) {
 		if(ec_calibration) { // Calibration Mode is activated
+			ESP_LOGI(TAG, "Start Calibration");
 			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
-			// Get many Raw Voltage Samples to allow values to stabilize before calibrating
-			for (int i = 0; i < 20; i++) {
-				uint32_t adc_reading = 0;
-				for (int i = 0; i < 64; i++) {
-					adc_reading += adc1_get_raw(EC_SENSOR_GPIO);
-				}
-				adc_reading /= 64;
-				float voltage = esp_adc_cal_raw_to_voltage(adc_reading,
-						adc_chars);
-				_ec = readEC(voltage, _water_temp);
-				ESP_LOGE(TAG, "ec: %f\n", _ec);
-				ESP_LOGE(TAG, "\n\n");
-				vTaskDelay(pdMS_TO_TICKS(2000));
-			}
-			esp_err_t error = calibrateEC();	// Calibrate EC sensor using last voltage reading
-			// Error Handling Code
+
+			esp_err_t error = calibrate_ec(&dev); // Calibrate EC
+
 			if (error != ESP_OK) {
 				ESP_LOGE(TAG, "Calibration Failed: %d", error);
+			} else {
+				ESP_LOGI(TAG, "Calibration Success");
 			}
-			// Disable calibration mode, activate EC sensor and revert task back to regular priority
-			ec_calibration = false;
+
+			ec_calibration = false;	// Disable calibration mode, activate EC sensor and revert task back to regular priority
 			vTaskPrioritySet(ec_task_handle, EC_TASK_PRIORITY);
-		} else {		// EC sensor is Active
-			uint32_t adc_reading = 0;
-			// Get a Raw Voltage Reading
-			for (int i = 0; i < 64; i++) {
-				adc_reading += adc1_get_raw(EC_SENSOR_GPIO);
+		} if(dry_ec_calibration) {
+			ESP_LOGI(TAG, "Start Dry Calibration");
+			vTaskPrioritySet(ec_task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
+
+			esp_err_t error = calibrate_ec_dry(&dev); // Calibrate EC
+
+			if (error != ESP_OK) {
+				ESP_LOGE(TAG, "Calibration Failed: %d", error);
+			} else {
+				ESP_LOGI(TAG, "Calibration Success");
 			}
-			adc_reading /= 64;
-			float voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
-			_ec = readEC(voltage, _water_temp);	// Calculate EC from voltage reading
-			ESP_LOGI(TAG, "EC: %f\n", _ec);
+
+			dry_ec_calibration = false;	// Disable calibration mode, activate EC sensor and revert task back to regular priority
+			vTaskPrioritySet(ec_task_handle, EC_TASK_PRIORITY);
+		}	else {		// EC sensor is Active
+			read_ec_with_temperature(&dev, 23, &_ec);
+			ESP_LOGI(TAG, "EC: %f", _ec);
 
 			// Sync with other sensor tasks
 			// Wait up to 10 seconds to let other tasks end

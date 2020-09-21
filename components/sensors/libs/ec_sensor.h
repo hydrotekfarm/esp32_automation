@@ -9,52 +9,57 @@
 #define EC_SENSOR_H
 
 #include <esp_err.h>
+#include "i2cdev.h"
+#define EC_ADDR_BASE 0x64
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-esp_err_t ec_begin();
+typedef i2c_dev_t ec_sensor_t;
 
 /**
- * @brief Read KValueHigh and KValueLow from Non Volatile Storage
- *
- * If sensor has not been calibrated previously then a default KValueHigh and KValueLow of 1
- * will be written to the Non Volatile Storage
- *
- * This should be called before any other ec_sensor function
- *
- * @returns 'ESP_OK' if data from Non Volatile Storage was successfully read or written
- * 			It will return any other esp_err_t if read or write failed
+ * @brief Setup EC I2C communication
+ * @param dev I2C device descriptor
+ * @param port I2C port
+ * @param addr I2C address
+ * @param sda_gpio SDA GPIO
+ * @param scl_gpio SCL GPIO
+ * @return any error message
  */
-
-float readEC(float voltage, float temperature);
+esp_err_t ec_init(ec_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gpio, int8_t scl_gpio);
 
 /**
- * @brief Calculate EC from raw voltage adjusted for temperature
- *
- * @param voltage		Raw Voltage in mV measured from ADC
- * @param temperature	Temperature in Celsius measured from a temperature sensor such as DS18B20
+ * @brief Calibrate EC sensor
+ * @param dev I2C device descriptor
+ * @param temperature This value is required for temperature compensation
+ * @return any error message
  */
-
-esp_err_t calibrateEC();
+esp_err_t calibrate_ec(ec_sensor_t *dev);
 
 /**
- * @brief Perform Two Point Calibration and store new KValueHigh and KValueLow
- * 		  into Non Volatile Storage
- *
- * Calibration must be done twice with 1.413us/cm and 12.88ms/cm
- *
- * This must be called after readEC(). It will return an error if readEC isn't called first as
- * voltage and temperature measurements will not be present to perform calibration.
- *
- * Wait for the voltage and temperature values to remain relatively stable before starting
- * calibration process to get best results.
- *
- * @returns 'ESP_OK' if calibration process was successful and KValueHigh and KValueLow was
- * 			stored into Non Volatile Storage. It will return any other esp_err_t if calibration
- * 			was unsuccessful.
+ * @brief Calibrate EC sensor with dry mode
+ * @param dev I2C device descriptor
+ * @return any error message
  */
+esp_err_t calibrate_ec_dry(ec_sensor_t *dev);
+
+/**
+ * @brief Read EC with temperature compensation
+ * @param dev I2C device descriptor
+ * @param temperature This value is required for temperature compensation
+ * @param EC pointer to EC variable
+ * @return any error message
+ */
+esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *ec);
+
+/**
+ * @brief Read EC without temperature compensation
+ * @param dev I2C device descriptor
+ * @param EC pointer to EC variable
+ * @return any error message
+ */
+esp_err_t read_ec(ec_sensor_t *dev, float *ec);
 
 #ifdef __cplusplus
 }
