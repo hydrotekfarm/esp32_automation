@@ -8,6 +8,9 @@
 #include <esp_wifi.h>
 #include <nvs_flash.h>
 #include <freertos/event_groups.h>
+#include <string.h>
+#include <driver/gpio.h>
+#include <stdio.h>
 
 #include "task_priorities.h"
 #include "ports.h"
@@ -16,10 +19,13 @@
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
+#include "ec_control.h"
+#include "ph_control.h"
 #include "mqtt_manager.h"
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
+#include "mcp23x17.h"
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -75,8 +81,8 @@ void boot_sequence() {
 	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = { .sta = {
-			.ssid = "LeawoodGuest",
-			.password = "guest,123" },
+			.ssid = "superhero",
+			.password = "GeminiCircus" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -90,6 +96,9 @@ void boot_sequence() {
 	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
 		sensor_event_group = xEventGroupCreate();
 
+		// Init i2cdev
+		ESP_ERROR_CHECK(i2cdev_init());
+
 		// ADC 1 setup
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
@@ -97,51 +106,58 @@ void boot_sequence() {
 				DEFAULT_VREF, adc_chars);
 
 		// ADC Channel Setup
-		adc1_config_channel_atten(ADC_CHANNEL_0, ADC_ATTEN_DB_11);
-		adc1_config_channel_atten(ADC_CHANNEL_3, ADC_ATTEN_DB_11);
+		adc1_config_channel_atten(EC_SENSOR_GPIO, ADC_ATTEN_DB_11);
+		adc1_config_channel_atten(PH_SENSOR_GPIO, ADC_ATTEN_DB_11);
 
-		gpio_set_direction(32, GPIO_MODE_OUTPUT);
 		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
 		if (error != ESP_OK) {
 			ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
 		}
 
-		gpio_set_direction(PH_UP_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(PH_DOWN_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_1_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_2_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_3_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_4_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_5_PUMP_GPIO, GPIO_MODE_OUTPUT);
-		gpio_set_direction(EC_NUTRIENT_6_PUMP_GPIO, GPIO_MODE_OUTPUT);
+		// Initialize MCP23017 GPIO Expansion
+//		mcp23x17_t dev;
+//		memset(&dev, 0, sizeof(mcp23x17_t));
+//		ESP_ERROR_CHECK(mcp23x17_init_desc(&dev, 0, MCP23X17_ADDR_BASE, SDA_GPIO, SCL_GPIO));
+//
+//		// Initialize GPIO Expansion Ports
+//		mcp23x17_set_mode(&dev, PH_UP_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, PH_DOWN_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_1_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_2_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_3_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_4_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_5_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+//		mcp23x17_set_mode(&dev, EC_NUTRIENT_6_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
 
-		water_temperature_active = false;
-		ec_active = true;
-		ph_active = true;
-		ultrasonic_active = false;
+		is_day = true;
+
+		ultrasonic_active = true;
+
+		ph_control_active = false;
+		ph_day_night_control = false;
+		ec_control_active = false;
+		ec_day_night_control = true;
+		night_target_ec = 3;
 
 		// Set all sync bits var
 		set_sensor_sync_bits();
 
-		// Init i2cdev
-		ESP_ERROR_CHECK(i2cdev_init());
-
 		// Init rtc and check if time needs to be set
-		init_rtc();
-		check_rtc_reset();
+//		init_rtc();
+//		check_rtc_reset();
 
 		// Init rf transmitter
 		init_rf();
 
-		// Create core 0 tasks
-		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
-		xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
-
-		// Create core 1 tasks
-		if(water_temperature_active) xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
-		if(ec_active) xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-		if(ph_active) xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
+//		// Create core 0 tasks
+//		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+//		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+//		xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
+//
+//		// Create core 1 tasks
+		xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
+		//xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
 		if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 		xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 

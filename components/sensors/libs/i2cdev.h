@@ -94,6 +94,19 @@ esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data,
         size_t out_size, void *in_data, size_t in_size);
 
 /**
+ * @brief Read from EZO Slave Sensor device
+ *
+ *
+ * Function is thread-safe.
+ * @param[in] dev Device descriptor
+ * @param[out] response_code pointer to status storage variable
+ * @param[out] in_data Pointer to input data buffer
+ * @param[in] in_size Number of byte to read
+ * @return ESP_OK on success
+ */
+esp_err_t i2c_read_ezo_sensor(const i2c_dev_t *dev, uint8_t *response_code, void *in_data, size_t in_size);
+
+/**
  * @brief Write to slave device
  *
  * Write \p out_size bytes from \p out_data to slave into \p out_reg register address.

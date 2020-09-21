@@ -12,6 +12,9 @@
 void check_ph() { // Check ph
 	char *TAG = "PH_CONTROL";
 
+	// Set current target based on time of day
+	float current_target = !is_day && ph_day_night_control ? night_target_ph : target_ph;
+
 	// Check if ph and ec is currently being altered
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
@@ -19,7 +22,7 @@ void check_ph() { // Check ph
 	// Only proceed if ph and ec are not being altered
 	if(!ph_control && !ec_control) {
 		// Check if ph is too low
-		if(_ph < target_ph - PH_MARGIN_ERROR) {
+		if(_ph < current_target - PH_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
@@ -37,7 +40,7 @@ void check_ph() { // Check ph
 				}
 			}
 			// Check if ph is too high
-		} else if(_ph > target_ph + PH_MARGIN_ERROR) {
+		} else if(_ph > current_target + PH_MARGIN_ERROR) {
 			// Check if ph checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks

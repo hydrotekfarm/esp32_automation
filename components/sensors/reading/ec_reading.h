@@ -8,11 +8,9 @@ TaskHandle_t ec_task_handle;
 // Global ec variable
 float _ec;
 
-// EC measuring status
-bool ec_active;
-
 // Calibration status
 bool ec_calibration;
+bool dry_ec_calibration;
 
 // Measures water ph
 void measure_ec();

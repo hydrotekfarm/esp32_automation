@@ -18,18 +18,21 @@ struct timer ec_dose_timer;
 struct timer ec_wait_timer;
 
 // Alarms
-struct alarm lights_on_alarm;
-struct alarm lights_off_alarm;
+struct alarm day_time_alarm;
+struct alarm night_time_alarm;
 
 // Water pump timings
 uint32_t water_pump_on_time;
 uint32_t water_pump_off_time;
 
-// Lights
-uint32_t lights_on_hour;
-uint32_t lights_on_min;
-uint32_t lights_off_hour;
-uint32_t lights_off_min;
+// Day or night time
+bool is_day;
+
+// Day and night times
+uint32_t day_time_hour;
+uint32_t day_time_min;
+uint32_t night_time_hour;
+uint32_t night_time_min;
 
 // Initialize rtc
 void init_rtc();

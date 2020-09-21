@@ -22,7 +22,7 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 			ds18b20_address, 1);
 	vTaskDelay(pdMS_TO_TICKS(1000));
 
-	if(sensor_count < 1 && water_temperature_active) ESP_LOGE(TAG, "Sensor Not Found");
+	if(sensor_count < 1) ESP_LOGE(TAG, "Sensor Not Found");
 
 	for (;;) {
 		// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function

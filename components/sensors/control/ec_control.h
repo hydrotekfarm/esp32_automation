@@ -7,8 +7,17 @@
 // Number of pumps
 #define EC_NUM_PUMPS 6
 
+// Active control status
+bool ec_control_active;
+
+// Day night custom control
+bool ec_day_night_control;
+
 // Target ec
 float target_ec;
+
+// Night target ec
+float night_target_ec;
 
 // Checks needed until dose
 bool ec_checks[6];
