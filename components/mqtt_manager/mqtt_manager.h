@@ -22,6 +22,9 @@ void publish_data();
 // Handle data recieved through subscribed topics
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len);
 
+// Update system settings
+void update_settings(char *JSON_string);
+
 // Create publishing topic
 void create_sensor_data_topic();
 

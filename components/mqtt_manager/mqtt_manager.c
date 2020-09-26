@@ -203,17 +203,28 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	}
 }
 
+void update_settings(char *JSON_string) {
+	const char *TAG = "UPDATE_SETTINGS";
+	ESP_LOGI(TAG, "Settings data: %s", JSON_string);
+
+	cJSON *root = cJSON_Parse(JSON_string);
+}
+
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
 	const char *TAG = "DATA_HANDLER";
 
-	topic[topic_len] = '\0';
-	data[data_len] = '\0';
+	char topic_temp[topic_len-1];
+	char data_temp[data_len];
 
+	strncpy(topic_temp, topic, topic_len-1);
+	strncpy(data_temp, data, data_len);
+
+	ESP_LOGI(TAG, "Topic: %s", topic_temp);
 	if(strcmp(topic, settings_data_topic) == 0) {
-		ESP_LOGI(TAG, "Settings data received: %s", data);
-
+		ESP_LOGI(TAG, "Settings data received: %s", data_temp);
+		update_settings(data);
 	} else {
-		ESP_LOGE(TAG, "Topic %s not recognized", topic);
+		ESP_LOGE(TAG, "Topic not recognized");
 	}
 }
 
@@ -248,7 +259,7 @@ void create_settings_data_topic() {
 	append_str(&topic, "device_settings");
 
 	// Assign variable
-	strcpy(settings_data_topic, topic);
+	strcpy(settings_data_topic, "test");
 	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
 
 	// Free memory
