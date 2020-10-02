@@ -208,11 +208,11 @@ void update_settings() {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"ph\":4}";
+	char *data_string = "{\"data\":[{\"ph\":4}]}";
 	cJSON *root = cJSON_Parse(data_string);
-	ESP_LOGI(TAG, "pH data: %d", cJSON_GetObjectItem(root, "ph")->valueint);
-//
-//	cJSON_Delete(root);
+	ESP_LOGI(TAG, "pH data: %s", cJSON_GetArrayItem(root->child, 0)->child->string);
+
+	cJSON_Delete(root);
 }
 
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
