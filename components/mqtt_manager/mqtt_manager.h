@@ -23,7 +23,7 @@ void publish_data();
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len);
 
 // Update system settings
-void update_settings(char *JSON_string);
+void update_settings();
 
 // Create publishing topic
 void create_sensor_data_topic();

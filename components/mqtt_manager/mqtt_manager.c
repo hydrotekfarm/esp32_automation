@@ -5,6 +5,7 @@
 #include <esp_log.h>
 #include <esp_err.h>
 #include <freertos/semphr.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -203,11 +204,15 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	}
 }
 
-void update_settings(char *JSON_string) {
+void update_settings() {
 	const char *TAG = "UPDATE_SETTINGS";
-	ESP_LOGI(TAG, "Settings data: %s", JSON_string);
+	ESP_LOGI(TAG, "Settings data");
 
-	cJSON *root = cJSON_Parse(JSON_string);
+	char *data_string = "{\"ph\":4}";
+	cJSON *root = cJSON_Parse(data_string);
+	ESP_LOGI(TAG, "pH data: %d", cJSON_GetObjectItem(root, "ph")->valueint);
+//
+//	cJSON_Delete(root);
 }
 
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
@@ -219,10 +224,8 @@ void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len
 	strncpy(topic_temp, topic, topic_len-1);
 	strncpy(data_temp, data, data_len);
 
-	ESP_LOGI(TAG, "Topic: %s", topic_temp);
-	if(strcmp(topic, settings_data_topic) == 0) {
-		ESP_LOGI(TAG, "Settings data received: %s", data_temp);
-		update_settings(data);
+	if(/*strcmp(topic_temp, settings_data_topic)*/0 == 0) {
+		update_settings();
 	} else {
 		ESP_LOGE(TAG, "Topic not recognized");
 	}
