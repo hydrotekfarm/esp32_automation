@@ -208,9 +208,20 @@ void update_settings() {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"data\":[{\"ph\":4}]}";
+	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":null,\"night_target_value\":null,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}]}";
 	cJSON *root = cJSON_Parse(data_string);
-	ESP_LOGI(TAG, "pH data: %s", cJSON_GetArrayItem(root->child, 0)->child->string);
+	cJSON *arr = root->child;
+
+	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
+		cJSON *subitem = cJSON_GetArrayItem(arr, i);
+		char *data_topic = subitem->child->string;
+
+		if(strcmp("ph", data_topic) == 0) {
+			ESP_LOGI(TAG, "pH data recieved");
+		} else {
+			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
+		}
+	}
 
 	cJSON_Delete(root);
 }
