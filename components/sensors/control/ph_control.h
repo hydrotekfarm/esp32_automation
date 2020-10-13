@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <cjson.h>
 
 // Margin of error
 #define PH_MARGIN_ERROR 0.3
@@ -33,3 +34,6 @@ void ph_down_pump();
 
 // Turn ph pumps off
 void ph_pump_off();
+
+// Update settings
+void ph_update_settings(cJSON *item);

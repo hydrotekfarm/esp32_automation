@@ -83,3 +83,7 @@ void ec_dose() {
 		ec_nutrient_index++;
 	}
 }
+
+void ec_update_settings(cJSON *item) {
+
+}

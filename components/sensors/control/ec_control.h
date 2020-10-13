@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <esp_system.h>
+#include <cjson.h>
 
 // Margin of error
 #define EC_MARGIN_ERROR 0.5
@@ -40,3 +41,6 @@ void check_ec();
 
 // Dose ec nutrients based on proportions
 void ec_dose();
+
+// Update settings
+void ec_update_settings(cJSON *item);

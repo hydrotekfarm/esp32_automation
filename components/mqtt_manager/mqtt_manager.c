@@ -16,6 +16,8 @@
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
+#include "ec_control.h"
+#include "ph_control.h"
 #include "sync_sensors.h"
 #include "rtc.h"
 
@@ -213,11 +215,18 @@ void update_settings() {
 	cJSON *arr = root->child;
 
 	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-		cJSON *subitem = cJSON_GetArrayItem(arr, i);
-		char *data_topic = subitem->child->string;
+		cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
+		char *data_topic = subitem->string;
 
 		if(strcmp("ph", data_topic) == 0) {
-			ESP_LOGI(TAG, "pH data recieved");
+			ESP_LOGI(TAG, "pH data received");
+			ph_update_settings(subitem);
+		} else if(strcmp("ec", data_topic) == 0) {
+			ESP_LOGI(TAG, "ec data received");
+			ec_update_settings(subitem);
+		} else if(strcmp("air_temperature", data_topic) == 0) {
+			// Add air temp call when control is implemented
+			ESP_LOGI(TAG, "air temperature data received");
 		} else {
 			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
 		}
