@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <esp_log.h>
+#include <string.h>
 
 #include "ph_control.h"
 #include "rtc.h"
@@ -85,5 +86,94 @@ void ec_dose() {
 }
 
 void ec_update_settings(cJSON *item) {
+	cJSON *element = item->child;
+	while(element != NULL) {
+		char *key = element->string;
+		if(strcmp(key, "monitoring_only") == 0) {
+			//TODO update monitoring only variable
+			ESP_LOGI("Updated monitoring only to: ", "%s", element->valueint == 0 ? "false" : "true");
+		} else if(strcmp(key, "control") == 0) {
+			cJSON *control_element = element->child;
+			while(control_element != NULL) {
+				char *control_key = control_element->string;
+				if(strcmp(control_key, "dosing_time") == 0) {
+					//TODO update dosing time
+					ESP_LOGI("Updated ec dosing time to: ", "%d", control_element->valueint);
+				} else if(strcmp(control_key, "dosing_interval") == 0) {
+					//TODO update dosing interval
+					ESP_LOGI("Updated ec dosing interval to: ", "%d", control_element->valueint);
+				} else if(strcmp(control_key, "day_and_night") == 0) {
+					//TODO update day and night
+					ESP_LOGI("Updated ec day and night to: ", "%s", control_element->valueint == 0 ? "false" : "true");
+				} else if(strcmp(control_key, "day_target_value") == 0) {
+					//TODO update day target value
+					ESP_LOGI("Updated ec day target value to: ", "%d", control_element->valueint);
+				} else if(strcmp(control_key, "night_target_value") == 0) {
+					//TODO update night target value
+					ESP_LOGI("Updated ec night target value: ", "%d", control_element->valueint);
+				} else if(strcmp(control_key, "target_value") == 0) {
+					//TODO update target value
+					ESP_LOGI("Updated ec target value to: ", "%d", control_element->valueint);
+				} else if(strcmp(control_key, "pumps") == 0) {
+					//TODO update target value
+					cJSON *pumps_element = control_element->child;
+					while(pumps_element != NULL) {
+						char *pumps_key = pumps_element->string;
+						if(strcmp(pumps_key, "pump 1") == 0) {
+							cJSON *pump1_element = pumps_element->child;
+							char *pump1_key = pump1_element->string;
+							while(pump1_element != NULL) {
+								if(strcmp(pump1_key, "enabled")) {
+									//TODO update ec pump 1 status
+									ESP_LOGI("Updated ec pump 1 to: ", "%s", pump1_element->valueint == 0 ? "false" : "true");
+								} else if(strcmp(pump1_key, "enabled")) {
+									//TODO update ec pump 1 value
+									ESP_LOGI("Updated ec pump 1 value to: ", "%d", pump1_element->valueint);
+								}
+								pump1_element = pump1_element->next;
+							}
+						} else if(strcmp(pumps_key, "pump 2") == 0) {
+							cJSON *pump2_element = pumps_element->child;
+							char *pump2_key = pump2_element->string;
+							while(pump2_element != NULL) {
+								if(strcmp(pump2_key, "enabled")) {
+									//TODO update ec pump 1 status
+									ESP_LOGI("Updated ec pump 2 to: ", "%s", pump2_element->valueint == 0 ? "false" : "true");
+								} else if(strcmp(pump2_key, "enabled")) {
+									//TODO update ec pump 1 value
+									ESP_LOGI("Updated ec pump 2 value to: ", "%d", pump2_element->valueint);
+								}
+								pump2_element = pump2_element->next;
+							}
+						} else if(strcmp(pumps_key, "pump 3") == 0) {
+							cJSON *pump3_element = pumps_element->child;
+							char *pump1_key = pump3_element->string;
+							while(pump3_element != NULL) {
+								if(strcmp(pump1_key, "enabled")) {
+									//TODO update ec pump 1 status
+									ESP_LOGI("Updated ec pump 1 to: ", "%s", pump3_element->valueint == 0 ? "false" : "true");
+								} else if(strcmp(pump1_key, "enabled")) {
+									//TODO update ec pump 1 value
+									ESP_LOGI("Updated ec pump 1 value to: ", "%d", pump3_element->valueint);
+								}
+								pump3_element = pump3_element->next;
+							}
+						}
+						pumps_element = pumps_element->next;
+					}
+				}
 
+				control_element = control_element->next;
+			}
+		} else if(strcmp(key, "alarm_min") == 0) {
+			//TODO update alarm min
+			ESP_LOGI("Updated ec alarm min to: ", "%d", element->valueint);
+		} else if(strcmp(key, "alarm_max") == 0) {
+			//TODO update alarm min
+			ESP_LOGI("Updated ec alarm max to: ", "%d", element->valueint);
+		}
+
+		element = element->next;
+	}
+	ESP_LOGI("", "Finished updating ec settings");
 }

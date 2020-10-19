@@ -94,7 +94,6 @@ void ph_pump_off() {
 }
 
 void ph_update_settings(cJSON *item) {
-	//ESP_LOGI(item->child->string, "Value: %d", item->child->valueint);
 	cJSON *element = item->child;
 	while(element != NULL) {
 		char *key = element->string;
@@ -146,10 +145,10 @@ void ph_update_settings(cJSON *item) {
 			}
 		} else if(strcmp(key, "alarm_min") == 0) {
 			//TODO update alarm min
-			ESP_LOGI("Updated alarm min to: ", "%d", element->valueint);
+			ESP_LOGI("Updated ph alarm min to: ", "%d", element->valueint);
 		} else if(strcmp(key, "alarm_max") == 0) {
 			//TODO update alarm min
-			ESP_LOGI("Updated alarm max to: ", "%d", element->valueint);
+			ESP_LOGI("Updated ph alarm max to: ", "%d", element->valueint);
 		}
 
 		element = element->next;
