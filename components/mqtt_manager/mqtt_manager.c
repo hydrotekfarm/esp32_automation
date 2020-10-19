@@ -210,7 +210,7 @@ void update_settings() {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":null,\"night_target_value\":null,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":3,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":null,\"pumps\":{\"pump1\":{\"enabled\":true,\"value\":10},\"pump2\":{\"enabled\":false,\"value\":null},\"pump3\":{\"enabled\":false,\"value\":null},\"pump4\":{\"enabled\":false,\"value\":null},\"pump5\":{\"enabled\":false,\"value\":null}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
+	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":null,\"night_target_value\":null,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":3,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":null,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":null},\"pump3\":{\"enabled\":false,\"value\":null},\"pump4\":{\"enabled\":false,\"value\":null},\"pump5\":{\"enabled\":false,\"value\":null}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
 	cJSON *root = cJSON_Parse(data_string);
 	cJSON *arr = root->child;
 

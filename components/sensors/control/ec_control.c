@@ -115,31 +115,30 @@ void ec_update_settings(cJSON *item) {
 					//TODO update target value
 					ESP_LOGI("Updated ec target value to: ", "%d", control_element->valueint);
 				} else if(strcmp(control_key, "pumps") == 0) {
-					//TODO update target value
 					cJSON *pumps_element = control_element->child;
 					while(pumps_element != NULL) {
 						char *pumps_key = pumps_element->string;
-						if(strcmp(pumps_key, "pump 1") == 0) {
+						if(strcmp(pumps_key, "pump_1") == 0) {
 							cJSON *pump1_element = pumps_element->child;
-							char *pump1_key = pump1_element->string;
 							while(pump1_element != NULL) {
+								char *pump1_key = pump1_element->string;
 								if(strcmp(pump1_key, "enabled")) {
 									//TODO update ec pump 1 status
 									ESP_LOGI("Updated ec pump 1 to: ", "%s", pump1_element->valueint == 0 ? "false" : "true");
-								} else if(strcmp(pump1_key, "enabled")) {
+								} else if(strcmp(pump1_key, "value")) {
 									//TODO update ec pump 1 value
 									ESP_LOGI("Updated ec pump 1 value to: ", "%d", pump1_element->valueint);
 								}
 								pump1_element = pump1_element->next;
 							}
-						} else if(strcmp(pumps_key, "pump 2") == 0) {
+						} else if(strcmp(pumps_key, "pump_2") == 0) {
 							cJSON *pump2_element = pumps_element->child;
-							char *pump2_key = pump2_element->string;
 							while(pump2_element != NULL) {
+								char *pump2_key = pump2_element->string;
 								if(strcmp(pump2_key, "enabled")) {
 									//TODO update ec pump 1 status
 									ESP_LOGI("Updated ec pump 2 to: ", "%s", pump2_element->valueint == 0 ? "false" : "true");
-								} else if(strcmp(pump2_key, "enabled")) {
+								} else if(strcmp(pump2_key, "value")) {
 									//TODO update ec pump 1 value
 									ESP_LOGI("Updated ec pump 2 value to: ", "%d", pump2_element->valueint);
 								}
