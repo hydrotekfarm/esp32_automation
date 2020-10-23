@@ -131,10 +131,10 @@ void ph_update_settings(cJSON *item) {
 					cJSON *pumps_element = control_element->child;
 					while(pumps_element != NULL) {
 						char *pumps_key = pumps_element->string;
-						if(strcmp(pumps_key, "pump_1_enabled") == 0) {
+						if(strcmp(pumps_key, PUMP_1_ENABLED) == 0) {
 							//TODO update ph pump 1
 							ESP_LOGI("Updated ph pumps 1 to: ", "%s", pumps_element->valueint == 0 ? "false" : "true");
-						} else if(strcmp(pumps_key, "pump_1_enabled") == 0) {
+						} else if(strcmp(pumps_key, PUMP_2_ENABLED) == 0) {
 							//TODO update ph pump 2
 							ESP_LOGI("Updated ph pumps 2 to: ", "%s", pumps_element->valueint == 0 ? "false" : "true");
 						}

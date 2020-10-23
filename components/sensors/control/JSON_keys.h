@@ -1,3 +1,6 @@
+#ifndef JSON_KEYS_H
+#define JSON_KEYS_H
+
 // General keys
 static const char *MONITORING_ONLY = "monitoring_only";
 static const char *CONTROL = "control";
@@ -13,7 +16,7 @@ static const char *ALARM_MAX = "alarm_max";
 
 // pH specific keys
 static const char *PH_UP_DOWN = "ph_up_down";
-/*static const char *PUMP_1_ENABLED = "pump_1_enabled";
+static const char *PUMP_1_ENABLED = "pump_1_enabled";
 static const char *PUMP_2_ENABLED = "pump_2_enabled";
 
 // ec specific keys
@@ -23,4 +26,6 @@ static const char *PUMP_3 = "pump_3";
 static const char *PUMP_4 = "pump_4";
 static const char *PUMP_5 = "pump_5";
 static const char *ENABLED = "enabled";
-static const char *VALUE = "value";*/
+static const char *VALUE = "value";
+
+#endif

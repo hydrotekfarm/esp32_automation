@@ -119,44 +119,70 @@ void ec_update_settings(cJSON *item) {
 					cJSON *pumps_element = control_element->child;
 					while(pumps_element != NULL) {
 						char *pumps_key = pumps_element->string;
-						if(strcmp(pumps_key, "pump_1") == 0) {
+						if(strcmp(pumps_key, PUMP_1) == 0) {
 							cJSON *pump1_element = pumps_element->child;
 							while(pump1_element != NULL) {
 								char *pump1_key = pump1_element->string;
-								if(strcmp(pump1_key, "enabled")) {
+								if(strcmp(pump1_key, ENABLED)) {
 									//TODO update ec pump 1 status
 									ESP_LOGI("Updated ec pump 1 to: ", "%s", pump1_element->valueint == 0 ? "false" : "true");
-								} else if(strcmp(pump1_key, "value")) {
+								} else if(strcmp(pump1_key, VALUE)) {
 									//TODO update ec pump 1 value
 									ESP_LOGI("Updated ec pump 1 value to: ", "%d", pump1_element->valueint);
 								}
 								pump1_element = pump1_element->next;
 							}
-						} else if(strcmp(pumps_key, "pump_1") == 0) {
+						} else if(strcmp(pumps_key, PUMP_2) == 0) {
 							cJSON *pump2_element = pumps_element->child;
 							while(pump2_element != NULL) {
 								char *pump2_key = pump2_element->string;
-								if(strcmp(pump2_key, "enabled")) {
-									//TODO update ec pump 1 status
+								if(strcmp(pump2_key, ENABLED)) {
+									//TODO update ec pump 2 status
 									ESP_LOGI("Updated ec pump 2 to: ", "%s", pump2_element->valueint == 0 ? "false" : "true");
-								} else if(strcmp(pump2_key, "value")) {
-									//TODO update ec pump 1 value
+								} else if(strcmp(pump2_key, VALUE)) {
+									//TODO update ec pump 2 value
 									ESP_LOGI("Updated ec pump 2 value to: ", "%d", pump2_element->valueint);
 								}
 								pump2_element = pump2_element->next;
 							}
-						} else if(strcmp(pumps_key, "pump_1") == 0) {
+						} else if(strcmp(pumps_key, PUMP_3) == 0) {
 							cJSON *pump3_element = pumps_element->child;
 							char *pump3_key = pump3_element->string;
 							while(pump3_element != NULL) {
-								if(strcmp(pump3_key, "enabled")) {
+								if(strcmp(pump3_key, ENABLED)) {
 									//TODO update ec pump 3 status
 									ESP_LOGI("Updated ec pump 3 to: ", "%s", pump3_element->valueint == 0 ? "false" : "true");
-								} else if(strcmp(pump3_key, "enabled")) {
-									//TODO update ec pump 1 value
+								} else if(strcmp(pump3_key, VALUE)) {
+									//TODO update ec pump 3 value
 									ESP_LOGI("Updated ec pump 3 value to: ", "%d", pump3_element->valueint);
 								}
 								pump3_element = pump3_element->next;
+							}
+						} else if(strcmp(pumps_key, PUMP_4) == 0) {
+							cJSON *pump4_element = pumps_element->child;
+							char *pump4_key = pump4_element->string;
+							while(pump4_element != NULL) {
+								if(strcmp(pump4_key, ENABLED)) {
+									//TODO update ec pump 4 status
+									ESP_LOGI("Updated ec pump 4 to: ", "%s", pump4_element->valueint == 0 ? "false" : "true");
+								} else if(strcmp(pump4_key, VALUE)) {
+									//TODO update ec pump 4 value
+									ESP_LOGI("Updated ec pump 4 value to: ", "%d", pump4_element->valueint);
+								}
+								pump4_element = pump4_element->next;
+							}
+						} else if(strcmp(pumps_key, PUMP_5) == 0) {
+							cJSON *pump5_element = pumps_element->child;
+							char *pump5_key = pump5_element->string;
+							while(pump5_element != NULL) {
+								if(strcmp(pump5_key, ENABLED)) {
+									//TODO update ec pump 5 status
+									ESP_LOGI("Updated ec pump 5 to: ", "%s", pump5_element->valueint == 0 ? "false" : "true");
+								} else if(strcmp(pump5_key, VALUE)) {
+									//TODO update ec pump 5 value
+									ESP_LOGI("Updated ec pump 5 value to: ", "%d", pump5_element->valueint);
+								}
+								pump5_element = pump5_element->next;
 							}
 						}
 						pumps_element = pumps_element->next;
