@@ -141,7 +141,7 @@ inline static bool cfg_equal(const i2c_config_t *a, const i2c_config_t *b)
         && a->sda_pullup_en == b->sda_pullup_en;
 }
 
-static esp_err_t i2c_setup_port(i2c_port_t port, const i2c_config_t *cfg)
+esp_err_t i2c_setup_port(i2c_port_t port, const i2c_config_t *cfg)
 {
     if (!cfg || port >= I2C_NUM_MAX) return ESP_ERR_INVALID_ARG;
 
@@ -191,6 +191,7 @@ esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data, size_t out_si
             i2c_master_start(cmd);
             i2c_master_write_byte(cmd, dev->addr << 1, true);
             i2c_master_write(cmd, (void *)out_data, out_size, true);
+            ESP_LOGI(TAG, "here");
         }
         i2c_master_start(cmd);
         i2c_master_write_byte(cmd, (dev->addr << 1) | 1, true);
@@ -220,16 +221,40 @@ esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg, size_t out_re
         i2c_cmd_handle_t cmd = i2c_cmd_link_create();
         i2c_master_start(cmd);
         i2c_master_write_byte(cmd, dev->addr << 1, true);
-        if (out_reg && out_reg_size)
-            i2c_master_write(cmd, (void *)out_reg, out_reg_size, true);
+        if (out_reg && out_reg_size) {
+        	i2c_master_write(cmd, (void *)out_reg, out_reg_size, true);
+        }
         i2c_master_write(cmd, (void *)out_data, out_size, true);
         i2c_master_stop(cmd);
+
         res = i2c_master_cmd_begin(dev->port, cmd, CONFIG_I2CDEV_TIMEOUT / portTICK_RATE_MS);
         if (res != ESP_OK)
             ESP_LOGE(TAG, "Could not write to device [0x%02x at %d]: %d", dev->addr, dev->port, res);
         i2c_cmd_link_delete(cmd);
     }
 
+    SEMAPHORE_GIVE(dev->port);
+    return res;
+}
+
+esp_err_t i2c_read_ezo_sensor(const i2c_dev_t *dev, uint8_t *response_code, void *in_data, size_t in_size){
+	i2c_cmd_handle_t handle;
+	esp_err_t res;
+	SEMAPHORE_TAKE(dev->port);
+    res = i2c_setup_port(dev->port, &dev->cfg);
+    if(res == ESP_OK){
+    	handle = i2c_cmd_link_create();
+    	i2c_master_start(handle);
+    	i2c_master_write_byte(handle, (dev->addr << 1) | I2C_MASTER_READ, -1);
+    	i2c_master_read_byte(handle, response_code, I2C_MASTER_ACK);
+    	i2c_master_read(handle, (uint8_t *)in_data, in_size, I2C_MASTER_LAST_NACK);
+    	i2c_master_stop(handle);
+    	res = i2c_master_cmd_begin(dev->port, handle, pdMS_TO_TICKS(500));
+    	if (res != ESP_OK) {
+    		ESP_LOGE(TAG, "Could not write to device [0x%02x at %d]: %d \n", dev->addr, dev->port, res);
+    	}
+    	i2c_cmd_link_delete(handle);
+    }
     SEMAPHORE_GIVE(dev->port);
     return res;
 }

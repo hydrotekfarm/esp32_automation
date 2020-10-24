@@ -8,91 +8,156 @@
 #include "ph_sensor.h"
 #include <esp_log.h>
 #include <esp_err.h>
-#include <nvs_flash.h>
-#include <nvs.h>
 #include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdio.h>
 
-static int32_t  _neutralVoltage = 1500.0;
-static int32_t  _acidVoltage = 2032.44;
-static float  _phValue = 0;
-static float _voltage = 0;
+#define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
 
-static const char *TAG = "DF_Robot_PH_Sensor";
+#define I2C_FREQ_HZ 400000
+#define STABILIZATION_ACCURACY 0.002
+#define STABILIZATION_COUNT_MAX 10
 
-esp_err_t ph_begin(){
-	esp_err_t error;
-	nvs_handle_t my_handle;
-	error = nvs_open("storage", NVS_READWRITE, &my_handle);
-	if(error != ESP_OK){
-		return error;
+static const char *TAG = "Atlas PH Sensor";
+
+esp_err_t ph_init(ph_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gpio, int8_t scl_gpio) {
+	// Check Arguments
+    CHECK_ARG(dev);
+    if (addr < PH_ADDR_BASE || addr > PH_ADDR_BASE + 7)
+    {
+        ESP_LOGE(TAG, "Invalid device address: 0x%02x", addr);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Setup I2C settings
+    dev->port = port;
+    dev->addr = addr;
+    dev->cfg.sda_io_num = sda_gpio;
+    dev->cfg.scl_io_num = scl_gpio;
+    dev->cfg.master.clk_speed = I2C_FREQ_HZ;
+
+    return i2c_dev_create_mutex(dev);
+}
+
+esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
+	uint8_t count = 0;
+
+	float ph = 0;
+	float ph_min = 0;
+	float ph_max = 0;
+
+	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
+	while(count < STABILIZATION_COUNT_MAX){
+		esp_err_t err = read_ph_with_temperature(dev, temperature, &ph);	// read ph with temperature
+		ESP_LOGI(TAG, "ph: %f", ph);
+		if (err == ESP_OK) {	// Proceed if ph sensor responds with success code
+			if(count == 0) {	// If first reading, then calculate stabilization range
+				ph_min = ph * (1 - STABILIZATION_ACCURACY);
+				ph_max = ph * (1 + STABILIZATION_ACCURACY);
+				ESP_LOGI(TAG, "min ph: %f, max ph: %f", ph_min, ph_max);
+				count++;
+			} else {
+				if(ph >= ph_min && ph <= ph_max){	// increment count if ph is within range
+					count++;
+				} else {
+					count = 0;	// reset count to zero if ph is not within range
+				}
+			}
+		} else {
+			ESP_LOGI(TAG, "response code: %d", err);
+		}
 	}
 
-	int32_t TempAcidVoltage = _acidVoltage;
-	error = nvs_get_i32(my_handle, "AcidVoltage", &TempAcidVoltage);
-	if(error == ESP_ERR_NVS_NOT_FOUND){
-		nvs_set_i32(my_handle, "AcidVoltage", TempAcidVoltage);
-		nvs_commit(my_handle);
-		ESP_LOGI(TAG, "AcidVoltage set to 2032.44. Calibration must take place");
-	} else if (error != ESP_OK){
-		return error;
+	// Identify and create calibration command
+	char cmd[15];
+	memset(&cmd, 0, sizeof(cmd));
+	if(ph >= 2.5 && ph < 5.5) {
+		ESP_LOGI(TAG, "4.0 solution identified");
+		snprintf(cmd, sizeof(cmd), "cal,low,4");
+	} else if (ph >= 5.5 && ph <= 8.5) {
+		ESP_LOGI(TAG, "7.0 solution identified");
+		snprintf(cmd, sizeof(cmd), "cal,mid,7");
+	} else if (ph > 8.5 && ph <= 11.5) {
+		ESP_LOGI(TAG, "10.0 solution identified");
+		snprintf(cmd, sizeof(cmd), "cal,high,10");
+	} else {
+		ESP_LOGE(TAG, "calibration solution not identified, ph is lower than 2.5 or greater than 11.5");
+		return ESP_FAIL;
 	}
 
-	int32_t TempNeutralVoltage = _neutralVoltage;
-	error = nvs_get_i32(my_handle, "NeutralVoltage", &TempNeutralVoltage);
-	if(error == ESP_ERR_NVS_NOT_FOUND){
-		nvs_set_i32(my_handle, "NeutralVoltage", TempNeutralVoltage);
-		nvs_commit(my_handle);
-		ESP_LOGI(TAG, "NeutralVoltage set to 1500. Calibration must take place");
-	} else if (error != ESP_OK){
-		return error;
-	}
-	nvs_close(my_handle);
-
-	_acidVoltage = TempAcidVoltage;
-	_neutralVoltage = TempNeutralVoltage;
-	ESP_LOGI(TAG, "_acidVoltage = %d\n", _acidVoltage);
-	ESP_LOGI(TAG, "neutralVoltage = %d\n", _neutralVoltage);
+	// Send Calibration Command to EZO Sensor
+    I2C_DEV_TAKE_MUTEX(dev);
+    I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));
+    I2C_DEV_GIVE_MUTEX(dev);
+    vTaskDelay(pdMS_TO_TICKS(1000));	// Processing Delay
 	return ESP_OK;
 }
 
-float readPH(float voltage){
-	_voltage = voltage;
-	float slope = (7.0-4.0)/((_neutralVoltage-1500.0)/3.0 - (_acidVoltage-1500.0)/3.0);
-	float intercept =  7.0 - slope*(_neutralVoltage-1500.0)/3.0;
-	_phValue = slope*(voltage-1500.0)/3.0+intercept;
-	return _phValue;
+esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
+	uint8_t response_code = 0;
+
+	// Create Read with temperature command
+	char cmd[10];
+	memset(&cmd, 0, sizeof(cmd));
+	snprintf(cmd, sizeof(cmd), "RT,%.1f", temperature);
+
+	// Create buffer to read data
+	char buffer[32];
+	memset(&buffer, 0, sizeof(buffer));
+
+	// write read with temperature command
+    I2C_DEV_TAKE_MUTEX(dev);
+    I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));
+    I2C_DEV_GIVE_MUTEX(dev);
+
+    // processing delay for atlas sensor
+    vTaskDelay(pdMS_TO_TICKS(900));
+
+    // read ph from atlas sensor and store it in buffer
+    I2C_DEV_TAKE_MUTEX(dev);
+    I2C_DEV_CHECK(dev, i2c_read_ezo_sensor(dev, &response_code, buffer, 31));
+    I2C_DEV_GIVE_MUTEX(dev);
+
+    // convert buffer into a float and store it in ph variable
+    *ph = atof(buffer);
+
+    // return any error
+    if(response_code != 1) {
+    	return response_code;
+    }
+    return ESP_OK;
 }
 
-esp_err_t calibratePH(){
-	esp_err_t error;
-	nvs_handle_t my_handle;
-	error = nvs_open("storage", NVS_READWRITE, &my_handle);
-	if(error != ESP_OK){
-		return error;
-	}
-	ESP_LOGI(TAG, "Voltage Used: %f", _voltage);
-	_voltage = (int32_t) round(_voltage);
-	if((_voltage>1322)&&(_voltage<1678)){
-		ESP_LOGI(TAG, "PH: 7.0 Solution Identified");
-		_neutralVoltage =  _voltage;
-		error = nvs_set_i32(my_handle, "NeutralVoltage", _voltage);
-		ESP_LOGI(TAG, "Neutral Voltage set to %d", _neutralVoltage);
-		nvs_commit(my_handle);
-		if(error != ESP_OK){
-			ESP_LOGD(TAG, "error unable to store neutral voltage into NVS: %d", error);
-		}
-	}else if((_voltage>1854)&&(_voltage<2210)){
-		ESP_LOGI(TAG, "PH: 4.0 Solution Identified");
-		_acidVoltage =  _voltage;
-		error = nvs_set_i32(my_handle, "AcidVoltage", _voltage);
-		ESP_LOGI(TAG, "Acid Voltage set to %d", _acidVoltage);
-		nvs_commit(my_handle);
-		if(error != ESP_OK){
-			ESP_LOGD(TAG, "error unable to store neutral voltage into NVS: %d", error);
-		}
-	}else{
-		return false;
-	}
+esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
+	uint8_t response_code = 0;
+	char cmd = 'R';
+
+	// Create buffer to read data
+	char buffer[32];
+	memset(&buffer, 0, sizeof(buffer));
+
+	// write read ph command
+	I2C_DEV_TAKE_MUTEX(dev);
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));
+	I2C_DEV_GIVE_MUTEX(dev);
+
+	// processing delay for atlas sensor
+	vTaskDelay(pdMS_TO_TICKS(900));
+
+	// read ph from atlas sensor and store it in buffer
+	I2C_DEV_TAKE_MUTEX(dev);
+	I2C_DEV_CHECK(dev, i2c_read_ezo_sensor(dev, &response_code, buffer, 31));
+	I2C_DEV_GIVE_MUTEX(dev);
+
+	// convert buffer into a float and store it in ph variable
+	*ph = atof(buffer);
+
+    // return any error
+    if(response_code != 1) {
+    	return response_code;
+    }
 	return ESP_OK;
 }
 

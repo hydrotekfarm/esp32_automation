@@ -10,6 +10,7 @@ float _ec;
 
 // Calibration status
 bool ec_calibration;
+bool dry_ec_calibration;
 
 // Measures water ph
 void measure_ec();
