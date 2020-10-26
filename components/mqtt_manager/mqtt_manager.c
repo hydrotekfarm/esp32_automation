@@ -5,8 +5,10 @@
 #include <esp_log.h>
 #include <esp_err.h>
 #include <freertos/semphr.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <cjson.h>
 
 #include "boot.h"
@@ -14,6 +16,8 @@
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
+#include "ec_control.h"
+#include "ph_control.h"
 #include "sync_sensors.h"
 #include "rtc.h"
 
@@ -37,6 +41,7 @@ static void mqtt_event_handler(esp_mqtt_event_handle_t event) {		// MQTT Event C
 		ESP_LOGI(TAG, "Published\n");
 		break;
 	case MQTT_EVENT_DATA:
+		ESP_LOGI(TAG, "Message received\n");
 		data_handler(event->topic, event->topic_len, event->data, event->data_len);
 		break;
 	case MQTT_EVENT_ERROR:
@@ -118,8 +123,10 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	create_sensor_data_topic();
 	create_settings_data_topic();
 
+	ESP_LOGI(TAG, "Sensor data topic4: %s", sensor_data_topic);
+
 	// Subscribe to topics
-	esp_mqtt_client_subscribe(client, "settings_data", SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(client, settings_data_topic, SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
 		// Create and initially assign JSON data
@@ -188,6 +195,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		esp_mqtt_client_publish(client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Message: %s", data);
+		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
 
 		// Free allocated memory
 		free(data);
@@ -198,15 +206,46 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	}
 }
 
+void update_settings() {
+	const char *TAG = "UPDATE_SETTINGS";
+	ESP_LOGI(TAG, "Settings data");
+
+	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":null,\"night_target_value\":null,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":3,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":null,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
+	cJSON *root = cJSON_Parse(data_string);
+	cJSON *arr = root->child;
+
+	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
+		cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
+		char *data_topic = subitem->string;
+
+		if(strcmp("ph", data_topic) == 0) {
+			ESP_LOGI(TAG, "pH data received");
+			ph_update_settings(subitem);
+		} else if(strcmp("ec", data_topic) == 0) {
+			ESP_LOGI(TAG, "ec data received");
+			ec_update_settings(subitem);
+		} else if(strcmp("air_temperature", data_topic) == 0) {
+			// Add air temp call when control is implemented
+			ESP_LOGI(TAG, "air temperature data received");
+		} else {
+			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
+		}
+	}
+
+	cJSON_Delete(root);
+}
+
 void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
 	const char *TAG = "DATA_HANDLER";
 
-	topic[topic_len] = '\0';
-	data[data_len] = '\0';
+	char topic_temp[topic_len-1];
+	char data_temp[data_len];
 
-	if(topic == settings_data_topic) {
-		ESP_LOGI(TAG, "Settings data received: %s", data);
+	strncpy(topic_temp, topic, topic_len-1);
+	strncpy(data_temp, data, data_len);
 
+	if(/*strcmp(topic_temp, settings_data_topic)*/0 == 0) {
+		update_settings();
 	} else {
 		ESP_LOGE(TAG, "Topic not recognized");
 	}
@@ -223,11 +262,12 @@ void create_sensor_data_topic() {
 	append_str(&topic, device_id);
 
 	// Assign variable
-	sensor_data_topic = topic;
-	ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+	strcpy(sensor_data_topic, topic);
+	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	// Free memory
 	free(topic);
+
 }
 
 void create_settings_data_topic() {
@@ -242,9 +282,10 @@ void create_settings_data_topic() {
 	append_str(&topic, "device_settings");
 
 	// Assign variable
-	sensor_data_topic = topic;
-	ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+	strcpy(settings_data_topic, "test");
+	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
 
 	// Free memory
 	free(topic);
+
 }
