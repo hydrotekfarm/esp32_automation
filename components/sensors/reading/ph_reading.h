@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
+#include "sensor.h"
 
 // Task handle
 TaskHandle_t ph_task_handle;

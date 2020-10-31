@@ -22,7 +22,7 @@ void check_ec() {
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
 	if(!ec_control && !ph_control) {
-		if(_ec < current_target - EC_MARGIN_ERROR) {
+		if(sensor_get_value(get_ec_sensor()) < current_target - EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
 				ec_nutrient_index = 0;
@@ -39,7 +39,7 @@ void check_ec() {
 					}
 				}
 			}
-		} else if(_ec > current_target + EC_MARGIN_ERROR) {
+		} else if(sensor_get_value(get_ec_sensor()) > current_target + EC_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ec_checks[sizeof(ec_checks) - 1]) {
 				// TODO dilute ec with  water

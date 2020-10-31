@@ -184,7 +184,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
 		add_entry(&data, &first, "water temp", _water_temp);
-		add_entry(&data, &first, "ec", _ec);
+		add_entry(&data, &first, "ec", sensor_get_value(get_ec_sensor));
 		add_entry(&data, &first, "ph", _ph);
 		if(ultrasonic_active) { add_entry(&data, &first, "distance", _distance); }
 
