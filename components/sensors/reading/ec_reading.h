@@ -8,8 +8,5 @@ struct sensor ec_sensor;
 // Get sensor object
 const struct sensor* get_ec_sensor();
 
-// Calibration status
-bool dry_ec_calibration;
-
 // Measures water ph
 void measure_ec();
