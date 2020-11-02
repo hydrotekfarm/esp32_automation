@@ -19,6 +19,7 @@
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
+#include "reservoir_control.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "mqtt_manager.h"
@@ -26,6 +27,8 @@
 #include "rtc.h"
 #include "rf_transmitter.h"
 #include "mcp23x17.h"
+
+#define ESP_INTR_FLAG_DEFAULT 0
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -81,8 +84,8 @@ void boot_sequence() {
 	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = { .sta = {
-			.ssid = "LeawoodGuest",
-			.password = "guest,123" },
+			.ssid = "superhero",
+			.password = "GeminiCircus" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -98,6 +101,24 @@ void boot_sequence() {
 
 		// Init i2cdev
 		ESP_ERROR_CHECK(i2cdev_init());
+
+		gpio_pad_select_gpio(13);
+		gpio_set_direction(13, GPIO_MODE_INPUT);
+		gpio_set_intr_type(13, GPIO_INTR_NEGEDGE);
+
+		esp_err_t errort = gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+		if(errort != ESP_OK) {
+			ESP_LOGI(TAG, "error: %d", errort);
+		}
+		errort = gpio_isr_handler_add(13, top_float_switch_isr_handler, NULL);
+		if(errort != ESP_OK) {
+			ESP_LOGI(TAG, "errorrr: %d", errort);
+		}
+
+		while(true) {
+			vTaskDelay(pdMS_TO_TICKS(3000));
+			ESP_LOGI(TAG, "Standby");
+		}
 
 		// ADC 1 setup
 		adc1_config_width(ADC_WIDTH_BIT_12);
@@ -132,6 +153,7 @@ void boot_sequence() {
 		is_day = true;
 
 		ultrasonic_active = true;
+		reservoir_control_active = false;
 
 		ph_control_active = false;
 		ph_day_night_control = false;
@@ -150,15 +172,15 @@ void boot_sequence() {
 		init_rf();
 
 //		// Create core 0 tasks
-//		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-//		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
-//		xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
+		//xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+		//xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+    	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 //
 //		// Create core 1 tasks
-		xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
-		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
+		//xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+		//xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 		//xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
-		if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
+		//if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
 		xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 	} else if ((eventBits & WIFI_FAIL_BIT) != 0) {

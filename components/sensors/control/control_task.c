@@ -1,9 +1,17 @@
 #include "control_task.h"
-
+#include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
+
+void IRAM_ATTR top_float_switch_isr_handler(void* arg) {
+	ets_printf("hello");
+}
+
+void IRAM_ATTR bottom_float_switch_isr_handler(void* arg) {
+	ets_printf("hello");
+}
 
 void sensor_control (void *parameter) {
 	reset_sensor_checks(&ph_checks);
@@ -32,6 +40,7 @@ void sensor_control (void *parameter) {
 
 	for(;;)  {
 		// Check sensors
+		if(reservoir_control_active) check_water_level();
 		if(ph_control_active) check_ph();
 		if(ec_control_active) check_ec();
 
