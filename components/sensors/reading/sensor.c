@@ -27,6 +27,7 @@ void sensor_set_calib_status(struct sensor *sensor_in, bool status) { sensor_in-
 void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_t*), i2c_dev_t *dev) {
 	ESP_LOGI(sensor_in->name, "Start Calibration");
 
+	int task_priority = uxTaskPriorityGet(&sensor_in->task_handle);
 	vTaskPrioritySet(sensor_in->task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 
 	esp_err_t error = (*calib_func)(dev); // Calibrate EC
@@ -37,5 +38,5 @@ void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_
 		ESP_LOGI(sensor_in->name, "Calibration Success");
 	}
 
-	vTaskPrioritySet(sensor_in->task_handle, 2);
+	vTaskPrioritySet(&sensor_in->task_handle, task_priority);
 }
