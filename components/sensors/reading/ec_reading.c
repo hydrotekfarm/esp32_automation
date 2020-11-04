@@ -13,7 +13,8 @@ const struct sensor* get_ec_sensor() { return &ec_sensor; }
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
-	init_sensor(&ec_sensor, "EC_SENSOR", true, true, false);
+	init_sensor(&ec_sensor, "EC_SENSOR", true, true);
+	dry_calib = false;
 
 	ec_sensor_t dev;
 	memset(&dev, 0, sizeof(ec_sensor_t));
@@ -21,9 +22,11 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 	for (;;) {
 		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
-			calibrate_sensor(&ec_sensor, &calibrate_ec, &dev, false);
-		} if(sensor_dry_calib_status(&ec_sensor)) {
-			calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &dev, true);
+			calibrate_sensor(&ec_sensor, &calibrate_ec, &dev);
+			sensor_set_calib_status(&ec_sensor, false);
+		} if(dry_calib) {
+			calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &dev);
+			dry_calib = false;
 		}	else {		// EC sensor is Active
 			read_ec_with_temperature(&dev, 23, sensor_get_address_value(&ec_sensor));
 			ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));

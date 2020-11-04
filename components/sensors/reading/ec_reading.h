@@ -5,6 +5,8 @@
 
 struct sensor ec_sensor;
 
+bool dry_calib;
+
 // Get sensor object
 const struct sensor* get_ec_sensor();
 

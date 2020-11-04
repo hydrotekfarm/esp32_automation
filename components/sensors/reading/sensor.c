@@ -5,12 +5,11 @@
 #include "sensor.h"
 
 
-void init_sensor(struct sensor *sensor_in, char *name_in, bool active_in, bool calib_in, bool dry_calib_in) {
+void init_sensor(struct sensor *sensor_in, char *name_in, bool active_in, bool calib_in) {
 	strcpy(sensor_in->name, name_in);
 	sensor_in->current_value = 0;
 	sensor_in->is_active = active_in;
 	sensor_in->is_calib = calib_in;
-	sensor_in->is_dry_calib = dry_calib_in;
 }
 
 TaskHandle_t* sensor_get_task_handle(struct sensor *sensor_in) { return &sensor_in->task_handle; }
@@ -25,12 +24,8 @@ void sensor_set_active_status(struct sensor *sensor_in, bool status) { sensor_in
 bool sensor_calib_status(struct sensor *sensor_in) { return sensor_in->is_calib; }
 void sensor_set_calib_status(struct sensor *sensor_in, bool status) { sensor_in->is_calib = status; }
 
-bool sensor_dry_calib_status(struct sensor *sensor_in) { return sensor_in->is_dry_calib; }
-void sensor_set_dry_calib_status(struct sensor *sensor_in, bool status) { sensor_in->is_dry_calib = status; }
-
-void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_t*), i2c_dev_t *dev, bool is_dry) {
-	if(!is_dry) ESP_LOGI(sensor_in->name, "Start Calibration");
-	else ESP_LOGI(sensor_in->name, "Start Dry Calibration");
+void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_t*), i2c_dev_t *dev) {
+	ESP_LOGI(sensor_in->name, "Start Calibration");
 
 	vTaskPrioritySet(sensor_in->task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 
@@ -42,7 +37,5 @@ void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_
 		ESP_LOGI(sensor_in->name, "Calibration Success");
 	}
 
-	if(!is_dry) sensor_in->is_calib = false;	// Disable calibration mode, activate EC sensor and revert task back to regular priority
-	else sensor_in->is_dry_calib = false;
 	vTaskPrioritySet(sensor_in->task_handle, 2);
 }
