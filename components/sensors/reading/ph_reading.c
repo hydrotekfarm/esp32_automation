@@ -10,7 +10,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
 
 	_ph = 0;
-	ph_calibration = true;
+	ph_calibration = false;
 	ph_sensor_t dev;
 	memset(&dev, 0, sizeof(ph_sensor_t));
 

@@ -9,7 +9,7 @@
 struct sensor {
 	char name[25];
 	TaskHandle_t task_handle;
-	double current_value;
+	float current_value;
 	bool is_active;
 	bool is_calib;
 };
@@ -24,9 +24,9 @@ void init_sensor(struct sensor *sensor_in, char *name_in, bool active_in, bool c
 TaskHandle_t* sensor_get_task_handle(struct sensor *sensor_in);
 
 // Get and set current value
-double sensor_get_value(const struct sensor *sensor_in);
-double* sensor_get_address_value(struct sensor *sensor_in);
-void sensor_set_value(struct sensor *sensor_in, double value);
+float sensor_get_value(const struct sensor *sensor_in);
+float* sensor_get_address_value(struct sensor *sensor_in);
+void sensor_set_value(struct sensor *sensor_in, float value);
 
 // Get and set current active status
 bool sensor_active_status(struct sensor *sensor_in);

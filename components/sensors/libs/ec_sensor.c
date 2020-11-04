@@ -136,7 +136,6 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 
     // convert buffer into a float and convert to milliseimens and store it in ec variable
     *ec = atof(buffer)/1000;
-
     // return any error
     if(response_code != 1) {
     	return response_code;

@@ -14,9 +14,9 @@ void init_sensor(struct sensor *sensor_in, char *name_in, bool active_in, bool c
 
 TaskHandle_t* sensor_get_task_handle(struct sensor *sensor_in) { return &sensor_in->task_handle; }
 
-double sensor_get_value(const struct sensor *sensor_in) { return sensor_in->current_value; }
-double* sensor_get_address_value(struct sensor *sensor_in) { return &sensor_in->current_value; }
-void sensor_set_value(struct sensor *sensor_in, double value) { sensor_in->current_value = value; }
+float sensor_get_value(const struct sensor *sensor_in) { return sensor_in->current_value; }
+float* sensor_get_address_value(struct sensor *sensor_in) {	return &sensor_in->current_value; }
+void sensor_set_value(struct sensor *sensor_in, float value) { sensor_in->current_value = value; }
 
 bool sensor_active_status(struct sensor *sensor_in) { return sensor_in->is_active; }
 void sensor_set_active_status(struct sensor *sensor_in, bool status) { sensor_in->is_active = status; }
