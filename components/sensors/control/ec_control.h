@@ -3,7 +3,7 @@
 #include <cjson.h>
 
 // Margin of error
-#define EC_MARGIN_ERROR 0.5
+static const float EC_MARGIN_ERROR = 0.5;
 
 // Number of pumps
 #define EC_NUM_PUMPS 6

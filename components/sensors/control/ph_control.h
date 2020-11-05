@@ -2,7 +2,7 @@
 #include <cjson.h>
 
 // Margin of error
-#define PH_MARGIN_ERROR 0.3
+static const float PH_MARGIN_ERROR = 0.3;
 
 // Active control status
 bool ph_control_active;
