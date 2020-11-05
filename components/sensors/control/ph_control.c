@@ -24,7 +24,7 @@ void check_ph() { // Check ph
 	// Only proceed if ph and ec are not being altered
 	if(!ph_control && !ec_control) {
 		// Check if ph is too low
-		if(_ph < current_target - PH_MARGIN_ERROR) {
+		if(sensor_get_value(get_ph_sensor()) < current_target - PH_MARGIN_ERROR) {
 			// Check if all checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
@@ -42,7 +42,7 @@ void check_ph() { // Check ph
 				}
 			}
 			// Check if ph is too high
-		} else if(_ph > current_target + PH_MARGIN_ERROR) {
+		} else if(sensor_get_value(get_ph_sensor()) > current_target + PH_MARGIN_ERROR) {
 			// Check if ph checks are complete
 			if(ph_checks[sizeof(ph_checks) - 1]) {
 				// Turn pump on and reset checks
