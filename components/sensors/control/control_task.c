@@ -9,6 +9,9 @@ void sensor_control (void *parameter) {
 	reset_sensor_checks(&ph_checks);
 	reset_sensor_checks(&ec_checks);
 
+	ph_control_active = true;
+	ec_control_active = true;
+
 	target_ph = 5;
 	target_ec = 4;
 
@@ -16,6 +19,7 @@ void sensor_control (void *parameter) {
 	ph_wait_time = 10 * 60;
 	ec_dose_time = 10;
 	ec_wait_time = 10 * 60;
+
 	ec_nutrient_proportions[0] = 0.10;
 	ec_nutrient_proportions[1] = 0.20;
 	ec_nutrient_proportions[2] = 0.30;

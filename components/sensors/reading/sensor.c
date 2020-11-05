@@ -18,7 +18,7 @@ float sensor_get_value(const struct sensor *sensor_in) { return sensor_in->curre
 float* sensor_get_address_value(struct sensor *sensor_in) {	return &sensor_in->current_value; }
 void sensor_set_value(struct sensor *sensor_in, float value) { sensor_in->current_value = value; }
 
-bool sensor_active_status(struct sensor *sensor_in) { return sensor_in->is_active; }
+bool sensor_get_active_status(struct sensor *sensor_in) { return sensor_in->is_active; }
 void sensor_set_active_status(struct sensor *sensor_in, bool status) { sensor_in->is_active = status; }
 
 bool sensor_calib_status(struct sensor *sensor_in) { return sensor_in->is_calib; }

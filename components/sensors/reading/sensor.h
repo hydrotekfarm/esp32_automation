@@ -29,7 +29,7 @@ float* sensor_get_address_value(struct sensor *sensor_in);
 void sensor_set_value(struct sensor *sensor_in, float value);
 
 // Get and set current active status
-bool sensor_active_status(struct sensor *sensor_in);
+bool sensor_get_active_status(struct sensor *sensor_in);
 void sensor_set_active_status(struct sensor *sensor_in, bool status);
 
 // Get and set calibration status

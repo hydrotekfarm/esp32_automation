@@ -11,8 +11,7 @@ void init_sensor_control(struct sensor_control *control_in, bool is_active_in, b
 	control_in->dose_time = dose_time_in;
 	control_in->wait_time = wait_time_in;
 
-	for(int i = 0; i < NUM_CHECKS; i++) control_in->sensor_checks[i] = false;
-	control_in->check_index = 0;
+	control_reset_checks(control_in);
 }
 
 bool control_get_active(struct sensor_control *control_in) { return control_in->is_control_active; }
@@ -32,3 +31,17 @@ void control_set_dose_time(struct sensor_control *control_in, float time) { cont
 
 float control_get_wait_time(struct sensor_control *control_in) { return control_in->wait_time; }
 void control_set_wait_time(struct sensor_control *control_in, float time) { control_in->wait_time = time; }
+
+bool control_add_check(struct sensor_control *control_in) {
+	if(control_in->check_index == (NUM_CHECKS - 2)) {
+		control_reset_checks(control_in);
+		return true;
+	}
+	control_in->sensor_checks[control_in->check_index++] = true;
+	return false;
+}
+
+void control_reset_checks(struct sensor_control *control_in) {
+	for(int i = 0; i < NUM_CHECKS; i++) control_in->sensor_checks[i] = false;
+	control_in->check_index = 0;
+}

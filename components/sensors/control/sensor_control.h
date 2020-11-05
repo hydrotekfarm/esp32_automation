@@ -40,3 +40,9 @@ void control_set_dose_time(struct sensor_control *control_in, float time);
 
 float control_get_wait_time(struct sensor_control *control_in);
 void control_set_wait_time(struct sensor_control *control_in, float time);
+
+// Adds true to next sensor check
+// Returns true if all checks are done, false otherwise
+bool control_add_check(struct sensor_control *control_in);
+
+void control_reset_checks(struct sensor_control *control_in);
