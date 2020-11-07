@@ -1,16 +1,12 @@
-#include <esp_adc_cal.h>
+#include <string.h>
+#include "mcp23x17.h"
 
 // GPIO and ADC Ports
 #define RF_TRANSMITTER_GPIO 4			// GPIO 4
-#define ULTRASONIC_ECHO_GPIO 13			// GPIO 13
-#define ULTRASONIC_TRIGGER_GPIO 16		// GPIO 16
 #define TEMPERATURE_SENSOR_GPIO 17		// GPIO 17
 #define INTA_GPIO 19					// GPIO 19
 #define SDA_GPIO 21                 	// GPIO 21
 #define SCL_GPIO 22                 	// GPIO 22
-#define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
-#define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
-
 
 // GPIO Expansion Ports
 #define EC_NUTRIENT_1_PUMP_GPIO 0      // GPIO 0
@@ -22,6 +18,11 @@
 #define PH_UP_PUMP_GPIO 6              // GPIO 6
 #define PH_DOWN_PUMP_GPIO 7            // GPIO 7
 
+mcp23x17_t ports_dev;
 
-esp_adc_cal_characteristics_t *adc_chars;  // ADC 1 Configuration Settings
+// Initialize ports
+void init_ports();
 
+// Set gpio on and off
+void set_gpio_on(int gpio);
+void set_gpio_off(int gpio);

@@ -25,7 +25,6 @@
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
-#include "mcp23x17.h"
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -99,41 +98,11 @@ void boot_sequence() {
 		// Init i2cdev
 		ESP_ERROR_CHECK(i2cdev_init());
 
-		// ADC 1 setup
-		adc1_config_width(ADC_WIDTH_BIT_12);
-		adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-		esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12,
-				DEFAULT_VREF, adc_chars);
-
-		// ADC Channel Setup
-		adc1_config_channel_atten(EC_SENSOR_GPIO, ADC_ATTEN_DB_11);
-		adc1_config_channel_atten(PH_SENSOR_GPIO, ADC_ATTEN_DB_11);
-
-		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
-		if (error != ESP_OK) {
-			ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
-		}
-
-		// Initialize MCP23017 GPIO Expansion
-		mcp23x17_t dev;
-		memset(&dev, 0, sizeof(mcp23x17_t));
-		ESP_ERROR_CHECK(mcp23x17_init_desc(&dev, 0, MCP23X17_ADDR_BASE, SDA_GPIO, SCL_GPIO));
-
-		// Initialize GPIO Expansion Ports
-		mcp23x17_set_mode(&dev, PH_UP_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, PH_DOWN_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_1_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_2_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_3_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_4_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_5_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
-		mcp23x17_set_mode(&dev, EC_NUTRIENT_6_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
+		init_ports();
 
 		is_day = true;
 
-		ultrasonic_active = true;
-
-		ph_control_active = false;
+		ph_control_active = true;
 		ph_day_night_control = false;
 		ec_control_active = false;
 		ec_day_night_control = true;
@@ -149,12 +118,12 @@ void boot_sequence() {
 		// Init rf transmitter
 		init_rf();
 
-//		// Create core 0 tasks
+		// Create core 0 tasks
 		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 		xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
-		// Create core 1 tasks
+//		// Create core 1 tasks
 		xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, sensor_get_task_handle(get_water_temp_sensor()), 1);
 		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, sensor_get_task_handle(get_ec_sensor()), 1);
 		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, sensor_get_task_handle(get_ph_sensor()), 1);

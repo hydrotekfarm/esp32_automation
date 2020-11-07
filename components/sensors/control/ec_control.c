@@ -10,6 +10,7 @@
 #include "control_task.h"
 #include "sync_sensors.h"
 #include "JSON_keys.h"
+#include "ports.h"
 
 void check_ec() {
 	char *TAG = "EC_CONTROL";
@@ -66,7 +67,7 @@ void ec_dose() {
 	// Check if last nutrient was pumped
 	if(ec_nutrient_index == EC_NUM_PUMPS) {
 		// Turn off last pump
-		gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
+		set_gpio_off(ec_pump_gpios[ec_nutrient_index - 1]);
 
 		// Enable wait timer and reset nutrient index
 		enable_timer(&dev, &ec_wait_timer, ec_wait_time - (sizeof(ec_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset timer based on check durations
@@ -76,8 +77,8 @@ void ec_dose() {
 		// Still nutrients left
 	} else {
 		// Turn off last pump as long as this isn't first pump and turn on next pump
-		if(ec_nutrient_index != 0) gpio_set_level(ec_pump_gpios[ec_nutrient_index - 1], 0);
-		gpio_set_level(ec_pump_gpios[ec_nutrient_index], 1);
+		if(ec_nutrient_index != 0) set_gpio_off(ec_pump_gpios[ec_nutrient_index - 1]);
+		set_gpio_on(ec_pump_gpios[ec_nutrient_index]);
 
 		// Enable dose timer based on nutrient proportion
 		enable_timer(&dev, &ec_dose_timer, ec_dose_time * ec_nutrient_proportions[ec_nutrient_index]);

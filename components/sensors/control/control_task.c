@@ -12,13 +12,13 @@ void sensor_control (void *parameter) {
 	ph_control_active = true;
 	ec_control_active = true;
 
-	target_ph = 5;
+	target_ph = 6;
 	target_ec = 4;
 
 	ph_dose_time = 5;
-	ph_wait_time = 10 * 60;
+	ph_wait_time = 5 * 60;
 	ec_dose_time = 10;
-	ec_wait_time = 10 * 60;
+	ec_wait_time = 5 * 60;
 
 	ec_nutrient_proportions[0] = 0.10;
 	ec_nutrient_proportions[1] = 0.20;

@@ -70,15 +70,16 @@ void check_ph() { // Check ph
 }
 
 void ph_up_pump() {
-	gpio_set_level(PH_UP_PUMP_GPIO, 1);
+	set_gpio_on(PH_UP_PUMP_GPIO);
 	ESP_LOGI("", "pH up pump on");
 
 	// Enable dose timer
+	ESP_LOGI("sdf", "%p", &dev);
 	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
 }
 
 void ph_down_pump() {
-	gpio_set_level(PH_DOWN_PUMP_GPIO, 1);
+	set_gpio_on(PH_DOWN_PUMP_GPIO);
 	ESP_LOGI("", "pH down pump on");
 
 	// Enable dose timer
@@ -86,8 +87,8 @@ void ph_down_pump() {
 }
 
 void ph_pump_off() {
-	gpio_set_level(PH_UP_PUMP_GPIO, 0);
-	gpio_set_level(PH_DOWN_PUMP_GPIO, 0);
+	set_gpio_off(PH_UP_PUMP_GPIO);
+	set_gpio_off(PH_DOWN_PUMP_GPIO);
 	ESP_LOGI("", "pH pumps off");
 
 	// Enable wait timer
