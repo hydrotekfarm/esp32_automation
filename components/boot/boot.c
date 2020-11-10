@@ -80,8 +80,8 @@ void boot_sequence() {
 	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = { .sta = {
-			.ssid = "superhero",
-			.password = "GeminiCircus" },
+			.ssid = "LeawoodGuest",
+			.password = "guest,123" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());

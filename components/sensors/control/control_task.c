@@ -16,7 +16,7 @@ void sensor_control (void *parameter) {
 	target_ec = 4;
 
 	ph_dose_time = 5;
-	ph_wait_time = 5 * 60;
+	ph_wait_time = 0.5 * 60;
 	ec_dose_time = 10;
 	ec_wait_time = 5 * 60;
 

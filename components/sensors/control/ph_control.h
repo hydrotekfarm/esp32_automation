@@ -17,7 +17,7 @@ float target_ph;
 float night_target_ph;
 
 // Checks needed until dose
-bool ph_checks[6];
+bool ph_checks[2];
 
 // Timings
 float ph_dose_time;

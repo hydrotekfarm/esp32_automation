@@ -1,29 +1,34 @@
 #include "sensor_control.h"
 
-void init_sensor_control(struct sensor_control *control_in, bool is_active_in, bool target_value_in, float margin_error_in,
-						float night_target_value_in, bool is_day_night_in, float dose_time_in, float wait_time_in) {
+#include <string.h>
+#include <esp_log.h>
+#include "rtc.h"
 
+void init_sensor_control(struct sensor_control *control_in, char *name_in, bool is_active_in, bool target_value_in,
+						float margin_error_in, float night_target_value_in, bool is_day_night_in) {
+	strcpy(control_in->name, name_in);
 	control_in->is_control_active = is_active_in;
 	control_in->target_value = target_value_in;
 	control_in->margin_error = margin_error_in;
 	control_in->night_target_value = night_target_value_in;
 	control_in->is_day_night_active = is_day_night_in;
-	control_in->dose_time = dose_time_in;
-	control_in->wait_time = wait_time_in;
 
 	control_reset_checks(control_in);
 }
+void init_doser_control(struct sensor_control *control_in, float dose_time_in, float wait_time_in) {
+	control_in->dose_time = dose_time_in;
+	control_in->wait_time = wait_time_in;
+}
+
 
 bool control_get_active(struct sensor_control *control_in) { return control_in->is_control_active; }
 void control_set_active(struct sensor_control *control_in, bool status) { control_in->is_control_active = status; }
 
-float control_get_target(struct sensor_control *control_in) { return control_in->target_value; }
 void control_set_target(struct sensor_control *control_in, float target) { control_in->target_value = target; }
 
 bool control_get_day_night_active(struct sensor_control *control_in) { return control_in->is_day_night_active; }
 void control_set_day_night_active(struct sensor_control *control_in, bool status) { control_in->is_day_night_active = status; }
 
-float control_get_night_target(struct sensor_control *control_in) { return control_in->night_target_value; }
 void control_set_night_target(struct sensor_control *control_in, float target) { control_in->night_target_value = target; }
 
 float control_get_dose_time(struct sensor_control *control_in) { return control_in->dose_time; }
@@ -32,12 +37,41 @@ void control_set_dose_time(struct sensor_control *control_in, float time) { cont
 float control_get_wait_time(struct sensor_control *control_in) { return control_in->wait_time; }
 void control_set_wait_time(struct sensor_control *control_in, float time) { control_in->wait_time = time; }
 
+float control_get_target_value(struct sensor_control *control_in) {
+	return !is_day && control_in->is_day_night_active ? control_in->night_target_value : control_in->target_value;
+}
+
+bool control_is_under_target(struct sensor_control *control_in, float current_value) {
+	return current_value < (control_get_target_value(control_in) - control_in->margin_error);
+}
+bool control_is_over_target(struct sensor_control *control_in, float current_value) {
+	return current_value > (control_get_target_value(control_in) + control_in->margin_error);
+}
+
+int control_check_sensor(struct sensor_control *control_in, float current_value) {
+	if(!control_in->is_control_active) return 0; //TODO also check if current sensor or other dependent sensors are active
+
+	if(control_is_under_target(control_in, current_value)) {
+		if(control_add_check(control_in)) {
+			return -1;
+		}
+	} else if(control_is_over_target(control_in, current_value))  {
+		if(control_add_check(control_in)) {
+			return 1;
+		}
+	} else if(control_in->check_index > 0) {
+		control_reset_checks(control_in);
+	}
+	return 0;
+}
+
 bool control_add_check(struct sensor_control *control_in) {
 	if(control_in->check_index == (NUM_CHECKS - 2)) {
 		control_reset_checks(control_in);
 		return true;
 	}
 	control_in->sensor_checks[control_in->check_index++] = true;
+	ESP_LOGI(control_in->name, "Check %d done", control_in->check_index);
 	return false;
 }
 
