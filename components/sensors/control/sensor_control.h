@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "rtc.h"
 
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 #define COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
@@ -7,13 +8,17 @@
 
 struct sensor_control {
 	char name[25];
+	bool is_control_enabled;
 	bool is_control_active;
+	bool is_doser;
 	float target_value;
 	float margin_error;
 	bool is_day_night_active;
 	float night_target_value;
 	bool sensor_checks[NUM_CHECKS];
 	int check_index;
+	struct timer dose_timer;
+	struct timer wait_timer;
 	float dose_time;
 	float wait_time;
 };
@@ -26,8 +31,10 @@ void init_sensor_control(struct sensor_control *control_in, char *name_in, bool 
 void init_doser_control(struct sensor_control *control_in, float dose_time_in, float wait_time_in);
 
 // Getters and setters
+bool control_get_enabled(struct sensor_control *control_in);
+void control_set_enabled(struct sensor_control *control_in, bool status);
+
 bool control_get_active(struct sensor_control *control_in);
-void control_set_active(struct sensor_control *control_in, bool status);
 
 void control_set_target(struct sensor_control *control_in, float target);
 
@@ -58,3 +65,6 @@ int control_check_sensor(struct sensor_control *control_in, float current_value)
 bool control_add_check(struct sensor_control *control_in);
 
 void control_reset_checks(struct sensor_control *control_in);
+
+void control_start_dose_timer(struct sensor_control *control_in);
+void control_start_wait_timer(struct sensor_control *control_in);
