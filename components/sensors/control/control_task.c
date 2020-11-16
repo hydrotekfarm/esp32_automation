@@ -1,22 +1,18 @@
 #include "control_task.h"
 
+#include "sensor_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
 
 void sensor_control (void *parameter) {
-	reset_sensor_checks(&ph_checks);
 	reset_sensor_checks(&ec_checks);
 
-	ph_control_active = true;
 	ec_control_active = true;
 
-	target_ph = 6;
 	target_ec = 4;
 
-	ph_dose_time = 5;
-	ph_wait_time = 0.5 * 60;
 	ec_dose_time = 10;
 	ec_wait_time = 5 * 60;
 
@@ -34,9 +30,12 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
+	init_sensor_control(get_ph_control(), "PH_CONTROL", true, 6, PH_MARGIN_ERROR, -1, false);
+	init_doser_control(get_ph_control(), 10, 1*60);
+
 	for(;;)  {
 		// Check sensors
-		if(ph_control_active) check_ph();
+		check_ph();
 		if(ec_control_active) check_ec();
 
 		// Wait till next sensor readings

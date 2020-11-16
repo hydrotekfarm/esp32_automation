@@ -10,62 +10,18 @@
 #include "sync_sensors.h"
 #include "ports.h"
 #include "JSON_keys.h"
+#include "sensor.h"
+
+struct sensor_control* get_ph_control() { return &ph_control; }
 
 void check_ph() { // Check ph
-	char *TAG = "PH_CONTROL";
-
-	// Set current target based on time of day
-	float current_target = !is_day && ph_day_night_control ? night_target_ph : target_ph;
-
 	// Check if ph and ec is currently being altered
-	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
 
-	// Only proceed if ph and ec are not being altered
-	if(!ph_control && !ec_control) {
-		// Check if ph is too low
-		if(sensor_get_value(get_ph_sensor()) < current_target - PH_MARGIN_ERROR) {
-			// Check if all checks are complete
-			if(ph_checks[sizeof(ph_checks) - 1]) {
-				// Turn pump on and reset checks
-				ph_up_pump();
-				reset_sensor_checks(ph_checks);
-			} else {
-				// Iterate through checks
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					// Once false check is reached, set it to true and leave loop
-					if(!ph_checks[i]) {
-						ph_checks[i] = true;
-						ESP_LOGI(TAG, "PH check %d done", i+1);
-						break;
-					}
-				}
-			}
-			// Check if ph is too high
-		} else if(sensor_get_value(get_ph_sensor()) > current_target + PH_MARGIN_ERROR) {
-			// Check if ph checks are complete
-			if(ph_checks[sizeof(ph_checks) - 1]) {
-				// Turn pump on and reset checks
-				ph_down_pump();
-				reset_sensor_checks(ph_checks);
-			} else {
-				// Iterate through checks
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					// Once false check is reached, set it to true and leave loop
-					if(!ph_checks[i]) {
-						ph_checks[i] = true;
-						ESP_LOGI(TAG, "PH check %d done", i+1);
-						break;
-					}
-				}
-			}
-		} else {
-			// Reset checks if ph is good
-			reset_sensor_checks(ph_checks);
-		}
-		// Reset sensor checks if ec is active
-	} else if(ec_control) {
-		reset_sensor_checks(ph_checks);
+	if(!ec_control) {
+		int result = control_check_sensor(&ph_control, sensor_get_value(get_ph_sensor()));
+		if(result == -1) ph_up_pump();
+		else if(result == 1) ph_down_pump();
 	}
 }
 
@@ -75,7 +31,7 @@ void ph_up_pump() {
 
 	// Enable dose timer
 	ESP_LOGI("sdf", "%p", &dev);
-	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+	control_start_dose_timer(&ph_control);
 }
 
 void ph_down_pump() {
@@ -83,7 +39,7 @@ void ph_down_pump() {
 	ESP_LOGI("", "pH down pump on");
 
 	// Enable dose timer
-	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+	control_start_dose_timer(&ph_control);
 }
 
 void ph_pump_off() {
@@ -92,7 +48,7 @@ void ph_pump_off() {
 	ESP_LOGI("", "pH pumps off");
 
 	// Enable wait timer
-	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
+	control_start_wait_timer(&ph_control);
 }
 
 void ph_update_settings(cJSON *item) {

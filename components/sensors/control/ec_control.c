@@ -4,6 +4,7 @@
 #include <esp_log.h>
 #include <string.h>
 
+#include "sensor_control.h"
 #include "ph_control.h"
 #include "rtc.h"
 #include "ec_reading.h"
@@ -20,7 +21,7 @@ void check_ec() {
 
 	// Check if ph and ec is currently being altered
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
-	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
+	bool ph_control = control_get_active(get_ph_control());
 
 	if(!ec_control && !ph_control) {
 		if(sensor_get_value(get_ec_sensor()) < current_target - EC_MARGIN_ERROR) {

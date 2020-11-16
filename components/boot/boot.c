@@ -102,8 +102,6 @@ void boot_sequence() {
 
 		is_day = true;
 
-		ph_control_active = true;
-		ph_day_night_control = false;
 		ec_control_active = false;
 		ec_day_night_control = true;
 		night_target_ec = 3;

@@ -12,8 +12,6 @@ TaskHandle_t timer_alarm_task_handle;
 
 // Timers
 struct timer water_pump_timer;
-struct timer ph_dose_timer;
-struct timer ph_wait_timer;
 struct timer ec_dose_timer;
 struct timer ec_wait_timer;
 
