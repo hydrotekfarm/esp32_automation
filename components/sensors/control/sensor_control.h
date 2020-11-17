@@ -30,30 +30,17 @@ void init_sensor_control(struct sensor_control *control_in, char *name_in, bool 
 						float margin_error_in, float night_target_value_in, bool is_day_night_in);
 void init_doser_control(struct sensor_control *control_in, float dose_time_in, float wait_time_in);
 
-// Getters and setters
+// Get enable/active statuses
 bool control_get_enabled(struct sensor_control *control_in);
-void control_set_enabled(struct sensor_control *control_in, bool status);
-
 bool control_get_active(struct sensor_control *control_in);
 
-void control_set_target(struct sensor_control *control_in, float target);
-
-bool control_get_day_night_active(struct sensor_control *control_in);
-void control_set_day_night_active(struct sensor_control *control_in, bool status);
-
-void control_set_night_target(struct sensor_control *control_in, float target);
-
-float control_get_dose_time(struct sensor_control *control_in);
-void control_set_dose_time(struct sensor_control *control_in, float time);
-
-float control_get_wait_time(struct sensor_control *control_in);
-void control_set_wait_time(struct sensor_control *control_in, float time);
-
+// Get timers
 struct timer* control_get_dose_timer(struct sensor_control *control_in);
 struct timer* control_get_wait_timer(struct sensor_control *control_in);
 
-// Returns target value based on time of day
-float control_get_target_value(struct sensor_control *control_in);
+// Enable and disable control
+void control_enable(struct sensor_control *control_in);
+void control_disable(struct sensor_control *control_in);
 
 // Checks if sensor is out of range
 bool control_is_under_target(struct sensor_control *control_in, float current_value);
@@ -62,12 +49,6 @@ bool control_is_over_target(struct sensor_control *control_in, float current_val
 // Checks sensor value and updates checks accordingly
 // Returns 0 if sensor is fine, -1 if confirmed too low, and 1 if confirmed too high
 int control_check_sensor(struct sensor_control *control_in, float current_value);
-
-// Adds true to next sensor check
-// Returns true if all checks are done, false otherwise
-bool control_add_check(struct sensor_control *control_in);
-
-void control_reset_checks(struct sensor_control *control_in);
 
 void control_start_dose_timer(struct sensor_control *control_in);
 void control_start_wait_timer(struct sensor_control *control_in);

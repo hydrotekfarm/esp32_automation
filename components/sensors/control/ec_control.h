@@ -8,6 +8,8 @@ static const float EC_MARGIN_ERROR = 0.5;
 // Number of pumps
 #define EC_NUM_PUMPS 6
 
+//TODO implement with control adt
+
 // Active control status
 bool ec_control_active;
 
