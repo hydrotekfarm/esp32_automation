@@ -21,6 +21,7 @@ struct sensor_control {
 	struct timer wait_timer;
 	float dose_time;
 	float wait_time;
+	float dose_percentage;
 };
 
 #endif /* COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_ */
@@ -50,5 +51,8 @@ bool control_is_over_target(struct sensor_control *control_in, float current_val
 // Returns 0 if sensor is fine, -1 if confirmed too low, and 1 if confirmed too high
 int control_check_sensor(struct sensor_control *control_in, float current_value);
 
+// Deal with dosing and waiting
 void control_start_dose_timer(struct sensor_control *control_in);
 void control_start_wait_timer(struct sensor_control *control_in);
+void control_set_dose_percentage(struct sensor_control *control_in, float value);
+float control_get_dose_time(struct sensor_control *control_in);

@@ -43,11 +43,14 @@ void init_sensor_control(struct sensor_control *control_in, char *name_in, bool 
 	control_in->is_day_night_active = is_day_night_in;
 
 	control_reset_checks(control_in);
+
+	ESP_LOGI(control_in->name, "Control initialized");
 }
 void init_doser_control(struct sensor_control *control_in, float dose_time_in, float wait_time_in) {
 	control_in->is_doser = true;
 	control_in->dose_time = dose_time_in;
 	control_in->wait_time = wait_time_in;
+	control_in->dose_percentage = 1.;
 }
 
 
@@ -59,6 +62,7 @@ struct timer* control_get_wait_timer(struct sensor_control *control_in) { return
 
 void control_enable(struct sensor_control *control_in) {
 	control_in->is_control_enabled = true;
+	ESP_LOGI(control_in->name, "Enabled");
 }
 void control_disable(struct sensor_control *control_in) {
 	control_in->is_control_enabled = false;
@@ -68,6 +72,8 @@ void control_disable(struct sensor_control *control_in) {
 
 	//TODO turn off pumps if possible/ensure pumps are turned off (if doser)
 	control_reset_checks(control_in);
+
+	ESP_LOGI(control_in->name, "Disabled");
 }
 
 bool control_is_under_target(struct sensor_control *control_in, float current_value) {
@@ -101,7 +107,9 @@ int control_check_sensor(struct sensor_control *control_in, float current_value)
 	return 0;
 }
 
-void control_start_dose_timer(struct sensor_control *control_in) { enable_timer(&dev, &control_in->dose_timer, control_in->dose_time); }
+void control_start_dose_timer(struct sensor_control *control_in) { enable_timer(&dev, &control_in->dose_timer, control_get_dose_time(control_in)); }
 void control_start_wait_timer(struct sensor_control *control_in) { enable_timer(&dev, &control_in->wait_timer, control_in->wait_time - NUM_CHECKS * (SENSOR_MEASUREMENT_PERIOD / 1000)); }
+void control_set_dose_percentage(struct sensor_control *control_in, float value) { control_in->dose_percentage = value; }
+float control_get_dose_time(struct sensor_control *control_in) { return control_in->dose_time * control_in->dose_percentage; }
 
 // --------------------------------------------------------------------------------------------------------------------

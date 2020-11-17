@@ -7,15 +7,6 @@
 #include "ports.h"
 
 void sensor_control (void *parameter) {
-	reset_sensor_checks(&ec_checks);
-
-	ec_control_active = true;
-
-	target_ec = 4;
-
-	ec_dose_time = 10;
-	ec_wait_time = 5 * 60;
-
 	ec_nutrient_proportions[0] = 0.10;
 	ec_nutrient_proportions[1] = 0.20;
 	ec_nutrient_proportions[2] = 0.30;
@@ -32,19 +23,17 @@ void sensor_control (void *parameter) {
 
 	init_sensor_control(get_ph_control(), "PH_CONTROL", true, 6, PH_MARGIN_ERROR, -1, false);
 	init_doser_control(get_ph_control(), 10, 1*60);
+	control_disable(get_ph_control());
+
+	init_sensor_control(get_ec_control(), "EC_CONTROL", true, 4, EC_MARGIN_ERROR, -1, false);
+	init_doser_control(get_ec_control(), 30, 1*60);
 
 	for(;;)  {
 		// Check sensors
 		check_ph();
-		if(ec_control_active) check_ec();
+		check_ec();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	}
-}
-
-void reset_sensor_checks(bool *sensor_checks) {
-	for(int i = 0; i < sizeof(sensor_checks); i++) {
-		sensor_checks[i] = false;
 	}
 }

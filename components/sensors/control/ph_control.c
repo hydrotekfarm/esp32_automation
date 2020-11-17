@@ -10,15 +10,13 @@
 #include "sync_sensors.h"
 #include "ports.h"
 #include "JSON_keys.h"
+#include "ec_control.h"
 #include "sensor.h"
 
 struct sensor_control* get_ph_control() { return &ph_control; }
 
 void check_ph() { // Check ph
-	// Check if ph and ec is currently being altered
-	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
-
-	if(!ec_control) {
+	if(!control_get_active(get_ec_control())) {
 		int result = control_check_sensor(&ph_control, sensor_get_value(get_ph_sensor()));
 		if(result == -1) ph_up_pump();
 		else if(result == 1) ph_down_pump();

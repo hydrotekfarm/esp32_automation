@@ -99,12 +99,7 @@ void boot_sequence() {
 		ESP_ERROR_CHECK(i2cdev_init());
 
 		init_ports();
-
 		is_day = true;
-
-		ec_control_active = false;
-		ec_day_night_control = true;
-		night_target_ec = 3;
 
 		// Set all sync bits var
 		set_sensor_sync_bits();
