@@ -22,7 +22,7 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
-	char ph_data[] = "{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":300,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
+	char ph_data[] = "{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
 	cJSON *ph_item = cJSON_Parse(ph_data);
 	ph_item = ph_item->child;
 
