@@ -48,7 +48,9 @@ void get_date_time(struct tm *time) {
 }
 
 void reservoir_change() {
-	set_reservoir_change_flag();
+	set_reservoir_change_flag(true);
+	// TODO turn water pump off
+	water_pump_timer.active = false;
 }
 
 // Trigger method for water pump timer

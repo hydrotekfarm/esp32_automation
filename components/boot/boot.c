@@ -102,23 +102,14 @@ void boot_sequence() {
 		// Init i2cdev
 		ESP_ERROR_CHECK(i2cdev_init());
 
-		gpio_pad_select_gpio(13);
-		gpio_set_direction(13, GPIO_MODE_INPUT);
-		gpio_set_intr_type(13, GPIO_INTR_NEGEDGE);
+		// Float Switch Interrupt Setup
+		gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
+		gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
 
-		esp_err_t errort = gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-		if(errort != ESP_OK) {
-			ESP_LOGI(TAG, "error: %d", errort);
-		}
-		errort = gpio_isr_handler_add(13, top_float_switch_isr_handler, NULL);
-		if(errort != ESP_OK) {
-			ESP_LOGI(TAG, "errorrr: %d", errort);
-		}
+		gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
+		gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
 
-		while(true) {
-			vTaskDelay(pdMS_TO_TICKS(3000));
-			ESP_LOGI(TAG, "Standby");
-		}
+		gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
 
 		// ADC 1 setup
 		adc1_config_width(ADC_WIDTH_BIT_12);
@@ -153,7 +144,7 @@ void boot_sequence() {
 		is_day = true;
 
 		ultrasonic_active = true;
-		reservoir_control_active = false;
+		reservoir_control_active = true;
 
 		ph_control_active = false;
 		ph_day_night_control = false;
@@ -165,18 +156,18 @@ void boot_sequence() {
 		set_sensor_sync_bits();
 
 		// Init rtc and check if time needs to be set
-//		init_rtc();
-//		check_rtc_reset();
+		init_rtc();
+		check_rtc_reset();
 
-		// Init rf transmitter
-		init_rf();
 
-//		// Create core 0 tasks
+		// Create core 0 tasks
+    	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
 		//xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 		//xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
     	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
-//
-//		// Create core 1 tasks
+
+
+		// Create core 1 tasks
 		//xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
 		//xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
 		//xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);

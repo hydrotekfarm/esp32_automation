@@ -2,14 +2,16 @@
 
 // GPIO and ADC Ports
 #define RF_TRANSMITTER_GPIO 4			// GPIO 4
-#define ULTRASONIC_ECHO_GPIO 13			// GPIO 13
-#define ULTRASONIC_TRIGGER_GPIO 16		// GPIO 16
+// #define ULTRASONIC_ECHO_GPIO 13			// GPIO 13
+// #define ULTRASONIC_TRIGGER_GPIO 16		// GPIO 16
 #define TEMPERATURE_SENSOR_GPIO 17		// GPIO 17
 #define INTA_GPIO 19					// GPIO 19
 #define SDA_GPIO 21                 	// GPIO 21
 #define SCL_GPIO 22                 	// GPIO 22
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
+#define FLOAT_SWITCH_TOP_GPIO 32			// GPIO 32
+#define FLOAT_SWITCH_BOTTOM_GPIO 13			// GPIO 13
 
 
 // GPIO Expansion Ports

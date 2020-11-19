@@ -1,8 +1,14 @@
 #include <stdbool.h>
+#include "rf_transmitter.h"
 
 bool reservoir_control_active;
 bool reservoir_change_flag;
-bool top_float_switch_trigger = false;
-bool bottom_float_switch_trigger = false;
+bool top_float_switch_trigger;
+bool bottom_float_switch_trigger;
 
-void set_reservoir_change_flag();
+struct rf_message water_in_rf_message;
+struct rf_message water_out_rf_message;
+
+void set_reservoir_change_flag(bool active);
+
+void check_water_level();

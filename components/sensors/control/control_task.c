@@ -4,16 +4,24 @@
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
-
-void IRAM_ATTR top_float_switch_isr_handler(void* arg) {
-	ets_printf("hello");
-}
-
-void IRAM_ATTR bottom_float_switch_isr_handler(void* arg) {
-	ets_printf("hello");
-}
+#include "rf_transmitter.h"
+#include "FreeRTOS/queue.h"
+#include <esp_log.h>
 
 void sensor_control (void *parameter) {
+//	struct rf_message message;
+//	message.rf_address_ptr = water_in_address;
+//	while(true) {
+//		ESP_LOGI("sensor control", "TURN ON");
+//		message.state = POWER_OUTLET_ON;
+//		xQueueSend(rf_transmitter_queue, &message, portMAX_DELAY);
+//		vTaskDelay(pdMS_TO_TICKS(2000));
+//
+//		ESP_LOGI("sensor control", "TURN OFF");
+//		message.state = POWER_OUTLET_OFF;
+//		xQueueSend(rf_transmitter_queue, &message, portMAX_DELAY);
+//		vTaskDelay(pdMS_TO_TICKS(2000));
+//	}
 	reset_sensor_checks(&ph_checks);
 	reset_sensor_checks(&ec_checks);
 
@@ -37,6 +45,9 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[3] = EC_NUTRIENT_4_PUMP_GPIO;
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
+
+	water_in_rf_message.rf_address_ptr = water_in_address;
+	water_out_rf_message.rf_address_ptr = water_out_address;
 
 	for(;;)  {
 		// Check sensors
