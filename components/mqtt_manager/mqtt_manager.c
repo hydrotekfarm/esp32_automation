@@ -109,7 +109,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "192.168.86.55",
+			.host = "136.37.190.205",
 			.port = 1883,
 			.event_handle = mqtt_event_handler
 	};

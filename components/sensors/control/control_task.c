@@ -5,6 +5,7 @@
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include <cjson.h> //TODO remove later
 
 void sensor_control (void *parameter) {
 	ec_nutrient_proportions[0] = 0.10;
@@ -21,12 +22,15 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
-	init_sensor_control(get_ph_control(), "PH_CONTROL", true, 6, PH_MARGIN_ERROR, -1, false);
-	init_doser_control(get_ph_control(), 10, 1*60);
-	control_disable(get_ph_control());
+	char ph_data[] = "{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":300,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
+	cJSON *ph_item = cJSON_Parse(ph_data);
+	ph_item = ph_item->child;
 
-	init_sensor_control(get_ec_control(), "EC_CONTROL", true, 4, EC_MARGIN_ERROR, -1, false);
-	init_doser_control(get_ec_control(), 30, 1*60);
+	init_sensor_control(get_ph_control(), "PH_CONTROL", ph_item, PH_MARGIN_ERROR);
+	init_doser_control(get_ph_control(), ph_item);
+
+//	init_sensor_control(get_ec_control(), "EC_CONTROL", true, 4, EC_MARGIN_ERROR, -1, false);
+//	init_doser_control(get_ec_control(), 30, 1*60);
 
 	for(;;)  {
 		// Check sensors

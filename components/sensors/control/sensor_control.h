@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <cjson.h>
 #include "rtc.h"
 
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
@@ -27,9 +28,8 @@ struct sensor_control {
 #endif /* COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_ */
 
 // Initialize control structure
-void init_sensor_control(struct sensor_control *control_in, char *name_in, bool is_enabled_in, float target_value_in,
-						float margin_error_in, float night_target_value_in, bool is_day_night_in);
-void init_doser_control(struct sensor_control *control_in, float dose_time_in, float wait_time_in);
+void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in);
+void init_doser_control(struct sensor_control *control_in, cJSON *item);
 
 // Get enable/active statuses
 bool control_get_enabled(struct sensor_control *control_in);
@@ -56,3 +56,6 @@ void control_start_dose_timer(struct sensor_control *control_in);
 void control_start_wait_timer(struct sensor_control *control_in);
 void control_set_dose_percentage(struct sensor_control *control_in, float value);
 float control_get_dose_time(struct sensor_control *control_in);
+
+// Update settings using JSON string
+void control_update_settings(struct sensor_control *control_in, cJSON *item);
