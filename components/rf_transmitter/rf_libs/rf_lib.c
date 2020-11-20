@@ -62,24 +62,36 @@ void transmit_message(unsigned long code, int32_t length){
 			}
 		}
 		gpio_set_level(power_outlet_protocol.transmit_pin, 1);
-		delayMicroseconds(172);
+		delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.sync_bit.high_pulse_amount);
 		gpio_set_level(power_outlet_protocol.transmit_pin, 0);
-		delayMicroseconds(5332);
+		delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.sync_bit.low_pulse_amount);
 		gpio_set_level(power_outlet_protocol.transmit_pin, 0);
 	}
 }
 
-void send_message(const char* binary_code){
+void send_message(const char* rf_address_ptr, const char* power_outlet_state_ptr){
 	unsigned long code = 0;
 	unsigned int length = 0;
-	  for (const char* p = binary_code; *p; p++) {
-		  // convert char to unsinged long
+
+	  for (const char* p = rf_address_ptr; *p; p++) {
+		  // convert char to unsigned long
 	    code <<= 1L;
 	    if (*p != '0')
 	      code |= 1L;
 	    length++;	// Calculate length of binary
 	  }
+
+	  for (const char* p = power_outlet_state_ptr; *p; p++) {
+		  // convert char to unsigned long
+	    code <<= 1L;
+	    if (*p != '0')
+	      code |= 1L;
+	    length++;	// Calculate length of binary
+	  }
+
+	  // Transmit combined message
 	  transmit_message(code, length);
+	  ESP_LOGI("Transmission", "%lu", code);
 }
 
 

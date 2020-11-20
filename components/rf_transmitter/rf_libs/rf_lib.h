@@ -40,13 +40,12 @@ void configure_protocol(int32_t pulse_width, int32_t repeat_transmission, int16_
  * @returns void
  */
 
-void send_message(const char* binary_code);
-
+void send_message(const char* rf_address_ptr, const char* power_outlet_state_ptr);
 /**
  * @brief Send binary message to power outlet
  *
- * @param binary_code	specific binary message to transmit
- * 						message should consist of address and action
+ * @param rf_address_ptr		 pointer to binary code of rf address
+ * @param power_outlet_state_ptr pointer to binary code of power outlet state
  *
  * @returns void
  */

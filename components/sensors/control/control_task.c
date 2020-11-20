@@ -1,9 +1,12 @@
 #include "control_task.h"
-
+#include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include "rf_transmitter.h"
+#include "FreeRTOS/queue.h"
+#include <esp_log.h>
 
 void sensor_control (void *parameter) {
 	reset_sensor_checks(&ph_checks);
@@ -30,8 +33,12 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
+	water_in_rf_message.rf_address_ptr = water_in_address;
+	water_out_rf_message.rf_address_ptr = water_out_address;
+
 	for(;;)  {
 		// Check sensors
+		if(reservoir_control_active) check_water_level();
 		if(ph_control_active) check_ph();
 		if(ec_control_active) check_ec();
 

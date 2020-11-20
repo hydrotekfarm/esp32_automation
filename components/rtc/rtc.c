@@ -5,6 +5,7 @@
 
 #include "ec_control.h"
 #include "ph_control.h"
+#include "reservoir_control.h"
 #include "task_priorities.h"
 #include "ports.h"
 
@@ -44,6 +45,12 @@ void get_date_time(struct tm *time) {
 		set_time();
 		ds3231_get_time(&dev, &(*time));
 	}
+}
+
+void reservoir_change() {
+	set_reservoir_change_flag(true);
+	// TODO turn water pump off
+	water_pump_timer.active = false;
 }
 
 // Trigger method for water pump timer
@@ -123,6 +130,7 @@ void manage_timers_alarms(void *parameter) {
 
 	// Initialize timers
 	init_timer(&water_pump_timer, &water_pump, false, false);
+	init_timer(&reservoir_change_timer, &reservoir_change, true, false);
 	init_timer(&ph_dose_timer, &ph_pump_off, false, true);
 	init_timer(&ph_wait_timer, &do_nothing, false, false);
 	init_timer(&ec_dose_timer, &ec_dose, false, true);
