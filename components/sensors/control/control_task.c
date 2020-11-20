@@ -9,19 +9,6 @@
 #include <esp_log.h>
 
 void sensor_control (void *parameter) {
-//	struct rf_message message;
-//	message.rf_address_ptr = water_in_address;
-//	while(true) {
-//		ESP_LOGI("sensor control", "TURN ON");
-//		message.state = POWER_OUTLET_ON;
-//		xQueueSend(rf_transmitter_queue, &message, portMAX_DELAY);
-//		vTaskDelay(pdMS_TO_TICKS(2000));
-//
-//		ESP_LOGI("sensor control", "TURN OFF");
-//		message.state = POWER_OUTLET_OFF;
-//		xQueueSend(rf_transmitter_queue, &message, portMAX_DELAY);
-//		vTaskDelay(pdMS_TO_TICKS(2000));
-//	}
 	reset_sensor_checks(&ph_checks);
 	reset_sensor_checks(&ec_checks);
 

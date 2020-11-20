@@ -41,10 +41,17 @@ esp_err_t drain_tank() {
 		float_switch_bottom_semaphore = xSemaphoreCreateBinary();
 		gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);	// Create interrupt that gets triggered on falling edge (1 -> 0)
 		gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
-		// TODO turn water pump on
+		ESP_LOGI(TAG, "drain power outlet on");
+		water_out_rf_message.state = POWER_OUTLET_ON;
+		xQueueSend(rf_transmitter_queue, &water_out_rf_message, portMAX_DELAY);	// Turn on water out power outlet
+
 		// TODO Replace port max delay with approximate time it might take to drain reservoir
 		bool is_complete = xSemaphoreTake(float_switch_bottom_semaphore, portMAX_DELAY); // Wait until interrupt gets triggered
-		// turn off sump pump
+
+		ESP_LOGI(TAG, "drain power outlet off");
+		water_out_rf_message.state = POWER_OUTLET_OFF;
+		xQueueSend(rf_transmitter_queue, &water_out_rf_message, portMAX_DELAY); // Turn off water out power outlet
+
 		if(is_complete == pdFALSE) {
 			// TODO Report system error as tank was not drained within expected time
 			return PENDING;
@@ -66,14 +73,15 @@ esp_err_t fill_up_tank() {
 		float_switch_top_semaphore = xSemaphoreCreateBinary();
 		gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE); // Create interrupt that gets triggered on rising edge (0 -> 1)
 		gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL);
-
+		ESP_LOGI(TAG, "fillup power outlet on");
 		water_in_rf_message.state = POWER_OUTLET_ON;
 		xQueueSend(rf_transmitter_queue, &water_in_rf_message, portMAX_DELAY);	// Turn on water in power outlet
 
 		// TODO Replace port max delay with approximate time it might take to fill reservoir
 		bool is_complete = xSemaphoreTake(float_switch_top_semaphore, portMAX_DELAY); // Wait until interrupt gets triggered
 
-		water_in_rf_message.state = POWER_OUTLET_ON;
+		water_in_rf_message.state = POWER_OUTLET_OFF;
+		ESP_LOGI(TAG, "fillup power outlet off");
 		xQueueSend(rf_transmitter_queue, &water_in_rf_message, portMAX_DELAY); // Turn off water in power outlet
 
 		if(is_complete == pdFALSE) {
@@ -91,8 +99,8 @@ void check_water_level() {
 	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
 	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
 
-	if(!ec_control || !ph_control) {
-		if(reservoir_change_flag) {
+	if(true) {
+		if(true) {
 			esp_err_t error;
 			error = drain_tank(); // Drain reservoir using sump pump
 			if(error == PENDING) {
