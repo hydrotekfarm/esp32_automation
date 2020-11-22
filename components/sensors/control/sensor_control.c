@@ -45,7 +45,6 @@ void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON
 	ESP_LOGI(control_in->name, "Control initialized");
 }
 void init_doser_control(struct sensor_control *control_in, cJSON *item) {
-	control_update_settings(control_in, item);
 	control_in->is_doser = true;
 	control_in->dose_percentage = 1.;
 
@@ -89,8 +88,8 @@ int control_check_sensor(struct sensor_control *control_in, float current_value)
 
 	}
 
-	bool under_target = control_is_under_target(control_in, current_value);
-	bool over_target = control_is_over_target(control_in, current_value);
+	bool under_target = control_in->is_up_control && control_is_under_target(control_in, current_value);
+	bool over_target = control_in->is_down_control && control_is_over_target(control_in, current_value);
 
 	if(under_target || over_target) {
 		if(control_add_check(control_in)) {
@@ -138,10 +137,18 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item) {
 				} else if(strcmp(control_key, NIGHT_TARGET_VALUE) == 0) {
 					control_in->night_target_value = control_element->valuedouble;
 					ESP_LOGI(control_in->name, "Updated night target value to: %f", control_element->valuedouble);
+				} else if(strcmp(control_key, UP_CONTROL) == 0) {
+					control_in->is_up_control = control_element->valueint;
+					ESP_LOGI(control_in->name, "Updated up control status to: %s", control_element->valueint ? "true" : "false");
+				} else if(strcmp(control_key, DOWN_CONTROL) == 0) {
+					control_in->is_down_control = control_element->valueint;
+					ESP_LOGI(control_in->name, "Updated down control status to: %s", control_element->valueint ? "true" : "false");
 				}
 				control_element = control_element->next;
 			}
-		} //else if(strcmp(key, ALARM_MIN) == 0) {
+		}
+		// TODO add alarm functionality
+		//else if(strcmp(key, ALARM_MIN) == 0) {
 //			//TODO update alarm min
 //			ESP_LOGI("Updated ph alarm min to: ", "%d", element->valueint);
 //		} else if(strcmp(key, ALARM_MAX) == 0) {

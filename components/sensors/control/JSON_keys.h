@@ -10,12 +10,13 @@ static const char *DAY_AND_NIGHT = "day_and_night";
 static const char *DAY_TARGET_VALUE = "day_target_value";
 static const char *NIGHT_TARGET_VALUE = "night_target_value";
 static const char *TARGET_VALUE = "target_value";
+static const char *UP_CONTROL = "up_control";
+static const char *DOWN_CONTROL = "down_control";
 static const char *PUMPS = "pumps";
 static const char *ALARM_MIN = "alarm_min";
 static const char *ALARM_MAX = "alarm_max";
 
 // pH specific keys
-static const char *PH_UP_DOWN = "ph_up_down";
 static const char *PUMP_1_ENABLED = "pump_1_enabled";
 static const char *PUMP_2_ENABLED = "pump_2_enabled";
 

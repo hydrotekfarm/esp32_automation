@@ -60,10 +60,7 @@ void ph_update_settings(cJSON *item) {
 			cJSON *control_element = element->child;
 			while(control_element != NULL) {
 				char *control_key = control_element->string;
-				if(strcmp(control_key, PH_UP_DOWN) == 0) {
-					//TODO update ph up down
-					ESP_LOGI("Updated ph up and down to: ", "%s", control_element->valueint == 0 ? "false" : "true");
-				} else if(strcmp(control_key, DOSING_TIME) == 0) {
+				if(strcmp(control_key, DOSING_TIME) == 0) {
 					//TODO update dosing time
 					ESP_LOGI("Updated ph dosing time to: ", "%d", control_element->valueint);
 				} else if(strcmp(control_key, DOSING_INTERVAL) == 0) {

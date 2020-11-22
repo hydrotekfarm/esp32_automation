@@ -16,6 +16,8 @@ struct sensor_control {
 	float margin_error;
 	bool is_day_night_active;
 	float night_target_value;
+	bool is_up_control;
+	bool is_down_control;
 	bool sensor_checks[NUM_CHECKS];
 	int check_index;
 	struct timer dose_timer;
