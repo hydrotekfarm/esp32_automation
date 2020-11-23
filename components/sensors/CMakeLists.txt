@@ -1,4 +1,4 @@
-idf_component_register
+idf_component_register(
 	SRCS 
 	"control/control_task.c" 
 	"control/ec_control.c" 

@@ -9,8 +9,8 @@
 #define SCL_GPIO 22                 	// GPIO 22
 #define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
 #define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
-#define FLOAT_SWITCH_TOP_GPIO 32			// GPIO 32
-#define FLOAT_SWITCH_BOTTOM_GPIO 13			// GPIO 13
+#define FLOAT_SWITCH_TOP_GPIO 32		// GPIO 32
+#define FLOAT_SWITCH_BOTTOM_GPIO 13		// GPIO 13
 
 
 // GPIO Expansion Ports

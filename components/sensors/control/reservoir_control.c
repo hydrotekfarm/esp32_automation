@@ -1,12 +1,14 @@
 #include "reservoir_control.h"
 #include <esp_log.h>
 #include "ph_control.h"
+#include "ec_control.h"
 #include "ports.h"
 #include "rtc.h"
 #include "ec_reading.h"
 #include "sync_sensors.h"
 #include "JSON_keys.h"
 #include "control_task.h"
+#include "sensor_control.h"
 
 char *TAG = "RESERVOIR_CONTROL";
 
@@ -96,8 +98,8 @@ esp_err_t fill_up_tank() {
 
 void check_water_level() {
 	// Check if ph and ec is currently being altered
-	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
-	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
+	bool ec_control = control_get_active(get_ec_control());
+	bool ph_control = control_get_active(get_ph_control());
 
 	if(true) {
 		if(true) {
