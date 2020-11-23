@@ -44,7 +44,7 @@ void sensor_control (void *parameter) {
 
 	for(;;)  {
 		// Check sensors
-		if(reservoir_control_active) check_water_level();
+		if(reservoir_control_active) check_water_level(); // TODO remove if statement for consistency
 		check_ph();
 		check_ec();
 

@@ -13,7 +13,6 @@
 void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, SDA_GPIO, SCL_GPIO));
-	ESP_LOGI("asd", "%p", &dev);
 }
 void set_time() { // Set current time to some date
 	// TODO Have user input for time so actual time is set
