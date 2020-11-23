@@ -12,7 +12,7 @@
 #include <driver/gpio.h>
 #include <stdio.h>
 
-#include "access_point_mode.h"
+#include "app_connect.h"
 #include "task_priorities.h"
 #include "ports.h"
 #include "ec_reading.h"
@@ -40,6 +40,17 @@ void wifi_init() {
 //   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 //   ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
 //   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
+}
+
+void init_nvs() {
+	// Check if space available in NVS, if not reset NVS
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
+			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		ret = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK(ret);
 }
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -73,34 +84,12 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 void boot_sequence() {
 	const char *TAG = "BOOT_SEQUENCE";
 
-	// Check if space available in NVS, if not reset NVS
-	esp_err_t ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
-			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		ret = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(ret);
+	init_nvs();
+	init_app_connect();
 
 
-	// if esp32 does not have wifi ssid, password, and broker IP address boot in AP mode
-		tcpip_adapter_init();
-		json_information_event_group = xEventGroupCreate();
-		const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-
-		ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-	    static httpd_handle_t server = NULL;
-		start_access_point_mode();
-		server = start_webserver();
-		xEventGroupWaitBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-		stop_webserver(server);
-		esp_wifi_disconnect();
-		esp_wifi_stop();
-		esp_wifi_deinit();
-		vTaskDelay(pdMS_TO_TICKS(1000));
-
-
-	// once wifi ssif, password and broker IP address are obtained, continue in station mode
+	// Once wifi ssid, password and broker IP address are obtained, continue in station mode
+	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	wifi_event_group = xEventGroupCreate();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 	esp_event_loop_create_default();
@@ -118,7 +107,7 @@ void boot_sequence() {
 
 	// Do not proceed until WiFi is connected
 	EventBits_t sta_event_bits;
-	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,	portMAX_DELAY);
+	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
 		sensor_event_group = xEventGroupCreate();

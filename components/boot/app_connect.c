@@ -1,5 +1,5 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "app_connect.h"
+
 #include <esp_http_server.h>
 #include <esp_wifi.h>
 #include <esp_event.h>
@@ -12,7 +12,6 @@
 #include "esp_eth.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-#include "access_point_mode.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
@@ -96,5 +95,25 @@ void start_access_point_mode() {
 
    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
 		   EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
+}
+
+void init_app_connect() {
+	bool has_properties = false; // TODO check if ssid, pw, and broker ip are stored in NVS
+	if(has_properties) return;
+
+	tcpip_adapter_init();
+	json_information_event_group = xEventGroupCreate();
+	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	static httpd_handle_t server = NULL;
+	start_access_point_mode();
+	server = start_webserver();
+	xEventGroupWaitBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+	stop_webserver(server);
+	esp_wifi_disconnect();
+	esp_wifi_stop();
+	esp_wifi_deinit();
+	vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
