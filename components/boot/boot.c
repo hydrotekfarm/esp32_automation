@@ -19,12 +19,15 @@
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
+#include "reservoir_control.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "mqtt_manager.h"
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
+
+#define ESP_INTR_FLAG_DEFAULT 0
 
 static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -80,8 +83,8 @@ void boot_sequence() {
 	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	wifi_config_t wifi_config = { .sta = {
-			.ssid = "LeawoodGuest",
-			.password = "guest,123" },
+			.ssid = "hall",
+			.password = "brightflower157" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -108,8 +111,6 @@ void boot_sequence() {
 		init_rtc();
 		check_rtc_reset();
 
-		// Init rf transmitter
-		init_rf();
 
 		// Create core 0 tasks
 		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);

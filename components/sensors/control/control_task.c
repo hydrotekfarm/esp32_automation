@@ -1,11 +1,14 @@
 #include "control_task.h"
-
 #include "sensor_control.h"
+#include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
 #include <cjson.h> //TODO remove later
+#include "rf_transmitter.h"
+#include "FreeRTOS/queue.h"
+#include <esp_log.h>
 
 void sensor_control (void *parameter) {
 	ec_nutrient_proportions[0] = 0.10;
@@ -36,8 +39,12 @@ void sensor_control (void *parameter) {
 	init_sensor_control(get_ec_control(), "EC_CONTROL", ec_item, EC_MARGIN_ERROR);
 	init_doser_control(get_ec_control());
 
+	water_in_rf_message.rf_address_ptr = water_in_address;
+	water_out_rf_message.rf_address_ptr = water_out_address;
+
 	for(;;)  {
 		// Check sensors
+		if(reservoir_control_active) check_water_level();
 		check_ph();
 		check_ec();
 

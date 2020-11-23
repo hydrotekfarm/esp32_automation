@@ -7,6 +7,11 @@
 #define INTA_GPIO 19					// GPIO 19
 #define SDA_GPIO 21                 	// GPIO 21
 #define SCL_GPIO 22                 	// GPIO 22
+#define EC_SENSOR_GPIO ADC_CHANNEL_0    // GPIO 36
+#define PH_SENSOR_GPIO ADC_CHANNEL_3    // GPIO 39
+#define FLOAT_SWITCH_TOP_GPIO 32			// GPIO 32
+#define FLOAT_SWITCH_BOTTOM_GPIO 13			// GPIO 13
+
 
 // GPIO Expansion Ports
 #define EC_NUTRIENT_1_PUMP_GPIO 0      // GPIO 0
