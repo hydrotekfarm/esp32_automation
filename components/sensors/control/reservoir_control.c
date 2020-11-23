@@ -101,8 +101,8 @@ void check_water_level() {
 	bool ec_control = control_get_active(get_ec_control());
 	bool ph_control = control_get_active(get_ph_control());
 
-	if(true) {
-		if(true) {
+	if(!ec_control || !ph_control) {
+		if(reservoir_change_flag) {
 			esp_err_t error;
 			error = drain_tank(); // Drain reservoir using sump pump
 			if(error == PENDING) {
