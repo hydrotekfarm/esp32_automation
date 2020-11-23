@@ -44,7 +44,7 @@ void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON
 
 	ESP_LOGI(control_in->name, "Control initialized");
 }
-void init_doser_control(struct sensor_control *control_in, cJSON *item) {
+void init_doser_control(struct sensor_control *control_in) {
 	control_in->is_doser = true;
 	control_in->dose_percentage = 1.;
 

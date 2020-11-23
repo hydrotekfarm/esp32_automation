@@ -31,7 +31,7 @@ struct sensor_control {
 
 // Initialize control structure
 void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in);
-void init_doser_control(struct sensor_control *control_in, cJSON *item);
+void init_doser_control(struct sensor_control *control_in);
 
 // Get enable/active statuses
 bool control_get_enabled(struct sensor_control *control_in);
