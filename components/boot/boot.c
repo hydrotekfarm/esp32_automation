@@ -12,6 +12,7 @@
 #include <driver/gpio.h>
 #include <stdio.h>
 
+#include "access_point_mode.h"
 #include "task_priorities.h"
 #include "ports.h"
 #include "ec_reading.h"
@@ -30,7 +31,18 @@
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
-static void event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
+void wifi_init() {
+	tcpip_adapter_init();
+	esp_event_loop_create_default();
+	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+//   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+//   ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+//   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
+}
+
+static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
 	const char *TAG = "Event_Handler";
 	ESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n",
@@ -70,34 +82,51 @@ void boot_sequence() {
 	}
 	ESP_ERROR_CHECK(ret);
 
-	// Initialize TCP IP stack and create WiFi management event loop
-	tcpip_adapter_init();
-	esp_event_loop_create_default();
-	wifi_event_group = xEventGroupCreate();
 
-	// Initialize WiFi and configure WiFi connection settings
-	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	// if esp32 does not have wifi ssid, password, and broker IP address boot in AP mode
+		tcpip_adapter_init();
+		json_information_event_group = xEventGroupCreate();
+		const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+		ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	    static httpd_handle_t server = NULL;
+		start_access_point_mode();
+		server = start_webserver();
+		xEventGroupWaitBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+		stop_webserver(server);
+		esp_wifi_disconnect();
+		esp_wifi_stop();
+		esp_wifi_deinit();
+		vTaskDelay(pdMS_TO_TICKS(1000));
+
+
+	// once wifi ssif, password and broker IP address are obtained, continue in station mode
+	wifi_event_group = xEventGroupCreate();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-	// TODO: Update to esp_event_handler_instance_register()
-	retryNumber = 0;
-	esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL);
-	esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL);
+	esp_event_loop_create_default();
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	wifi_config_t wifi_config = { .sta = {
-			.ssid = "hall",
-			.password = "brightflower157" },
+	wifi_config_t wifi_config = {
+		.sta = {
+			.ssid = "superhero",
+			.password = "GeminiCircus" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
 
 	// Do not proceed until WiFi is connected
-	EventBits_t eventBits;
-	eventBits = xEventGroupWaitBits(wifi_event_group,
-	WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,
-	portMAX_DELAY);
+	EventBits_t sta_event_bits;
+	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE,	portMAX_DELAY);
 
-	if ((eventBits & WIFI_CONNECTED_BIT) != 0) {
+	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
 		sensor_event_group = xEventGroupCreate();
+
+		while(true) {
+			ESP_LOGI("main", "wait");
+			vTaskDelay(pdMS_TO_TICKS(10000));
+		}
 
 		// Init i2cdev
 		ESP_ERROR_CHECK(i2cdev_init());
@@ -162,19 +191,18 @@ void boot_sequence() {
 
 		// Create core 0 tasks
     	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
-		//xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-		//xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
     	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 
 		// Create core 1 tasks
-		//xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
-		//xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-		//xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
-		//if(ultrasonic_active) xTaskCreatePinnedToCore(measure_distance, "ultrasonic_task", 2500, NULL, ULTRASONIC_TASK_PRIORITY, &ultrasonic_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
+		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
 		xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
-	} else if ((eventBits & WIFI_FAIL_BIT) != 0) {
+	} else if ((sta_event_bits & WIFI_FAIL_BIT) != 0) {
 		ESP_LOGE(TAG, "WIFI Connection Failed\n");
 	} else {
 		ESP_LOGE(TAG, "Unexpected Event\n");
