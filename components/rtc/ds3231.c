@@ -418,7 +418,6 @@ void enable_timer(i2c_dev_t *dev, struct timer *timer, uint32_t duration) {
 	// Get unix time
 	time_t unix_time;
 	get_unix_time(dev, &unix_time);
-
 	// Set end time based on current time and duration of  timer
 	timer->duration = duration;
 	timer->end_time = unix_time + timer->duration;

@@ -1,15 +1,12 @@
 #include <stdbool.h>
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
+#include "sensor.h"
 
-// Task handle
-TaskHandle_t ph_task_handle;
+struct sensor ph_sensor;
 
-// Global ph variable
-float _ph;
-
-// Calibration status
-bool ph_calibration;
+// Get ph sensor
+const struct sensor* get_ph_sensor();
 
 // Measures water ph
 void measure_ph();

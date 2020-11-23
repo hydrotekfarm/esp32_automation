@@ -10,123 +10,56 @@
 #include "sync_sensors.h"
 #include "ports.h"
 #include "JSON_keys.h"
+#include "ec_control.h"
+#include "sensor.h"
+
+struct sensor_control* get_ph_control() { return &ph_control; }
 
 void check_ph() { // Check ph
-	char *TAG = "PH_CONTROL";
-
-	// Set current target based on time of day
-	float current_target = !is_day && ph_day_night_control ? night_target_ph : target_ph;
-
-	// Check if ph and ec is currently being altered
-	bool ph_control = ph_dose_timer.active || ph_wait_timer.active;
-	bool ec_control = ec_dose_timer.active || ec_wait_timer.active;
-
-	// Only proceed if ph and ec are not being altered
-	if(!ph_control && !ec_control) {
-		// Check if ph is too low
-		if(_ph < current_target - PH_MARGIN_ERROR) {
-			// Check if all checks are complete
-			if(ph_checks[sizeof(ph_checks) - 1]) {
-				// Turn pump on and reset checks
-				ph_up_pump();
-				reset_sensor_checks(ph_checks);
-			} else {
-				// Iterate through checks
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					// Once false check is reached, set it to true and leave loop
-					if(!ph_checks[i]) {
-						ph_checks[i] = true;
-						ESP_LOGI(TAG, "PH check %d done", i+1);
-						break;
-					}
-				}
-			}
-			// Check if ph is too high
-		} else if(_ph > current_target + PH_MARGIN_ERROR) {
-			// Check if ph checks are complete
-			if(ph_checks[sizeof(ph_checks) - 1]) {
-				// Turn pump on and reset checks
-				ph_down_pump();
-				reset_sensor_checks(ph_checks);
-			} else {
-				// Iterate through checks
-				for(int i = 0; i < sizeof(ph_checks); i++) {
-					// Once false check is reached, set it to true and leave loop
-					if(!ph_checks[i]) {
-						ph_checks[i] = true;
-						ESP_LOGI(TAG, "PH check %d done", i+1);
-						break;
-					}
-				}
-			}
-		} else {
-			// Reset checks if ph is good
-			reset_sensor_checks(ph_checks);
-		}
-		// Reset sensor checks if ec is active
-	} else if(ec_control) {
-		reset_sensor_checks(ph_checks);
+	if(!control_get_active(get_ec_control())) {
+		int result = control_check_sensor(&ph_control, sensor_get_value(get_ph_sensor()));
+		if(result == -1) ph_up_pump();
+		else if(result == 1) ph_down_pump();
 	}
 }
 
 void ph_up_pump() {
-	gpio_set_level(PH_UP_PUMP_GPIO, 1);
+	set_gpio_on(PH_UP_PUMP_GPIO);
 	ESP_LOGI("", "pH up pump on");
 
 	// Enable dose timer
-	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+	ESP_LOGI("sdf", "%p", &dev);
+	control_start_dose_timer(&ph_control);
 }
 
 void ph_down_pump() {
-	gpio_set_level(PH_DOWN_PUMP_GPIO, 1);
+	set_gpio_on(PH_DOWN_PUMP_GPIO);
 	ESP_LOGI("", "pH down pump on");
 
 	// Enable dose timer
-	enable_timer(&dev, &ph_dose_timer, ph_dose_time);
+	control_start_dose_timer(&ph_control);
 }
 
 void ph_pump_off() {
-	gpio_set_level(PH_UP_PUMP_GPIO, 0);
-	gpio_set_level(PH_DOWN_PUMP_GPIO, 0);
+	set_gpio_off(PH_UP_PUMP_GPIO);
+	set_gpio_off(PH_DOWN_PUMP_GPIO);
 	ESP_LOGI("", "pH pumps off");
 
 	// Enable wait timer
-	enable_timer(&dev, &ph_wait_timer, ph_wait_time - (sizeof(ph_checks) * (SENSOR_MEASUREMENT_PERIOD  / 1000))); // Offset wait time based on amount of checks and check duration
+	control_start_wait_timer(&ph_control);
 }
 
 void ph_update_settings(cJSON *item) {
+	control_update_settings(&ph_control, item);
+
 	cJSON *element = item->child;
 	while(element != NULL) {
 		char *key = element->string;
-		if(strcmp(key, MONITORING_ONLY) == 0) {
-			//TODO update monitoring only variable
-			ESP_LOGI("Updated monitoring only to: ", "%s", element->valueint == 0 ? "false" : "true");
-		} else if(strcmp(key, CONTROL) == 0) {
+		if(strcmp(key, CONTROL) == 0) {
 			cJSON *control_element = element->child;
 			while(control_element != NULL) {
 				char *control_key = control_element->string;
-				if(strcmp(control_key, PH_UP_DOWN) == 0) {
-					//TODO update ph up down
-					ESP_LOGI("Updated ph up and down to: ", "%s", control_element->valueint == 0 ? "false" : "true");
-				} else if(strcmp(control_key, DOSING_TIME) == 0) {
-					//TODO update dosing time
-					ESP_LOGI("Updated ph dosing time to: ", "%d", control_element->valueint);
-				} else if(strcmp(control_key, DOSING_INTERVAL) == 0) {
-					//TODO update dosing interval
-					ESP_LOGI("Updated ph dosing interval to: ", "%d", control_element->valueint);
-				} else if(strcmp(control_key, DAY_AND_NIGHT) == 0) {
-					//TODO update day and night
-					ESP_LOGI("Updated ph day and night to: ", "%s", control_element->valueint == 0 ? "false" : "true");
-				} else if(strcmp(control_key, DAY_TARGET_VALUE) == 0) {
-					//TODO update day target value
-					ESP_LOGI("Updated ph day target value to: ", "%d", control_element->valueint);
-				} else if(strcmp(control_key, NIGHT_TARGET_VALUE) == 0) {
-					//TODO update night target value
-					ESP_LOGI("Updated ph night target value: ", "%d", control_element->valueint);
-				} else if(strcmp(control_key, TARGET_VALUE) == 0) {
-					//TODO update target value
-					ESP_LOGI("Updated ph target value to: ", "%d", control_element->valueint);
-				} else if(strcmp(control_key, PUMPS) == 0) {
+				if(strcmp(control_key, PUMPS) == 0) {
 					//TODO update target value
 					cJSON *pumps_element = control_element->child;
 					while(pumps_element != NULL) {
@@ -144,14 +77,7 @@ void ph_update_settings(cJSON *item) {
 
 				control_element = control_element->next;
 			}
-		} else if(strcmp(key, ALARM_MIN) == 0) {
-			//TODO update alarm min
-			ESP_LOGI("Updated ph alarm min to: ", "%d", element->valueint);
-		} else if(strcmp(key, ALARM_MAX) == 0) {
-			//TODO update alarm min
-			ESP_LOGI("Updated ph alarm max to: ", "%d", element->valueint);
 		}
-
 		element = element->next;
 	}
 	ESP_LOGI("", "Finished updating pH settings");

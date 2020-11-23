@@ -191,7 +191,6 @@ esp_err_t i2c_dev_read(const i2c_dev_t *dev, const void *out_data, size_t out_si
             i2c_master_start(cmd);
             i2c_master_write_byte(cmd, dev->addr << 1, true);
             i2c_master_write(cmd, (void *)out_data, out_size, true);
-            ESP_LOGI(TAG, "here");
         }
         i2c_master_start(cmd);
         i2c_master_write_byte(cmd, (dev->addr << 1) | 1, true);
