@@ -31,28 +31,6 @@
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
-void wifi_init() {
-	tcpip_adapter_init();
-	esp_event_loop_create_default();
-	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-//   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
-//   ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
-//   ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
-}
-
-void init_nvs() {
-	// Check if space available in NVS, if not reset NVS
-	esp_err_t ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
-			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		ret = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(ret);
-}
-
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
 	const char *TAG = "Event_Handler";
@@ -81,26 +59,23 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 	}
 }
 
-void boot_sequence() {
-	const char *TAG = "BOOT_SEQUENCE";
+bool connect_wifi() {
+	const char *TAG = "WIFI";
+	ESP_LOGI(TAG, "Starting connect");
 
-	init_nvs();
-	init_app_connect();
-
-
-	// Once wifi ssid, password and broker IP address are obtained, continue in station mode
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	wifi_event_group = xEventGroupCreate();
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 	esp_event_loop_create_default();
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+	ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	wifi_config_t wifi_config = {
+
+	wifi_config_t wifi_config = { // TODO get from NVS
 		.sta = {
-			.ssid = "superhero",
-			.password = "GeminiCircus" },
+			.ssid = "LeawoodGuest",
+			.password = "guest,123" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -109,42 +84,69 @@ void boot_sequence() {
 	EventBits_t sta_event_bits;
 	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 
+	// Return and log based on event bit
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
-		sensor_event_group = xEventGroupCreate();
+		ESP_LOGI(TAG,  "Connected");
+		return true;
+	}
+	if ((sta_event_bits & WIFI_FAIL_BIT) != 0) {
+		ESP_LOGE(TAG, "Connection Failed");
+	} else {
+		ESP_LOGE(TAG, "Unexpected Event");
+	}
+	return false;
+}
 
-		while(true) {
-			ESP_LOGI("main", "wait");
-			vTaskDelay(pdMS_TO_TICKS(10000));
-		}
+void init_nvs() {
+	// Check if space available in NVS, if not reset NVS
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
+			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		ret = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK(ret);
+}
 
-		// Init i2cdev
-		ESP_ERROR_CHECK(i2cdev_init());
+void boot_sequence() {
+	const char *TAG = "BOOT_SEQUENCE";
 
-		// Float Switch Interrupt Setup
-		gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
-		gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
+	init_nvs();
 
-		gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
-		gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
+	tcpip_adapter_init();
+	init_app_connect();
+	if(!connect_wifi()) return; // TODO handle wifi not connected error
 
-		gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+	sensor_event_group = xEventGroupCreate();
 
-		// ADC 1 setup
-		adc1_config_width(ADC_WIDTH_BIT_12);
-		adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-		esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12,
-				DEFAULT_VREF, adc_chars);
+	// Init i2cdev
+	ESP_ERROR_CHECK(i2cdev_init());
 
-		// ADC Channel Setup
-		adc1_config_channel_atten(EC_SENSOR_GPIO, ADC_ATTEN_DB_11);
-		adc1_config_channel_atten(PH_SENSOR_GPIO, ADC_ATTEN_DB_11);
+	// Float Switch Interrupt Setup
+	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
 
-		esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
-		if (error != ESP_OK) {
-			ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
-		}
+	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
 
-		// Initialize MCP23017 GPIO Expansion
+	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+
+	// ADC 1 setup
+	adc1_config_width(ADC_WIDTH_BIT_12);
+	adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+	esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12,
+			DEFAULT_VREF, adc_chars);
+
+	// ADC Channel Setup
+	adc1_config_channel_atten(EC_SENSOR_GPIO, ADC_ATTEN_DB_11);
+	adc1_config_channel_atten(PH_SENSOR_GPIO, ADC_ATTEN_DB_11);
+
+	esp_err_t error = esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF); 	// Check if built in ADC calibration is included in board
+	if (error != ESP_OK) {
+		ESP_LOGE(TAG, "EFUSE_VREF not supported, use a different ESP 32 board");
+	}
+
+	// Initialize MCP23017 GPIO Expansion
 //		mcp23x17_t dev;
 //		memset(&dev, 0, sizeof(mcp23x17_t));
 //		ESP_ERROR_CHECK(mcp23x17_init_desc(&dev, 0, MCP23X17_ADDR_BASE, SDA_GPIO, SCL_GPIO));
@@ -159,43 +161,38 @@ void boot_sequence() {
 //		mcp23x17_set_mode(&dev, EC_NUTRIENT_5_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
 //		mcp23x17_set_mode(&dev, EC_NUTRIENT_6_PUMP_GPIO, MCP23X17_GPIO_OUTPUT);
 
-		is_day = true;
+	is_day = true;
 
-		ultrasonic_active = true;
-		reservoir_control_active = true;
+	ultrasonic_active = true;
+	reservoir_control_active = true;
 
-		ph_control_active = false;
-		ph_day_night_control = false;
-		ec_control_active = false;
-		ec_day_night_control = true;
-		night_target_ec = 3;
+	ph_control_active = false;
+	ph_day_night_control = false;
+	ec_control_active = false;
+	ec_day_night_control = true;
+	night_target_ec = 3;
 
-		// Set all sync bits var
-		set_sensor_sync_bits();
+	// Set all sync bits var
+	set_sensor_sync_bits();
 
-		// Init rtc and check if time needs to be set
-		init_rtc();
-		check_rtc_reset();
-
-
-		// Create core 0 tasks
-    	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
-		xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-		xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
-    	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
+	// Init rtc and check if time needs to be set
+	init_rtc();
+	check_rtc_reset();
 
 
-		// Create core 1 tasks
-		xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
-		xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
-		xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
-		xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
+	// Create core 0 tasks
+	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
+	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+	xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 2500, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
-	} else if ((sta_event_bits & WIFI_FAIL_BIT) != 0) {
-		ESP_LOGE(TAG, "WIFI Connection Failed\n");
-	} else {
-		ESP_LOGE(TAG, "Unexpected Event\n");
-	}
+
+	// Create core 1 tasks
+	xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, &water_temperature_task_handle, 1);
+	xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, &ec_task_handle, 1);
+	xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, &ph_task_handle, 1);
+	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
+
 }
 
 void restart_esp32() { // Restart ESP32
