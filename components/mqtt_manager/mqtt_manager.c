@@ -183,9 +183,9 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		bool first = true;
 
 		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
-		add_entry(&data, &first, "water temp", _water_temp);
-		add_entry(&data, &first, "ec", _ec);
-		add_entry(&data, &first, "ph", _ph);
+		add_entry(&data, &first, "water temp", sensor_get_value(get_water_temp_sensor()));
+		add_entry(&data, &first, "ec", sensor_get_value(get_ec_sensor()));
+		add_entry(&data, &first, "ph", sensor_get_value(get_ph_sensor()));
 		if(ultrasonic_active) { add_entry(&data, &first, "distance", _distance); }
 
 		// Add closing tag
@@ -210,7 +210,7 @@ void update_settings() {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":false,\"control\":{\"ph_up_down\":null,\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":null,\"night_target_value\":null,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":3,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":null,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
+	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":true,\"control\":{\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":30,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
 	cJSON *root = cJSON_Parse(data_string);
 	cJSON *arr = root->child;
 

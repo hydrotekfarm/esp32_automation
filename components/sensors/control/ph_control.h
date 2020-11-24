@@ -1,27 +1,15 @@
 #include <stdbool.h>
 #include <cjson.h>
+#include "sensor_control.h"
 
 // Margin of error
-#define PH_MARGIN_ERROR 0.3
+static const float PH_MARGIN_ERROR = 0.3;
 
-// Active control status
-bool ph_control_active;
+// Control struct
+struct sensor_control ph_control;
 
-// Day night custom control
-bool ph_day_night_control;
-
-// Target value
-float target_ph;
-
-// Night target values
-float night_target_ph;
-
-// Checks needed until dose
-bool ph_checks[6];
-
-// Timings
-float ph_dose_time;
-float ph_wait_time;
+// Get control
+struct sensor_control* get_ph_control();
 
 // Checks and adjust ph
 void check_ph();

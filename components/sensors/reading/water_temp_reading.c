@@ -7,10 +7,12 @@
 #include "sync_sensors.h"
 #include "ports.h"
 
+const struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
+
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 
-	_water_temp = 0;
+	init_sensor(&water_temp_sensor, "WATER_TEMP_SENSOR", true, false);
 
 	ds18x20_addr_t ds18b20_address[1];
 
@@ -27,10 +29,10 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 	for (;;) {
 		// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
 		esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO,
-				ds18b20_address[0], &_water_temp);
+				ds18b20_address[0], sensor_get_address_value(&water_temp_sensor));
 		// Error Management
 		if (error == ESP_OK) {
-			ESP_LOGI(TAG, "temperature: %f\n", _water_temp);
+			ESP_LOGI(TAG, "temperature: %f\n", sensor_get_value(&water_temp_sensor));
 		} else if (error == ESP_ERR_INVALID_RESPONSE) {
 			ESP_LOGE(TAG, "Temperature Sensor Not Connected\n");
 		} else if (error == ESP_ERR_INVALID_CRC) {

@@ -6,9 +6,10 @@
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
+#include "sensor.h"
 
 void set_sensor_sync_bits() {
-	sensor_sync_bits = DELAY_BIT | WATER_TEMPERATURE_BIT | EC_BIT | PH_BIT | (ultrasonic_active ? ULTRASONIC_BIT : 0);
+	sensor_sync_bits = DELAY_BIT | EC_BIT | PH_BIT | (sensor_get_active_status(get_water_temp_sensor()) ? WATER_TEMPERATURE_BIT : 0);
 }
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task

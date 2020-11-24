@@ -84,7 +84,7 @@ static esp_err_t write_reg_bit_16(mcp23x17_t *dev, uint8_t reg, bool val, uint8_
     buf = (buf & ~BV(bit)) | (val ? BV(bit) : 0);
     I2C_DEV_CHECK(dev, i2c_dev_write_reg(dev, reg, &buf, 2));
     I2C_DEV_GIVE_MUTEX(dev);
-
+    ESP_LOGI("ksdhjasd", "%d", dev->addr);
     return ESP_OK;
 }
 
@@ -208,6 +208,7 @@ esp_err_t mcp23x17_port_read(mcp23x17_t *dev, uint16_t *val)
 
 esp_err_t mcp23x17_port_write(mcp23x17_t *dev, uint16_t val)
 {
+	ESP_LOGI("TAG", "%d",dev->addr);
     return write_reg_16(dev, REG_GPIOA, val);
 }
 

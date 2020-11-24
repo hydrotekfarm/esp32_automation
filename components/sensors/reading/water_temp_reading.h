@@ -1,12 +1,13 @@
 #include <stdbool.h>
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
+#include "sensor.h"
 
-// Task handle
-TaskHandle_t water_temperature_task_handle;
+// Water temperature sensor
+struct sensor water_temp_sensor;
 
-// Global water temp variable
-float _water_temp;
+// Get sensor
+const struct sensor *get_water_temp_sensor();
 
 // Measures water temperature
 void measure_water_temperature();

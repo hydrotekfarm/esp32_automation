@@ -10,12 +10,13 @@
 #define DAY_TARGET_VALUE "day_target_value"
 #define NIGHT_TARGET_VALUE "night_target_value"
 #define TARGET_VALUE "target_value"
+#define UP_CONTROL "up_control"
+#define DOWN_CONTROL "down_control"
 #define PUMPS "pumps"
 #define ALARM_MIN "alarm_min"
 #define ALARM_MAX "alarm_max"
 
 // pH specific keys
-#define PH_UP_DOWN "ph_up_down"
 #define PUMP_1_ENABLED "pump_1_enabled"
 #define PUMP_2_ENABLED "pump_2_enabled"
 

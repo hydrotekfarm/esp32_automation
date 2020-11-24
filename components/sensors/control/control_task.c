@@ -1,24 +1,16 @@
 #include "control_task.h"
+#include "sensor_control.h"
 #include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include <cjson.h> //TODO remove later
 #include "rf_transmitter.h"
 #include "FreeRTOS/queue.h"
 #include <esp_log.h>
 
 void sensor_control (void *parameter) {
-	reset_sensor_checks(&ph_checks);
-	reset_sensor_checks(&ec_checks);
-
-	target_ph = 5;
-	target_ec = 4;
-
-	ph_dose_time = 5;
-	ph_wait_time = 10 * 60;
-	ec_dose_time = 10;
-	ec_wait_time = 10 * 60;
 	ec_nutrient_proportions[0] = 0.10;
 	ec_nutrient_proportions[1] = 0.20;
 	ec_nutrient_proportions[2] = 0.30;
@@ -33,22 +25,30 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
+	char ph_data[] = "{\"ph\":{\"monitoring_only\":false,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":10,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
+	cJSON *ph_item = cJSON_Parse(ph_data);
+	ph_item = ph_item->child;
+
+	char ec_data[] = "{\"ec\":{\"monitoring_only\":false,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":30,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}";
+	cJSON *ec_item = cJSON_Parse(ec_data);
+	ec_item = ec_item->child;
+
+	init_sensor_control(get_ph_control(), "PH_CONTROL", ph_item, PH_MARGIN_ERROR);
+	init_doser_control(get_ph_control());
+
+	init_sensor_control(get_ec_control(), "EC_CONTROL", ec_item, EC_MARGIN_ERROR);
+	init_doser_control(get_ec_control());
+
 	water_in_rf_message.rf_address_ptr = water_in_address;
 	water_out_rf_message.rf_address_ptr = water_out_address;
 
 	for(;;)  {
 		// Check sensors
-		if(reservoir_control_active) check_water_level();
-		if(ph_control_active) check_ph();
-		if(ec_control_active) check_ec();
+		if(reservoir_control_active) check_water_level(); // TODO remove if statement for consistency
+		check_ph();
+		check_ec();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	}
-}
-
-void reset_sensor_checks(bool *sensor_checks) {
-	for(int i = 0; i < sizeof(sensor_checks); i++) {
-		sensor_checks[i] = false;
 	}
 }
