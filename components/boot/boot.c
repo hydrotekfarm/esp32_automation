@@ -65,7 +65,6 @@ bool connect_wifi() {
 
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	wifi_event_group = xEventGroupCreate();
-	esp_event_loop_create_default();
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
@@ -113,8 +112,13 @@ void boot_sequence() {
 
 	init_nvs();
 
+	// Init connections
 	tcpip_adapter_init();
-	init_app_connect();
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+	// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
+	init_connect_properties();
+
 	if(!connect_wifi()) return; // TODO handle wifi not connected error
 
 	sensor_event_group = xEventGroupCreate();

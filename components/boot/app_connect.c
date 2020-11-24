@@ -97,11 +97,10 @@ void start_access_point_mode() {
 		   EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
 }
 
-void init_app_connect() {
+void init_connect_properties() {
 	bool has_properties = false; // TODO check if ssid, pw, and broker ip are stored in NVS
 	if(has_properties) return;
 
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
 	json_information_event_group = xEventGroupCreate();
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 

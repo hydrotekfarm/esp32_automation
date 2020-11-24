@@ -13,6 +13,6 @@
 // WiFi Coordination with Event Group
 EventGroupHandle_t json_information_event_group;
 
-void init_app_connect();
+void init_connect_properties();
 
 
