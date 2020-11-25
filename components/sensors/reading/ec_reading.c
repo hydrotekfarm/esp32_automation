@@ -28,7 +28,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 			calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &dev);
 			dry_calib = false;
 		}	else {		// EC sensor is Active
-			read_ec_with_temperature(&dev, 23, sensor_get_address_value(&ec_sensor));
+			read_ec_with_temperature(&dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));
 			ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));
 
 			// Sync with other sensor tasks

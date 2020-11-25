@@ -29,7 +29,7 @@ void sensor_control (void *parameter) {
 	cJSON *ph_item = cJSON_Parse(ph_data);
 	ph_item = ph_item->child;
 
-	char ec_data[] = "{\"ec\":{\"monitoring_only\":false,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":30,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}";
+	char ec_data[] = "{\"ec\":{\"monitoring_only\":false,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":10,\"dosing_interval\":30,\"day_and_night\":false,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}";
 	cJSON *ec_item = cJSON_Parse(ec_data);
 	ec_item = ec_item->child;
 

@@ -29,7 +29,6 @@ void check_ec() {
 
 void ec_dose() {
 	// Check if last nutrient was pumped
-	ESP_LOGI("ASdasd", "%d", ec_nutrient_index);
 	if(ec_nutrient_index == EC_NUM_PUMPS) {
 		// Turn off last pump
 		set_gpio_off(ec_pump_gpios[ec_nutrient_index - 1]);
@@ -43,13 +42,20 @@ void ec_dose() {
 	} else {
 		// Turn off last pump as long as this isn't first pump and turn on next pump
 		if(ec_nutrient_index != 0) set_gpio_off(ec_pump_gpios[ec_nutrient_index - 1]);
-		set_gpio_on(ec_pump_gpios[ec_nutrient_index]);
 
-		// Enable dose timer based on nutrient proportion
-		control_set_dose_percentage(&ec_control, ec_nutrient_proportions[ec_nutrient_index]);
-		control_start_dose_timer(&ec_control);
-		ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, control_get_dose_time(&ec_control));
-		ec_nutrient_index++;
+		// Only dose if dosing proportions > 0
+		if(ec_nutrient_proportions[ec_nutrient_index] > 1e-4) {
+			set_gpio_on(ec_pump_gpios[ec_nutrient_index]);
+
+			// Enable dose timer based on nutrient proportion
+			control_set_dose_percentage(&ec_control, ec_nutrient_proportions[ec_nutrient_index]);
+			control_start_dose_timer(&ec_control);
+			ESP_LOGI("", "Dosing nutrient %d for %.2f seconds", ec_nutrient_index  + 1, control_get_dose_time(&ec_control));
+			ec_nutrient_index++;
+		} else {
+			ec_nutrient_index++;
+			ec_dose();
+		}
 	}
 }
 
