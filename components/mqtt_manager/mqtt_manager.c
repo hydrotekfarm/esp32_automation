@@ -85,11 +85,11 @@ void add_entry(char** data, bool* first, char* name, float num) {
 
 	// Create entry string
 	char *entry = NULL;
-	create_str(&entry, "{ name: \"");
+	create_str(&entry, "{ \"name\": \"");
 
 	// Create entry using key, value, and other JSON syntax
 	append_str(&entry, name);
-	append_str(&entry, "\", value: \"");
+	append_str(&entry, "\", \"value\": \"");
 	append_str(&entry, value);
 	append_str(&entry, "\"}");
 
@@ -104,7 +104,7 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	cluster_id = "Cluster_3";
+	cluster_id = "Cluster_1";
 	device_id = "System_1";
 
 	// Set broker configuration
@@ -172,7 +172,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, min);
 		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, "Z\", sensors: [");
+		append_str(&date, "Z\", \"sensors\": [");
 
 		// Append formatted timestamp to data
 		append_str(&data, date);
@@ -268,7 +268,6 @@ void create_sensor_data_topic() {
 
 	// Free memory
 	free(topic);
-
 }
 
 void create_settings_data_topic() {

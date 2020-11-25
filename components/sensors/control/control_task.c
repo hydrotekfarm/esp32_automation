@@ -11,12 +11,12 @@
 #include <esp_log.h>
 
 void sensor_control (void *parameter) {
-	ec_nutrient_proportions[0] = 0.10;
-	ec_nutrient_proportions[1] = 0.20;
-	ec_nutrient_proportions[2] = 0.30;
-	ec_nutrient_proportions[3] = 0.10;
-	ec_nutrient_proportions[4] = 0.00;
-	ec_nutrient_proportions[5] = 0.30;
+	ec_nutrient_proportions[0] = 0.40;
+	ec_nutrient_proportions[1] = 0.40;
+	ec_nutrient_proportions[2] = 0.20;
+	ec_nutrient_proportions[3] = 0;
+	ec_nutrient_proportions[4] = 0;
+	ec_nutrient_proportions[5] = 0;
 
 	ec_pump_gpios[0] = EC_NUTRIENT_1_PUMP_GPIO;
 	ec_pump_gpios[1] = EC_NUTRIENT_2_PUMP_GPIO;
@@ -25,7 +25,7 @@ void sensor_control (void *parameter) {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
-	char ph_data[] = "{\"ph\":{\"monitoring_only\":false,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":10,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
+	char ph_data[] = "{\"ph\":{\"monitoring_only\":true,\"control\":{\"up_control\":true,\"down_control\":true,\"dosing_time\":10,\"dosing_interval\":600,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":6,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}}";
 	cJSON *ph_item = cJSON_Parse(ph_data);
 	ph_item = ph_item->child;
 

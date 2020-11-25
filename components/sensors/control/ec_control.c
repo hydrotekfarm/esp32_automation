@@ -29,6 +29,7 @@ void check_ec() {
 
 void ec_dose() {
 	// Check if last nutrient was pumped
+	ESP_LOGI("ASdasd", "%d", ec_nutrient_index);
 	if(ec_nutrient_index == EC_NUM_PUMPS) {
 		// Turn off last pump
 		set_gpio_off(ec_pump_gpios[ec_nutrient_index - 1]);

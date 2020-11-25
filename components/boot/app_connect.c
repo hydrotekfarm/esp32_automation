@@ -98,7 +98,7 @@ void start_access_point_mode() {
 }
 
 void init_connect_properties() {
-	bool has_properties = false; // TODO check if ssid, pw, and broker ip are stored in NVS
+	bool has_properties = true; // TODO check if ssid, pw, and broker ip are stored in NVS
 	if(has_properties) return;
 
 	json_information_event_group = xEventGroupCreate();

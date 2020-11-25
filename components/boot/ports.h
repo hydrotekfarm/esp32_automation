@@ -14,12 +14,12 @@
 
 
 // GPIO Expansion Ports
-#define EC_NUTRIENT_1_PUMP_GPIO 0      // GPIO 0
-#define EC_NUTRIENT_2_PUMP_GPIO 1      // GPIO 1
-#define EC_NUTRIENT_3_PUMP_GPIO 2      // GPIO 2
-#define EC_NUTRIENT_4_PUMP_GPIO 3      // GPIO 3
-#define EC_NUTRIENT_5_PUMP_GPIO 4      // GPIO 4
-#define EC_NUTRIENT_6_PUMP_GPIO 5      // GPIO 5
+#define EC_NUTRIENT_1_PUMP_GPIO 5     // GPIO 0
+#define EC_NUTRIENT_2_PUMP_GPIO 4      // GPIO 1
+#define EC_NUTRIENT_3_PUMP_GPIO 3      // GPIO 2
+#define EC_NUTRIENT_4_PUMP_GPIO 2      // GPIO 3
+#define EC_NUTRIENT_5_PUMP_GPIO 1      // GPIO 4
+#define EC_NUTRIENT_6_PUMP_GPIO 0      // GPIO 5
 #define PH_UP_PUMP_GPIO 6              // GPIO 6
 #define PH_DOWN_PUMP_GPIO 7            // GPIO 7
 

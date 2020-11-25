@@ -5,7 +5,7 @@
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 #define COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 
-#define NUM_CHECKS 6
+#define NUM_CHECKS 1
 
 struct sensor_control {
 	char name[25];
