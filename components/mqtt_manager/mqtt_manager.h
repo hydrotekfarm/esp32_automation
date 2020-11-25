@@ -5,6 +5,9 @@
 #define PUBLISH_DATA_QOS 1
 #define SUBSCRIBE_DATA_QOS 2
 
+#define SENSOR_DATA_HEADING "live_data"
+#define SENSOR_SETTINGS_HEADING "sensor_settings"
+
 // Task handle
 TaskHandle_t publish_task_handle;
 

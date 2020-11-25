@@ -104,8 +104,8 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	cluster_id = "GrowRoom1";
-	device_id = "System1";
+	cluster_id = "Cluster_3";
+	device_id = "System_1";
 
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
@@ -258,8 +258,9 @@ void create_sensor_data_topic() {
 	char *topic = NULL;
 	create_str(&topic, cluster_id);
 	append_str(&topic, "/");
-	append_str(&topic, "devices/");
 	append_str(&topic, device_id);
+	append_str(&topic, "/");
+	append_str(&topic, SENSOR_DATA_HEADING);
 
 	// Assign variable
 	strcpy(sensor_data_topic, topic);
@@ -279,7 +280,7 @@ void create_settings_data_topic() {
 	append_str(&topic, "/");
 	append_str(&topic, device_id);
 	append_str(&topic, "/");
-	append_str(&topic, "device_settings");
+	append_str(&topic, SENSOR_SETTINGS_HEADING);
 
 	// Assign variable
 	strcpy(settings_data_topic, "test");

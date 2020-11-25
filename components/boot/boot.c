@@ -72,8 +72,8 @@ bool connect_wifi() {
 
 	wifi_config_t wifi_config = { // TODO get from NVS
 		.sta = {
-			.ssid = "LeawoodGuest",
-			.password = "guest,123" },
+			.ssid = "hall",
+			.password = "brightflower157" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
