@@ -1,3 +1,9 @@
+/**
+ * TODO add description
+ */
+
+#define NUM_CHECKS 6
+
 #include <stdbool.h>
 #include <cjson.h>
 #include "rtc.h"
@@ -5,8 +11,7 @@
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 #define COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 
-#define NUM_CHECKS 6
-
+// TODO separate out struct vars
 struct sensor_control {
 	char name[25];
 	bool is_control_enabled;
@@ -28,6 +33,8 @@ struct sensor_control {
 };
 
 #endif /* COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_ */
+
+// TODO add RME's
 
 // Initialize control structure
 void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in);
