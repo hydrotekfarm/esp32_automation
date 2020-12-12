@@ -8,7 +8,7 @@
 #define TIMER_ALARM_NVS_NAMESPACE "TIMER_ALARM"
 
 // Sensor namespaces
-#define EC_NVS_NAMESPACE "EC";
+#define EC_NVS_NAMESPACE "EC"
 #define PH_NVS_NAMESPACE "PH"
 #define WATER_TEMP_NVS_NAMESPACE "WATER_TEMP"
 

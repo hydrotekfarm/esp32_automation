@@ -27,6 +27,7 @@
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
+#include "nvs_manager.h"
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
@@ -72,8 +73,8 @@ bool connect_wifi() {
 
 	wifi_config_t wifi_config = { // TODO get from NVS
 		.sta = {
-			.ssid = "hall",
-			.password = "brightflower157" },
+			.ssid = "LeawoodGuest",
+			.password = "guest,123" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -95,21 +96,39 @@ bool connect_wifi() {
 	return false;
 }
 
-void init_nvs() {
-	// Check if space available in NVS, if not reset NVS
-	esp_err_t ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
-			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		ret = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(ret);
-}
-
 void boot_sequence() {
 	const char *TAG = "BOOT_SEQUENCE";
 
 	init_nvs();
+
+	// ---------------------------TEST NVS --------------------------------------
+	ESP_LOGI(TAG, "Testing nvs");
+	struct Data *data = nvs_init_data();
+	uint8_t u8 = 1;
+	int8_t i8 = 2;
+	uint16_t u16 = 3;
+	int16_t i16 = 4;
+	uint32_t u32 = 5;
+	int32_t i32 = 6;
+	uint64_t u64 = 7;
+	int64_t i64 = 8;
+	float fl = 9.6;
+	char str[] = "hello";
+
+	nvs_add_data(data, "u8", UINT8, &u8);
+	nvs_add_data(data, "i8", INT8, &i8);
+	nvs_add_data(data, "u16", UINT16, &u16);
+	nvs_add_data(data, "i16", INT16, &i16);
+	nvs_add_data(data, "u32", UINT32, &u32);
+	nvs_add_data(data, "i32", INT32, &i32);
+	nvs_add_data(data, "u64", UINT64, &u64);
+	nvs_add_data(data, "i64", INT64, &i64);
+	nvs_add_data(data, "float", FLOAT, &fl);
+	nvs_add_data(data, "string", STRING, &str);
+
+	nvs_commit_data(data, "test_ns");
+
+	// ---------------------------END TEST --------------------------------------
 
 	// Init connections
 	tcpip_adapter_init();
