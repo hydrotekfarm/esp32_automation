@@ -127,6 +127,11 @@ void boot_sequence() {
 	nvs_add_data(data, "string", STRING, &str);
 
 	nvs_commit_data(data, "test_ns");
+	ESP_LOGI(TAG, "Commited nvs data");
+
+	uint8_t get_u8;
+	nvs_get_data(&get_u8, "test_ns", "u8", UINT8);
+	ESP_LOGI(TAG, "Data received from nvs: %d", get_u8);
 
 	// ---------------------------END TEST --------------------------------------
 
