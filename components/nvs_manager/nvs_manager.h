@@ -47,4 +47,4 @@ void nvs_add_data(struct Data *data, char *key_in, enum NVS_DATA_TYPES data_type
 bool nvs_commit_data(struct Data *data, char *nvs_namespace);
 
 // Gets data stored in nvs and stores it in data
-void nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type);
+bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type);

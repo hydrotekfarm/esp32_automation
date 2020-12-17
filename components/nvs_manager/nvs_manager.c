@@ -128,7 +128,7 @@ bool nvs_commit_data(struct Data *data, char *nvs_namespace) {
 	return true;
 }
 
-void nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type) {
+bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type) {
 	const char TAG[] = "NVS_GET_DATA";
 
 	nvs_handle_t handle;
@@ -136,7 +136,7 @@ void nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 	if(err != ESP_OK) {
 		ESP_LOGI(TAG, "Unable to open NVS");
 		nvs_close(handle);
-		return;
+		return false;
 	}
 
 	switch(data_type) {
@@ -177,8 +177,12 @@ void nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 		break;
 	}
 
+	nvs_close(handle);
+
 	if(err != ESP_OK) {
 		ESP_LOGI(TAG, "Failed getting data from NVS");
+		return false;
 	}
-	nvs_close(handle);
+
+	return true;
 }
