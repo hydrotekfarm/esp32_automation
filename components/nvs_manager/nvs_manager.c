@@ -12,7 +12,7 @@
 
 void init_nvs() {
 	// Check if space available in NVS, if not reset NVS
-	esp_err_t ret = nvs_flash_init();
+	esp_err_t ret = ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES
 			|| ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
 		ESP_ERROR_CHECK(nvs_flash_erase());
@@ -140,26 +140,40 @@ void nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 	}
 
 	switch(data_type) {
+	size_t temp_size;
 	case UINT8:
 		err = nvs_get_u8(handle, key, data);
 		break;
 	case INT8:
+		err = nvs_get_i8(handle, key, data);
 		break;
 	case UINT16:
+		err = nvs_get_u16(handle, key, data);
 		break;
 	case INT16:
+		err = nvs_get_i16(handle, key, data);
 		break;
 	case UINT32:
+		err = nvs_get_u32(handle, key, data);
 		break;
 	case INT32:
+		err = nvs_get_i32(handle, key, data);
 		break;
 	case UINT64:
+		err = nvs_get_u64(handle, key, data);
 		break;
 	case INT64:
+		err = nvs_get_i64(handle, key, data);
 		break;
-	case FLOAT:
+	case FLOAT: {
+		float *fl_ptr;
+		err = nvs_get_str(handle, key, data, &temp_size);
+		fl_ptr = data;
+		*fl_ptr = atof(data);
 		break;
+	}
 	case STRING:
+		err = nvs_get_str(handle, key, data, &temp_size);
 		break;
 	}
 
