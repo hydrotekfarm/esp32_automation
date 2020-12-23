@@ -4,7 +4,7 @@
 #include "sensor_control.h"
 
 // Margin of error
-static const float EC_MARGIN_ERROR = 0.5;
+static const float EC_MARGIN_ERROR = 0.1;
 
 // Number of pumps
 #define EC_NUM_PUMPS 6

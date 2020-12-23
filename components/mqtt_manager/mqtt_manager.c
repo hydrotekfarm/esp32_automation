@@ -85,11 +85,11 @@ void add_entry(char** data, bool* first, char* name, float num) {
 
 	// Create entry string
 	char *entry = NULL;
-	create_str(&entry, "{ name: \"");
+	create_str(&entry, "{ \"name\": \"");
 
 	// Create entry using key, value, and other JSON syntax
 	append_str(&entry, name);
-	append_str(&entry, "\", value: \"");
+	append_str(&entry, "\", \"value\": \"");
 	append_str(&entry, value);
 	append_str(&entry, "\"}");
 
@@ -104,8 +104,8 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	cluster_id = "GrowRoom1";
-	device_id = "System1";
+	cluster_id = "Cluster_1";
+	device_id = "System_1";
 
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
@@ -172,7 +172,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&date, min);
 		append_str(&date, "-");
 		append_str(&date, sec);
-		append_str(&date, "Z\", sensors: [");
+		append_str(&date, "Z\", \"sensors\": [");
 
 		// Append formatted timestamp to data
 		append_str(&data, date);
@@ -258,8 +258,9 @@ void create_sensor_data_topic() {
 	char *topic = NULL;
 	create_str(&topic, cluster_id);
 	append_str(&topic, "/");
-	append_str(&topic, "devices/");
 	append_str(&topic, device_id);
+	append_str(&topic, "/");
+	append_str(&topic, SENSOR_DATA_HEADING);
 
 	// Assign variable
 	strcpy(sensor_data_topic, topic);
@@ -267,7 +268,6 @@ void create_sensor_data_topic() {
 
 	// Free memory
 	free(topic);
-
 }
 
 void create_settings_data_topic() {
@@ -279,7 +279,7 @@ void create_settings_data_topic() {
 	append_str(&topic, "/");
 	append_str(&topic, device_id);
 	append_str(&topic, "/");
-	append_str(&topic, "device_settings");
+	append_str(&topic, SENSOR_SETTINGS_HEADING);
 
 	// Assign variable
 	strcpy(settings_data_topic, "test");
