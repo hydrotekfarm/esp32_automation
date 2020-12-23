@@ -13,6 +13,8 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "cJSON.h"
+#include "nvs_manager.h"
+#include "nvs_namespace_keys.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
@@ -142,7 +144,32 @@ void start_access_point_mode() {
 		   EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
 }
 
-void init_connect_properties() {
+void init_network_properties() {
+	ESP_LOGI(TAG, "Checking for init properties");
+		// Check if initial properties haven't been initialized before
+		uint8_t init_properties_status;
+		if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
+			ESP_LOGI(TAG, "Properties not initialized. Starting access point");
+
+			// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
+			init_access_point_mode();
+
+			ESP_LOGI(TAG, "Access point done. Updating NVS value");
+			init_properties_status = 1;
+			struct NVS_Data *data = nvs_init_data();
+			nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &init_properties_status);
+
+			// TODO add rest of data to be pushed to nvs
+
+			nvs_commit_data(data, SYSTEM_SETTINGS_NVS_NAMESPACE);
+
+			ESP_LOGI(TAG, "NVS value updated");
+		}
+
+		ESP_LOGI(TAG, "Init properties done");
+}
+
+void init_access_point_mode() {
 	json_information_event_group = xEventGroupCreate();
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 

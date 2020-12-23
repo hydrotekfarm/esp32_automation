@@ -25,10 +25,9 @@
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
-#include "nvs_manager.h"
-#include "nvs_namespace_keys.h"
 #include "mqtt_manager.h"
 #include "wifi_connect.h"
+#include "nvs_manager.h"
 
 #define ESP_INTR_FLAG_DEFAULT 0
 
@@ -113,29 +112,8 @@ void boot_sequence() {
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-
-	ESP_LOGI(TAG, "Checking for init properties");
-	// Check if initial properties haven't been initialized before
-	uint8_t init_properties_status;
-	if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
-		ESP_LOGI(TAG, "Properties not initialized. Starting access point");
-
-		// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
-		init_connect_properties();
-
-		ESP_LOGI(TAG, "Access point done. Updating NVS value");
-		init_properties_status = 1;
-		struct NVS_Data *data = nvs_init_data();
-		nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &init_properties_status);
-
-		// TODO add rest of data to be pushed to nvs
-
-		nvs_commit_data(data, SYSTEM_SETTINGS_NVS_NAMESPACE);
-
-		ESP_LOGI(TAG, "NVS value updated");
-	}
-
-	ESP_LOGI(TAG, "Init properties done");
+	// Init network properties
+	init_network_properties();
 
 	if(!connect_wifi()) return; // TODO handle wifi not connected error
 
