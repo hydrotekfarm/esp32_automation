@@ -37,6 +37,7 @@ void boot_sequence() {
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+	nvs_clear();
 	// Init network properties
 	init_network_properties();
 

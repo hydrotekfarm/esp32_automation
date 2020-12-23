@@ -15,6 +15,7 @@
 #include "cJSON.h"
 #include "nvs_manager.h"
 #include "nvs_namespace_keys.h"
+#include "network_settings.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
@@ -36,7 +37,8 @@ static void json_parser(const char *buffer)
    ssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
    if (cJSON_IsString(ssid) && (ssid->valuestring != NULL))
    {
-      ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
+	  //network_settings.wifi_ssid = ssid->valuestring;
+	  ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
    }
    password = cJSON_GetObjectItemCaseSensitive(root, "password");
    if (cJSON_IsString(password) && (password->valuestring != NULL))
@@ -92,12 +94,26 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
    return ESP_OK;
 }
 
+// HTTP Get Handler for device information
+// Returns HTTP Response containing type of Hydrotek device (Fertigation System)
+static esp_err_t device_info_get_handler(httpd_req_t *req) {
+    const char name[] = "Hydrotek Fertigation System";
+    httpd_resp_send(req, name, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
 
 static const httpd_uri_t echo = {
    .uri       = "/echo",
    .method    = HTTP_POST,
    .handler   = echo_post_handler,
    .user_ctx  = NULL
+};
+
+static const httpd_uri_t uri_device_info = {
+    .uri      = "/device_type",
+    .method   = HTTP_GET,
+    .handler  = device_info_get_handler,
+    .user_ctx = NULL
 };
 
 httpd_handle_t start_webserver(void)
@@ -111,6 +127,7 @@ httpd_handle_t start_webserver(void)
       // Set URI handlers
       ESP_LOGI(TAG, "Registering URI handlers");
       httpd_register_uri_handler(server, &echo);
+      httpd_register_uri_handler(server, &uri_device_info);
       return server;
    }
 
