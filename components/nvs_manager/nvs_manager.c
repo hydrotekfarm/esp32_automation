@@ -21,14 +21,19 @@ void init_nvs() {
 	ESP_ERROR_CHECK(ret);
 }
 
-struct Data* nvs_init_data() {
-	struct Data *data = malloc(sizeof(struct Data));
+void nvs_clear() {
+	ESP_ERROR_CHECK(nvs_flash_erase());
+	ESP_ERROR_CHECK(nvs_flash_init());
+}
+
+struct NVS_Data* nvs_init_data() {
+	struct NVS_Data *data = malloc(sizeof(struct NVS_Data));
 	data->next = NULL;
 	return data;
 }
 
-void nvs_add_data(struct Data *data, char *key_in, enum NVS_DATA_TYPES data_type_in, void *datum_in) {
-	struct Data* new_data = nvs_init_data();
+void nvs_add_data(struct NVS_Data *data, char *key_in, enum NVS_DATA_TYPES data_type_in, void *datum_in) {
+	struct NVS_Data* new_data = nvs_init_data();
 	new_data->key = key_in;
 	new_data->data_type = data_type_in;
 	new_data->datum = datum_in;
@@ -39,15 +44,15 @@ void nvs_add_data(struct Data *data, char *key_in, enum NVS_DATA_TYPES data_type
 	data->next = new_data;
 }
 
-void nvs_delete_data(struct Data *data) {
+void nvs_delete_data(struct NVS_Data *data) {
 	while(data != NULL)  {
-		struct Data *temp = data;
+		struct NVS_Data *temp = data;
 		data = data->next;
 		free(temp);
 	}
 }
 
-bool nvs_commit_data(struct Data *data, char *nvs_namespace) {
+bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace) {
 	char *TAG = "NVS_COMMIT_DATA";
 
 	nvs_handle_t handle;
@@ -111,7 +116,7 @@ bool nvs_commit_data(struct Data *data, char *nvs_namespace) {
 			return false;
 		}
 
-		struct Data *temp = data;
+		struct NVS_Data *temp = data;
 		data = data->next;
 		free(temp);
 	}

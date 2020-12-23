@@ -12,10 +12,53 @@
 #include "esp_eth.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "cJSON.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
-// HTTP POST handler
+static void json_parser(const char *buffer)
+{
+   const cJSON *ssid;
+   const cJSON *password;
+   const cJSON *device_id;
+   const cJSON *time;
+   const cJSON *broker_ip;
+
+   cJSON *root = cJSON_Parse(buffer);
+
+   if (root == NULL) {
+      ESP_LOGI(TAG, "Fail to deserialize Json");
+      return;
+   }
+
+   ssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
+   if (cJSON_IsString(ssid) && (ssid->valuestring != NULL))
+   {
+      ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
+   }
+   password = cJSON_GetObjectItemCaseSensitive(root, "password");
+   if (cJSON_IsString(password) && (password->valuestring != NULL))
+   {
+      ESP_LOGI(TAG, "password: \"%s\"\n", password->valuestring);
+   }
+   device_id = cJSON_GetObjectItemCaseSensitive(root, "device_id");
+   if (cJSON_IsString(device_id) && (device_id->valuestring != NULL))
+   {
+      ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id->valuestring);
+   }
+   time = cJSON_GetObjectItemCaseSensitive(root, "time");
+   if (cJSON_IsString(time) && (time->valuestring != NULL))
+   {
+      ESP_LOGI(TAG, "time: \"%s\"\n", time->valuestring);
+   }
+   broker_ip = cJSON_GetObjectItemCaseSensitive(root, "broker_ip");
+   if (cJSON_IsString(broker_ip) && (broker_ip->valuestring != NULL))
+   {
+      ESP_LOGI(TAG, "broker_ip: \"%s\"\n", broker_ip->valuestring);
+   }
+}
+
+/* An HTTP POST handler */
 static esp_err_t echo_post_handler(httpd_req_t *req)
 {
    char buf[200];
@@ -38,6 +81,7 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
       ESP_LOGI(TAG, "=========== RECEIVED DATA ==========");
       ESP_LOGI(TAG, "%.*s", ret, buf);
       ESP_LOGI(TAG, "====================================");
+      json_parser(buf);
    }
 
    // End response
@@ -45,6 +89,7 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
    xEventGroupSetBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT);
    return ESP_OK;
 }
+
 
 static const httpd_uri_t echo = {
    .uri       = "/echo",
@@ -98,9 +143,6 @@ void start_access_point_mode() {
 }
 
 void init_connect_properties() {
-	bool has_properties = true; // TODO check if ssid, pw, and broker ip are stored in NVS
-	if(has_properties) return;
-
 	json_information_event_group = xEventGroupCreate();
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
@@ -113,6 +155,7 @@ void init_connect_properties() {
 	esp_wifi_disconnect();
 	esp_wifi_stop();
 	esp_wifi_deinit();
+	ESP_LOGI(TAG, "Starting delay");
 	vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
