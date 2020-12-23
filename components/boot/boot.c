@@ -11,10 +11,13 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 #include "app_connect.h"
 #include "task_priorities.h"
 #include "ports.h"
+#include "deep_sleep_manager.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
 #include "ultrasonic_reading.h"
@@ -27,8 +30,6 @@
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
-
-#define ESP_INTR_FLAG_DEFAULT 0
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -72,8 +73,8 @@ bool connect_wifi() {
 
 	wifi_config_t wifi_config = { // TODO get from NVS
 		.sta = {
-			.ssid = "hall",
-			.password = "brightflower157" },
+			.ssid = "superheroasd",
+			.password = "GeminiCircus" },
 	};
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
@@ -108,8 +109,9 @@ void init_nvs() {
 
 void boot_sequence() {
 	const char *TAG = "BOOT_SEQUENCE";
-
 	init_nvs();
+
+	init_power_button();
 
 	// Init connections
 	tcpip_adapter_init();

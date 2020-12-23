@@ -7,8 +7,6 @@
 
 #define RETRYMAX 5 // WiFi MAX Reconnection Attempts
 
-#define DEFAULT_VREF 1100  // ADC Voltage Reference
-
 // WiFi Coordination with Event Group
 EventGroupHandle_t wifi_event_group;
 

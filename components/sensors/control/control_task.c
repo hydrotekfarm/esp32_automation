@@ -11,6 +11,14 @@
 #include <esp_log.h>
 
 void sensor_control (void *parameter) {
+
+	// Float Switch Port Setup
+	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
+
+	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
+
 	ec_nutrient_proportions[0] = 0.40;
 	ec_nutrient_proportions[1] = 0.40;
 	ec_nutrient_proportions[2] = 0.20;
