@@ -4,7 +4,9 @@
 #include <esp_log.h>
 #include <esp_event.h>
 #include <esp_wifi.h>
+#include <string.h>
 
+#include "network_settings.h"
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
 		int32_t event_id, void *event_data) {
@@ -46,14 +48,36 @@ bool connect_wifi() {
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
-	wifi_config_t wifi_config = { // TODO get from NVS
-		.sta = {
-			.ssid = "superhero",
-			.password = "GeminiCircus" },
-	};
+	wifi_config_t wifi_config;
+	memset(&wifi_config, 0, sizeof(wifi_config));
+	strcpy((char*)(wifi_config.sta.ssid), get_network_settings()->wifi_ssid);
+	strcpy((char*)(wifi_config.sta.password), get_network_settings()->wifi_pw);
+
+	ESP_LOGI(TAG, "Wifi ssid: %s", wifi_config.sta.ssid);
+	ESP_LOGI(TAG, "Wifi pw: %s", wifi_config.sta.password);
+
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
 
+	wifi_mode_t mode;
+	esp_wifi_get_mode(&mode);
+	switch(mode) {
+	case WIFI_MODE_STA:
+		ESP_LOGI(TAG, "STA Mode");
+		break;
+	case WIFI_MODE_NULL:
+		ESP_LOGI(TAG, "NULL Mode");
+		break;
+	case WIFI_MODE_AP:
+		ESP_LOGI(TAG, "AP Mode");
+		break;
+	case WIFI_MODE_APSTA:
+		ESP_LOGI(TAG, "APSTA Mode");
+		break;
+	case WIFI_MODE_MAX:
+		ESP_LOGI(TAG, "MAX Mode");
+		break;
+	}
 	// Do not proceed until WiFi is connected
 	EventBits_t sta_event_bits;
 	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
@@ -61,6 +85,7 @@ bool connect_wifi() {
 	// Return and log based on event bit
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
 		ESP_LOGI(TAG,  "Connected");
+		is_wifi_connect = true;
 		return true;
 	}
 	if ((sta_event_bits & WIFI_FAIL_BIT) != 0) {
@@ -68,5 +93,6 @@ bool connect_wifi() {
 	} else {
 		ESP_LOGE(TAG, "Unexpected Event");
 	}
+	is_wifi_connect = false;
 	return false;
 }

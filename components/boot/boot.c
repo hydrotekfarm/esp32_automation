@@ -41,8 +41,6 @@ void boot_sequence() {
 	// Init network properties
 	init_network_properties();
 
-	if(!connect_wifi()) return; // TODO handle wifi not connected error
-
 	sensor_event_group = xEventGroupCreate();
 
 	// Init i2cdev

@@ -16,6 +16,7 @@
 #include "nvs_manager.h"
 #include "nvs_namespace_keys.h"
 #include "network_settings.h"
+#include "wifi_connect.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
@@ -37,28 +38,32 @@ static void json_parser(const char *buffer)
    ssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
    if (cJSON_IsString(ssid) && (ssid->valuestring != NULL))
    {
-	  //network_settings.wifi_ssid = ssid->valuestring;
-	  ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
+	   strcpy(get_network_settings()->wifi_ssid, ssid->valuestring);
+	   ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
    }
    password = cJSON_GetObjectItemCaseSensitive(root, "password");
    if (cJSON_IsString(password) && (password->valuestring != NULL))
    {
-      ESP_LOGI(TAG, "password: \"%s\"\n", password->valuestring);
+	   strcpy(get_network_settings()->wifi_pw, password->valuestring);
+	   ESP_LOGI(TAG, "password: \"%s\"\n", password->valuestring);
    }
    device_id = cJSON_GetObjectItemCaseSensitive(root, "device_id");
    if (cJSON_IsString(device_id) && (device_id->valuestring != NULL))
    {
-      ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id->valuestring);
+	   strcpy(get_network_settings()->device_id, device_id->valuestring);
+	   ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id->valuestring);
    }
    time = cJSON_GetObjectItemCaseSensitive(root, "time");
    if (cJSON_IsString(time) && (time->valuestring != NULL))
    {
-      ESP_LOGI(TAG, "time: \"%s\"\n", time->valuestring);
+	   // TODO set time
+	   ESP_LOGI(TAG, "time: \"%s\"\n", time->valuestring);
    }
    broker_ip = cJSON_GetObjectItemCaseSensitive(root, "broker_ip");
    if (cJSON_IsString(broker_ip) && (broker_ip->valuestring != NULL))
    {
-      ESP_LOGI(TAG, "broker_ip: \"%s\"\n", broker_ip->valuestring);
+	   strcpy(get_network_settings()->broker_ip, broker_ip->valuestring);
+	   ESP_LOGI(TAG, "broker_ip: \"%s\"\n", broker_ip->valuestring);
    }
 }
 
@@ -86,6 +91,15 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
       ESP_LOGI(TAG, "%.*s", ret, buf);
       ESP_LOGI(TAG, "====================================");
       json_parser(buf);
+   }
+
+   push_network_settings();
+   if(connect_wifi()) {
+	   httpd_resp_set_status(req, "200");
+   }
+   else {
+	   set_invalid_network_settings();
+	   httpd_resp_set_status(req, "404");
    }
 
    // End response
@@ -162,7 +176,8 @@ void start_access_point_mode() {
 }
 
 void init_network_properties() {
-	ESP_LOGI(TAG, "Checking for init properties");
+	do {
+		ESP_LOGI(TAG, "Checking for init properties");
 		// Check if initial properties haven't been initialized before
 		uint8_t init_properties_status;
 		if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
@@ -170,20 +185,15 @@ void init_network_properties() {
 
 			// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
 			init_access_point_mode();
-
-			ESP_LOGI(TAG, "Access point done. Updating NVS value");
-			init_properties_status = 1;
-			struct NVS_Data *data = nvs_init_data();
-			nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &init_properties_status);
-
-			// TODO add rest of data to be pushed to nvs
-
-			nvs_commit_data(data, SYSTEM_SETTINGS_NVS_NAMESPACE);
-
-			ESP_LOGI(TAG, "NVS value updated");
+		} else {
+			pull_network_settings();
+			if(!connect_wifi()) {
+				set_invalid_network_settings();
+			}
 		}
 
 		ESP_LOGI(TAG, "Init properties done");
+	} while(!is_wifi_connect);
 }
 
 void init_access_point_mode() {

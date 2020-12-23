@@ -10,6 +10,8 @@
 
 int retryNumber;  // WiFi Reconnection Attempts
 
+bool is_wifi_connect; // Is wifi connected
+
 // WiFi Coordination with Event Group
 EventGroupHandle_t wifi_event_group;
 
