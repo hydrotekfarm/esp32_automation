@@ -8,6 +8,7 @@
 #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
+#include <cjson.h>
 #include "nvs_flash.h"
 #include "esp_eth.h"
 #include "lwip/err.h"
@@ -111,9 +112,17 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
 // HTTP Get Handler for device information
 // Returns HTTP Response containing type of Hydrotek device (Fertigation System)
 static esp_err_t device_info_get_handler(httpd_req_t *req) {
-    const char name[] = "Hydrotek Fertigation System";
-    httpd_resp_send(req, name, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
+	cJSON *obj = cJSON_CreateObject();
+	cJSON *name = cJSON_CreateString("Hydrotek Fertigation System");
+	cJSON_AddItemToObject(obj, "name", name);
+	char buf[50];
+	memset(buf, 0, sizeof(buf));
+	size_t buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
+	httpd_req_get_hdr_value_str(req, "Host", buf, buf_len);
+	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+	httpd_resp_send(req, cJSON_PrintUnformatted(obj), HTTPD_RESP_USE_STRLEN);
+	return ESP_OK;
+
 }
 
 static const httpd_uri_t echo = {
@@ -167,7 +176,6 @@ void start_access_point_mode() {
 	  },
    };
 
-   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
    ESP_ERROR_CHECK(esp_wifi_start());
 
@@ -176,24 +184,24 @@ void start_access_point_mode() {
 }
 
 void init_network_properties() {
-	do {
-		ESP_LOGI(TAG, "Checking for init properties");
-		// Check if initial properties haven't been initialized before
-		uint8_t init_properties_status;
-		if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
-			ESP_LOGI(TAG, "Properties not initialized. Starting access point");
+	ESP_LOGI(TAG, "Checking for init properties");
+	// Check if initial properties haven't been initialized before
+	uint8_t init_properties_status;
+	if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
+		ESP_LOGI(TAG, "Properties not initialized. Starting access point");
 
-			// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
-			init_access_point_mode();
-		} else {
-			pull_network_settings();
-			if(!connect_wifi()) {
-				set_invalid_network_settings();
-			}
+		// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
+		init_access_point_mode();
+	} else {
+		pull_network_settings();
+		if(!connect_wifi()) {
+			set_invalid_network_settings();
 		}
+	}
 
-		ESP_LOGI(TAG, "Init properties done");
-	} while(!is_wifi_connect);
+	ESP_LOGI(TAG, "Init properties done");
+
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 }
 
 void init_access_point_mode() {
