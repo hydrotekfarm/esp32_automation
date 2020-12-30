@@ -13,9 +13,6 @@
 // WiFi Coordination with Event Group
 EventGroupHandle_t json_information_event_group;
 
-// Set wifi ssid and pw, broker ip, device id, and time
-void init_network_properties();
-
 // Start access point mode to receive network properties
 void init_access_point_mode();
 

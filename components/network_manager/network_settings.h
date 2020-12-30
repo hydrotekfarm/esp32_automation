@@ -30,6 +30,9 @@ struct Network_Settings network_settings;
 // Get struct
 struct Network_Settings* get_network_settings();
 
+// Initialize wifi and mqtt connections
+void init_network_connections();
+
 // Push/pull network settings to/from NVS
 void push_network_settings();
 void pull_network_settings();

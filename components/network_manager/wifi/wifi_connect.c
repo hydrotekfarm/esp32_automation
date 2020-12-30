@@ -46,6 +46,7 @@ bool connect_wifi() {
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
 	ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &wifi_event_handler, NULL));
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 
 	wifi_config_t wifi_config;
 	memset(&wifi_config, 0, sizeof(wifi_config));
@@ -84,7 +85,7 @@ bool connect_wifi() {
 	// Return and log based on event bit
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
 		ESP_LOGI(TAG,  "Connected");
-		is_wifi_connect = true;
+		is_wifi_connected = true;
 		return true;
 	}
 	if ((sta_event_bits & WIFI_FAIL_BIT) != 0) {
@@ -92,6 +93,6 @@ bool connect_wifi() {
 	} else {
 		ESP_LOGE(TAG, "Unexpected Event");
 	}
-	is_wifi_connect = false;
+	is_wifi_connected = false;
 	return false;
 }

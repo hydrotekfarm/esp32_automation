@@ -11,7 +11,6 @@
 #include <driver/gpio.h>
 #include <stdio.h>
 
-#include "access_point.h"
 #include "task_priorities.h"
 #include "ports.h"
 #include "ec_reading.h"
@@ -26,7 +25,7 @@
 #include "rtc.h"
 #include "rf_transmitter.h"
 #include "mqtt_manager.h"
-#include "wifi_connect.h"
+#include "network_settings.h"
 #include "nvs_manager.h"
 
 void boot_sequence() {
@@ -39,9 +38,8 @@ void boot_sequence() {
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-	nvs_clear();
 	// Init network properties
-	init_network_properties();
+	init_network_connections();
 
 	sensor_event_group = xEventGroupCreate();
 

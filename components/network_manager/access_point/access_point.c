@@ -14,10 +14,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "cJSON.h"
-#include "nvs_manager.h"
-#include "nvs_namespace_keys.h"
 #include "network_settings.h"
-#include "wifi_connect.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
@@ -94,16 +91,8 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
       json_parser(buf);
    }
 
-   push_network_settings();
-   if(connect_wifi()) {
-	   httpd_resp_set_status(req, "200");
-   }
-   else {
-	   set_invalid_network_settings();
-	   httpd_resp_set_status(req, "404");
-   }
-
    // End response
+   httpd_resp_set_status(req, "200");
    httpd_resp_send_chunk(req, NULL, 0);
    xEventGroupSetBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT);
    return ESP_OK;
@@ -176,32 +165,12 @@ void start_access_point_mode() {
 	  },
    };
 
+   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
    ESP_ERROR_CHECK(esp_wifi_start());
 
    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
 		   EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
-}
-
-void init_network_properties() {
-	ESP_LOGI(TAG, "Checking for init properties");
-	// Check if initial properties haven't been initialized before
-	uint8_t init_properties_status;
-	if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
-		ESP_LOGI(TAG, "Properties not initialized. Starting access point");
-
-		// Creates access point for mobile connection to receive wifi SSID and pw, broker IP address, and station name
-		init_access_point_mode();
-	} else {
-		pull_network_settings();
-		if(!connect_wifi()) {
-			set_invalid_network_settings();
-		}
-	}
-
-	ESP_LOGI(TAG, "Init properties done");
-
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 }
 
 void init_access_point_mode() {
