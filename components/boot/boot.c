@@ -32,8 +32,6 @@ void boot_sequence() {
 	// Init nvs
 	init_nvs();
 
-	//ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA);
-
 	// Init connections
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());

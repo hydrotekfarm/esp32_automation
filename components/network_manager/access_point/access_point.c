@@ -103,7 +103,7 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
 static esp_err_t device_info_get_handler(httpd_req_t *req) {
 	cJSON *obj = cJSON_CreateObject();
 	cJSON *name = cJSON_CreateString("Hydrotek Fertigation System");
-	cJSON_AddItemToObject(obj, "name", name);
+	cJSON_AddItemToObject(obj, "device_type", name);
 	char buf[50];
 	memset(buf, 0, sizeof(buf));
 	size_t buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;

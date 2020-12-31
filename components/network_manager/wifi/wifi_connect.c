@@ -53,31 +53,9 @@ bool connect_wifi() {
 	strcpy((char*)(wifi_config.sta.ssid), get_network_settings()->wifi_ssid);
 	strcpy((char*)(wifi_config.sta.password), get_network_settings()->wifi_pw);
 
-	ESP_LOGI(TAG, "Wifi ssid: %s", wifi_config.sta.ssid);
-	ESP_LOGI(TAG, "Wifi pw: %s", wifi_config.sta.password);
-
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
 
-	wifi_mode_t mode;
-	esp_wifi_get_mode(&mode);
-	switch(mode) {
-	case WIFI_MODE_STA:
-		ESP_LOGI(TAG, "STA Mode");
-		break;
-	case WIFI_MODE_NULL:
-		ESP_LOGI(TAG, "NULL Mode");
-		break;
-	case WIFI_MODE_AP:
-		ESP_LOGI(TAG, "AP Mode");
-		break;
-	case WIFI_MODE_APSTA:
-		ESP_LOGI(TAG, "APSTA Mode");
-		break;
-	case WIFI_MODE_MAX:
-		ESP_LOGI(TAG, "MAX Mode");
-		break;
-	}
 	// Do not proceed until WiFi is connected
 	EventBits_t sta_event_bits;
 	sta_event_bits = xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
