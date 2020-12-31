@@ -102,6 +102,34 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
+void init_topic(char **topic, int topic_len) {
+	*topic = malloc(sizeof(char) * topic_len);
+	strcpy(*topic, get_network_settings()->device_id);
+}
+
+void add_heading(char *topic, char *heading) {
+	strcat(topic, "/");
+	strcat(topic, heading);
+}
+
+void make_topics() {
+	ESP_LOGI("", "Starting make topics");
+
+	int device_id_len = strlen(get_network_settings()->device_id);
+
+	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1);
+	add_heading(wifi_connect_topic, WIFI_CONNECT_HEADING);
+	ESP_LOGI("", "Wifi Topic: %s", wifi_connect_topic);
+
+	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1);
+	add_heading(sensor_data_topic, SENSOR_DATA_HEADING);
+	ESP_LOGI("", "Sensor data topic: %s", sensor_data_topic);
+
+	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1);
+	add_heading(sensor_settings_topic, SENSOR_SETTINGS_HEADING);
+	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
+}
+
 void init_mqtt() {
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
@@ -113,7 +141,8 @@ void init_mqtt() {
 	// Create MQTT client
 	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
-	// TOOD make and subscribe to topics here
+	make_topics();
+	// TOOD subscribe to topics here
 }
 
 void mqtt_connect() {
@@ -132,17 +161,10 @@ void mqtt_connect() {
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
-	cluster_id = "Cluster_1";
-	device_id = "System_1";
-
-	// Create topics
-	create_sensor_data_topic();
-	create_settings_data_topic();
-
-	ESP_LOGI(TAG, "Sensor data topic4: %s", sensor_data_topic);
+	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	// Subscribe to topics
-	esp_mqtt_client_subscribe(mqtt_client, settings_data_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
 		// Create and initially assign JSON data
@@ -220,6 +242,10 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
+
+	free(wifi_connect_topic);
+	free(sensor_data_topic);
+	free(sensor_settings_topic);
 }
 
 void update_settings() {
@@ -265,43 +291,4 @@ void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len
 	} else {
 		ESP_LOGE(TAG, "Topic not recognized");
 	}
-}
-
-void create_sensor_data_topic() {
-	const char *TAG = "SENSOR_DATA_TOPIC_CREATOR";
-
-	// Create and structure topic for publishing data through MQTT
-	char *topic = NULL;
-	create_str(&topic, cluster_id);
-	append_str(&topic, "/");
-	append_str(&topic, device_id);
-	append_str(&topic, "/");
-	append_str(&topic, SENSOR_DATA_HEADING);
-
-	// Assign variable
-	strcpy(sensor_data_topic, topic);
-	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
-
-	// Free memory
-	free(topic);
-}
-
-void create_settings_data_topic() {
-	const char *TAG = "SETTINGS_DATA_TOPIC_CREATOR";
-
-	// Create and structure topic for publishing data through MQTT
-	char *topic = NULL;
-	create_str(&topic, cluster_id);
-	append_str(&topic, "/");
-	append_str(&topic, device_id);
-	append_str(&topic, "/");
-	append_str(&topic, SENSOR_SETTINGS_HEADING);
-
-	// Assign variable
-	strcpy(settings_data_topic, "test");
-	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
-
-	// Free memory
-	free(topic);
-
 }
