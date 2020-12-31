@@ -1,4 +1,4 @@
-#include "app_connect.h"
+#include "access_point.h"
 
 #include <esp_http_server.h>
 #include <esp_wifi.h>
@@ -8,14 +8,64 @@
 #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
+#include <cjson.h>
 #include "nvs_flash.h"
 #include "esp_eth.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "cJSON.h"
+#include "network_settings.h"
 
 static const char *TAG = "WIFI_AP_HTTP_SERVER";
 
-// HTTP POST handler
+static void json_parser(const char *buffer)
+{
+   const cJSON *ssid;
+   const cJSON *password;
+   const cJSON *device_id;
+   const cJSON *time;
+   const cJSON *broker_ip;
+
+   cJSON *root = cJSON_Parse(buffer);
+
+   if (root == NULL) {
+      ESP_LOGI(TAG, "Fail to deserialize Json");
+      return;
+   }
+
+   ssid = cJSON_GetObjectItemCaseSensitive(root, "ssid");
+   if (cJSON_IsString(ssid) && (ssid->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->wifi_ssid, ssid->valuestring);
+	   ESP_LOGI(TAG, "ssid: \"%s\"\n", ssid->valuestring);
+   }
+   password = cJSON_GetObjectItemCaseSensitive(root, "password");
+   if (cJSON_IsString(password) && (password->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->wifi_pw, password->valuestring);
+	   ESP_LOGI(TAG, "password: \"%s\"\n", password->valuestring);
+   }
+   device_id = cJSON_GetObjectItemCaseSensitive(root, "device_id");
+   if (cJSON_IsString(device_id) && (device_id->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->device_id, device_id->valuestring);
+	   ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id->valuestring);
+   }
+   time = cJSON_GetObjectItemCaseSensitive(root, "time");
+   if (cJSON_IsString(time) && (time->valuestring != NULL))
+   {
+	   // TODO set time
+	   ESP_LOGI(TAG, "time: \"%s\"\n", time->valuestring);
+   }
+   broker_ip = cJSON_GetObjectItemCaseSensitive(root, "broker_ip");
+   if (cJSON_IsString(broker_ip) && (broker_ip->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->broker_ip, broker_ip->valuestring);
+	   ESP_LOGI(TAG, "broker_ip: \"%s\"\n", broker_ip->valuestring);
+   }
+}
+
+/* An HTTP POST handler */
 static esp_err_t echo_post_handler(httpd_req_t *req)
 {
    char buf[200];
@@ -38,9 +88,11 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
       ESP_LOGI(TAG, "=========== RECEIVED DATA ==========");
       ESP_LOGI(TAG, "%.*s", ret, buf);
       ESP_LOGI(TAG, "====================================");
+      json_parser(buf);
    }
 
    // End response
+   httpd_resp_set_status(req, "200");
    httpd_resp_send_chunk(req, NULL, 0);
    xEventGroupSetBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT);
    return ESP_OK;
@@ -49,9 +101,16 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
 // HTTP Get Handler for device information
 // Returns HTTP Response containing type of Hydrotek device (Fertigation System)
 static esp_err_t device_info_get_handler(httpd_req_t *req) {
-    const char name[] = "Hydrotek Fertigation System";
-    httpd_resp_send(req, name, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
+	cJSON *obj = cJSON_CreateObject();
+	cJSON *name = cJSON_CreateString("Hydrotek Fertigation System");
+	cJSON_AddItemToObject(obj, "device_type", name);
+	char buf[50];
+	memset(buf, 0, sizeof(buf));
+	size_t buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
+	httpd_req_get_hdr_value_str(req, "Host", buf, buf_len);
+	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+	httpd_resp_send(req, cJSON_PrintUnformatted(obj), HTTPD_RESP_USE_STRLEN);
+	return ESP_OK;
 }
 
 static const httpd_uri_t echo = {
@@ -113,10 +172,7 @@ void start_access_point_mode() {
 		   EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS, EXAMPLE_ESP_WIFI_CHANNEL);
 }
 
-void init_connect_properties() {
-	bool has_properties = true; // TODO check if ssid, pw, and broker ip are stored in NVS
-	if(has_properties) return;
-
+void init_access_point_mode() {
 	json_information_event_group = xEventGroupCreate();
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
