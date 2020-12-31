@@ -36,7 +36,6 @@ void boot_sequence() {
 	// Initialize deep sleep
 	init_power_button();
 
-	nvs_clear();
 	// Init connections
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());

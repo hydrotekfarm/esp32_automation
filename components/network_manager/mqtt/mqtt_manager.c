@@ -105,11 +105,10 @@ void add_entry(char** data, bool* first, char* name, float num) {
 void init_mqtt() {
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "",
+			.host = get_network_settings()->broker_ip,
 			.port = 1883,
 			.event_handle = mqtt_event_handler
 	};
-	strcpy(mqtt_cfg.host, get_network_settings()->broker_ip);
 
 	// Create MQTT client
 	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
@@ -126,7 +125,6 @@ void mqtt_connect() {
 
 	// Connect mqtt
 	ESP_ERROR_CHECK(esp_mqtt_client_start(mqtt_client));
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 	is_mqtt_connected = true;
 }
