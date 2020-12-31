@@ -9,6 +9,7 @@
 #include "nvs_namespace_keys.h"
 #include "access_point.h"
 #include "wifi_connect.h"
+#include "mqtt_manager.h"
 
 struct Network_Settings* get_network_settings() { return &network_settings; }
 
@@ -32,7 +33,10 @@ void init_network_connections() {
 		connect_wifi();
 	}
 
-	// TODO init mqtt
+	ESP_LOGI(TAG, "Initalizing MQTT");
+	init_mqtt();
+	ESP_LOGI(TAG, "Connecting MQTT");
+	mqtt_connect();
 
 	ESP_LOGI(TAG, "Init properties done");
 }

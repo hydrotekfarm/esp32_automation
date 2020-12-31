@@ -1,5 +1,6 @@
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
+#include <mqtt_client.h>
 
 // QOS settings
 #define PUBLISH_DATA_QOS 1
@@ -11,6 +12,12 @@
 // Task handle
 TaskHandle_t publish_task_handle;
 
+// MQTT client
+esp_mqtt_client_handle_t mqtt_client;
+
+// MQTT connect status
+bool is_mqtt_connected;
+
 // IDs
 char *cluster_id;
 char *device_id;
@@ -18,6 +25,12 @@ char *device_id;
 // Topics
 char sensor_data_topic[100];
 char settings_data_topic[100];
+
+// Set broker IP config in MQTT
+void mqtt_connect();
+
+// Initialize MQTT connection
+void init_mqtt();
 
 // Send mqtt message to publish sensor data to broker
 void publish_data();

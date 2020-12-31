@@ -1,6 +1,5 @@
 #include "mqtt_manager.h"
 
-#include <mqtt_client.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_err.h>
@@ -20,6 +19,8 @@
 #include "ph_control.h"
 #include "sync_sensors.h"
 #include "rtc.h"
+#include "network_settings.h"
+#include "wifi_connect.h"
 
 static void mqtt_event_handler(esp_mqtt_event_handle_t event) {		// MQTT Event Callback Functions
 	const char *TAG = "MQTT_Event_Handler";
@@ -101,23 +102,40 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
+void init_mqtt() {
+	// Set broker configuration
+	esp_mqtt_client_config_t mqtt_cfg = {
+			.host = "",
+			.port = 1883,
+			.event_handle = mqtt_event_handler
+	};
+	strcpy(mqtt_cfg.host, get_network_settings()->broker_ip);
+
+	// Create MQTT client
+	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+
+	// TOOD make and subscribe to topics here
+}
+
+void mqtt_connect() {
+	// First check if wifi is connected
+	if(!is_wifi_connected) {
+		is_mqtt_connected = false;
+		return;
+	}
+
+	// Connect mqtt
+	ESP_ERROR_CHECK(esp_mqtt_client_start(mqtt_client));
+	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+	is_mqtt_connected = true;
+}
+
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
 	cluster_id = "Cluster_1";
 	device_id = "System_1";
-
-	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "136.37.190.205",
-			.port = 1883,
-			.event_handle = mqtt_event_handler
-	};
-
-	// Create and initialize MQTT client
-	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-	esp_mqtt_client_start(client);
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 	// Create topics
 	create_sensor_data_topic();
@@ -126,7 +144,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	ESP_LOGI(TAG, "Sensor data topic4: %s", sensor_data_topic);
 
 	// Subscribe to topics
-	esp_mqtt_client_subscribe(client, settings_data_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, settings_data_topic, SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
 		// Create and initially assign JSON data
@@ -192,7 +210,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		append_str(&data, "]}");
 
 		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
+		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Message: %s", data);
 		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
