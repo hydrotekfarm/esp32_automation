@@ -155,6 +155,10 @@ void mqtt_connect() {
 	// Connect mqtt
 	ESP_ERROR_CHECK(esp_mqtt_client_start(mqtt_client));
 
+	ESP_LOGI("", "Sending success message");
+	// Send success message
+	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 0);
+
 	is_mqtt_connected = true;
 }
 
