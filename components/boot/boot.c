@@ -27,10 +27,14 @@
 #include "mqtt_manager.h"
 #include "network_settings.h"
 #include "nvs_manager.h"
+#include "deep_sleep_manager.c"
 
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
+
+	// Initialize deep sleep
+	init_power_button();
 
 	// Init connections
 	tcpip_adapter_init();

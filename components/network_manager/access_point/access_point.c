@@ -111,7 +111,6 @@ static esp_err_t device_info_get_handler(httpd_req_t *req) {
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 	httpd_resp_send(req, cJSON_PrintUnformatted(obj), HTTPD_RESP_USE_STRLEN);
 	return ESP_OK;
-
 }
 
 static const httpd_uri_t echo = {
@@ -186,7 +185,5 @@ void init_access_point_mode() {
 	esp_wifi_disconnect();
 	esp_wifi_stop();
 	esp_wifi_deinit();
-	ESP_LOGI(TAG, "Starting delay");
 	vTaskDelay(pdMS_TO_TICKS(1000));
 }
-
