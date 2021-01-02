@@ -130,6 +130,11 @@ void make_topics() {
 	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
 }
 
+void subscribe_topics() {
+	// Subscribe to topics
+	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+}
+
 void init_mqtt() {
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
@@ -155,6 +160,9 @@ void mqtt_connect() {
 	// Connect mqtt
 	ESP_ERROR_CHECK(esp_mqtt_client_start(mqtt_client));
 
+	// Subscribe to topics
+	subscribe_topics();
+
 	ESP_LOGI("", "Sending success message");
 	// Send success message
 	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 0);
@@ -166,9 +174,6 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
 	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
-
-	// Subscribe to topics
-	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
 
 	for (;;) {
 		// Create and initially assign JSON data
