@@ -169,6 +169,28 @@ void mqtt_connect() {
 	is_mqtt_connected = true;
 }
 
+void create_time_json(cJSON **time_json) {
+	char time_str[TIME_STRING_LENGTH];
+
+	struct tm time;
+	get_date_time(&time);
+
+	sprintf(time_str, "%.4d", time.tm_year + 1900);
+	strcat(time_str, "-");
+	sprintf(time_str + 5, "%.2d", time.tm_mon);
+	strcat(time_str, "-");
+	sprintf(time_str + 8, "%.2d", time.tm_mday);
+	strcat(time_str, "T");
+	sprintf(time_str + 11, "%.2d", time.tm_hour);
+	strcat(time_str, "-");
+	sprintf(time_str + 14, "%.2d", time.tm_min);
+	strcat(time_str, "-");
+	sprintf(time_str + 17, "%.2d", time.tm_sec);
+	strcat(time_str, "Z");
+
+	*time_json = cJSON_CreateString(time_str);
+}
+
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
 
@@ -181,7 +203,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		root = cJSON_CreateObject();
 		sensor_arr = cJSON_CreateArray();
 
-		time = cJSON_CreateString("temp_time");
+		create_time_json(&time);
 		cJSON_AddItemToObject(root, "time", time);
 		cJSON_AddItemToObject(root, "sensors", sensor_arr);
 

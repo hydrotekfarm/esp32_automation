@@ -11,6 +11,8 @@
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "sensor_settings"
 
+#define TIME_STRING_LENGTH 21
+
 // Task handle
 TaskHandle_t publish_task_handle;
 
