@@ -13,7 +13,7 @@ const struct sensor* get_ec_sensor() { return &ec_sensor; }
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
-	init_sensor(&ec_sensor, "EC_SENSOR", true, false);
+	init_sensor(&ec_sensor, "ec", true, false);
 	dry_calib = false;
 
 	ec_sensor_t dev;

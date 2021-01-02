@@ -15,7 +15,6 @@
 #include "ports.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
-#include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "reservoir_control.h"

@@ -13,7 +13,6 @@
 #include "boot.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
-#include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "ec_control.h"
 #include "ph_control.h"
@@ -176,77 +175,23 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	for (;;) {
-		// Create and initially assign JSON data
-		char *data = NULL;
-		create_str(&data, "{ \"time\": ");
 
-		// Add timestamp to data
-		struct tm time;
-		get_date_time(&time);
+		cJSON *root, *time, *sensor_arr, *sensor;
 
-		// Convert all time componenets to string
-		uint32_t year_int = time.tm_year + 1900;
-		char year[8];
-		snprintf(year, sizeof(year), "%.4d", year_int);
+		root = cJSON_CreateObject();
+		sensor_arr = cJSON_CreateArray();
 
-		uint32_t month_int = time.tm_mon + 1;
-		char month[8];
-		snprintf(month, sizeof(month), "%.2d", month_int);
+		time = cJSON_CreateString("temp_time");
+		cJSON_AddItemToObject(root, "time", time);
+		cJSON_AddItemToObject(root, "sensors", sensor_arr);
 
-		char day[8];
-		snprintf(day, sizeof(day), "%.2d", time.tm_mday);
-
-		char hour[8];
-		snprintf(hour, sizeof(hour), "%.2d", time.tm_hour);
-
-		char min[8];
-		snprintf(min, sizeof(min), "%.2d", time.tm_min);
-
-		char sec[8];
-		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
-
-		// Format timestamp in standard ISO format (https://www.w3.org/TR/NOTE-datetime)
-		char *date = NULL;;
-		create_str(&date, "\"");
-		append_str(&date, year);
-		append_str(&date, "-");
-		append_str(&date, month);
-		append_str(&date, "-");
-		append_str(&date,  day);
-		append_str(&date, "T");
-		append_str(&date, hour);
-		append_str(&date, "-");
-		append_str(&date, min);
-		append_str(&date, "-");
-		append_str(&date, sec);
-		append_str(&date, "Z\", \"sensors\": [");
-
-		// Append formatted timestamp to data
-		append_str(&data, date);
-		free(date);
-		date = NULL;
-
-		// Variable for adding comma to every entry except first
-		bool first = true;
-
-		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
-		add_entry(&data, &first, "water temp", sensor_get_value(get_water_temp_sensor()));
-		add_entry(&data, &first, "ec", sensor_get_value(get_ec_sensor()));
-		add_entry(&data, &first, "ph", sensor_get_value(get_ph_sensor()));
-		if(ultrasonic_active) { add_entry(&data, &first, "distance", _distance); }
-
-		// Add closing tag
-		append_str(&data, "]}");
+		char *data = cJSON_PrintUnformatted(root);
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Message: %s", data);
 		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
-
-		// Free allocated memory
-		free(data);
-		data = NULL;
 
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

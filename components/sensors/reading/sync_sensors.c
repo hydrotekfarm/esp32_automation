@@ -1,10 +1,13 @@
 #include "sync_sensors.h"
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_err.h>
 #include <esp_log.h>
+#include <esp_system.h>
 
 #include "ec_reading.h"
 #include "ph_reading.h"
-#include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "sensor.h"
 

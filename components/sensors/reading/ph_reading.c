@@ -11,7 +11,7 @@ const struct sensor* get_ph_sensor() { return &ph_sensor; }
 void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
 
-	init_sensor(&ph_sensor, "PH_SENSOR", true, false);
+	init_sensor(&ph_sensor, "ph", true, false);
 
 	ph_sensor_t dev;
 	memset(&dev, 0, sizeof(ph_sensor_t));
