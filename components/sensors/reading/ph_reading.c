@@ -6,7 +6,7 @@
 #include "task_priorities.h"
 #include "ports.h"
 
-const struct sensor* get_ph_sensor() { return &ph_sensor; }
+struct sensor* get_ph_sensor() { return &ph_sensor; }
 
 void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";

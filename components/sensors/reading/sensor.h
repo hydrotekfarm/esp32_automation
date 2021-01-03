@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
+#include <cjson.h>
 #include "i2cdev.h"
 
 #ifndef COMPONENTS_SENSORS_READING_SENSOR_H_
@@ -38,3 +39,6 @@ void sensor_set_calib_status(struct sensor *sensor_in, bool status);
 
 // Calibrate sensor
 void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_t*), i2c_dev_t *dev);
+
+// Get JSON object of sensor dat
+void sensor_get_json(struct sensor *sensor_in, cJSON **obj);

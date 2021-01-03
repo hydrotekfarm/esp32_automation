@@ -107,6 +107,7 @@ static esp_err_t device_info_get_handler(httpd_req_t *req) {
 	cJSON_AddItemToObject(obj, "device_type", name);
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 	httpd_resp_send(req, cJSON_PrintUnformatted(obj), HTTPD_RESP_USE_STRLEN);
+	cJSON_Delete(obj);
 	return ESP_OK;
 }
 

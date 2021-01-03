@@ -8,7 +8,7 @@
 #include "ports.h"
 #include "water_temp_reading.h"
 
-const struct sensor* get_ec_sensor() { return &ec_sensor; }
+struct sensor* get_ec_sensor() { return &ec_sensor; }
 
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";

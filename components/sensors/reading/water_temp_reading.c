@@ -7,7 +7,7 @@
 #include "sync_sensors.h"
 #include "ports.h"
 
-const struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
+struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
 
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";

@@ -197,17 +197,36 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	for (;;) {
-
 		cJSON *root, *time, *sensor_arr, *sensor;
 
+		// Initializing json object and sensor array
 		root = cJSON_CreateObject();
 		sensor_arr = cJSON_CreateArray();
 
+		// Adding time
 		create_time_json(&time);
 		cJSON_AddItemToObject(root, "time", time);
+
+		// Adding water temperature
+		sensor_get_json(get_water_temp_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
+
+		// Adding ec
+		sensor_get_json(get_ec_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
+
+		// Adding pH
+		sensor_get_json(get_ph_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
+
+		// Adding array to object
 		cJSON_AddItemToObject(root, "sensors", sensor_arr);
 
+		// Creating string from JSON
 		char *data = cJSON_PrintUnformatted(root);
+
+		// Free memory
+		cJSON_Delete(root);
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
