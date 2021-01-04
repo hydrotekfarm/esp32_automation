@@ -27,6 +27,8 @@ char *wifi_connect_topic;
 char *sensor_data_topic;
 char *sensor_settings_topic;
 
+SemaphoreHandle_t mqtt_connect_semaphore;
+
 // Set broker IP config in MQTT
 void mqtt_connect();
 

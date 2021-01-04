@@ -21,12 +21,12 @@
 #include "network_settings.h"
 #include "wifi_connect.h"
 
-void mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
+void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
 	switch (event->event_id) {
 	case MQTT_EVENT_CONNECTED:
-		xTaskNotifyGive(publish_task_handle);
 		ESP_LOGI(TAG, "Connected\n");
+		xSemaphoreGive(mqtt_connect_semaphore);
 		break;
 	case MQTT_EVENT_DISCONNECTED:
 		ESP_LOGI(TAG, "Disconnected\n");
@@ -54,9 +54,6 @@ void mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
 		ESP_LOGI(TAG, "Other Command\n");
 		break;
 	}
-}
-static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {		// MQTT Event Callback Functions
-	mqtt_event_handler_cb(event_data);
 }
 
 void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
@@ -138,13 +135,18 @@ void subscribe_topics() {
 }
 
 void init_mqtt() {
-//	// Build uri string
-//	char uri_str[30];
-//	strcpy(uri_str, "http://");
-//	strcat(uri_str, get_network_settings()->broker_ip);
-//	strcat(uri_str, ":1883");
-
 	// Set broker configuration
+	esp_mqtt_client_config_t mqtt_cfg = {
+			.host = get_network_settings()->broker_ip,
+			.port = 1883,
+			.event_handle = mqtt_event_handler
+	};
+
+	// Create MQTT client
+	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+
+	make_topics();
+	// TOOD subscribe to topics here
 }
 
 void mqtt_connect() {
@@ -155,18 +157,15 @@ void mqtt_connect() {
 	}
 
 	// Connect mqtt
-    //esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, mqtt_client);
-    esp_mqtt_client_start(mqtt_client);
-
+	mqtt_connect_semaphore = xSemaphoreCreateBinary();
+	esp_mqtt_client_start(mqtt_client);
+	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); // TODO add approximate time to connect to mqtt
 	// Subscribe to topics
 	subscribe_topics();
 
-	ESP_LOGI("", "Sending success message");
-	// Send success message
-	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 0);
-
 	is_mqtt_connected = true;
 }
+
 
 void create_time_json(cJSON **time_json) {
 	char time_str[TIME_STRING_LENGTH];
@@ -192,33 +191,6 @@ void create_time_json(cJSON **time_json) {
 
 void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	const char *TAG = "Publisher";
-
-	if(!is_wifi_connected) {
-		ESP_LOGE(TAG, "MQTT will not work, wiif not connected");
-	}
-
-	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "broker.hivemq.com",
-			.port = 1883,
-			.event_handle = mqtt_event_handler
-	};
-
-	// Create MQTT client
-	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
-
-	//make_topics();
-
-    esp_mqtt_client_start(mqtt_client);
-    //ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-	// Subscribe to topics
-//	subscribe_topics();
-//
-//	ESP_LOGI("", "Sending success message");
-	// Send success message
-//	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 0);
-
-	is_mqtt_connected = true;
 
 	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
