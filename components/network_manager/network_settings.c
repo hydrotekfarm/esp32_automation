@@ -34,8 +34,8 @@ void init_network_connections() {
 	}
 
 	// Initialize and connect to MQTT
-	init_mqtt();
-	mqtt_connect();
+//	init_mqtt();
+//	mqtt_connect();
 
 	ESP_LOGI(TAG, "Init properties done");
 }
