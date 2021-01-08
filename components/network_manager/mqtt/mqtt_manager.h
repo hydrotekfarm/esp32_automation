@@ -9,7 +9,7 @@
 
 #define WIFI_CONNECT_HEADING "wifi_connect_status"
 #define SENSOR_DATA_HEADING "live_data"
-#define SENSOR_SETTINGS_HEADING "sensor_settings"
+#define SENSOR_SETTINGS_HEADING "device_settings"
 
 #define TIME_STRING_LENGTH 21
 

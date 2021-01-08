@@ -164,6 +164,9 @@ void mqtt_connect() {
 	// Subscribe to topics
 	subscribe_topics();
 
+	// Send connect success message (must be retain message)
+	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
+
 	is_mqtt_connected = true;
 }
 
@@ -250,12 +253,11 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	free(sensor_settings_topic);
 }
 
-void update_settings() {
+void update_settings(char *settings) {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":true,\"control\":{\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":30,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
-	cJSON *root = cJSON_Parse(data_string);
+	cJSON *root = cJSON_Parse(settings);
 	cJSON *arr = root->child;
 
 	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
@@ -282,20 +284,34 @@ void update_settings() {
 void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
 	const char *TAG = "DATA_HANDLER";
 
+	// Create dynamically allocated vars for topic and data
 	char *topic = malloc(sizeof(char) * (topic_len+1));
 	char *data = malloc(sizeof(char) * (data_len+1));
 
+	// Copy over topic
 	for(int i = 0; i < topic_len; i++) {
 		topic[i] = topic_in[i];
 	}
 	topic[topic_len] = 0;
 
+	// Copy over data
 	for(int i = 0; i < data_len; i++) {
 		data[i] = data_in[i];
 	}
 	data[data_len] = 0;
 
 	ESP_LOGI(TAG, "Incoming Topic: %s", topic);
+
+	// Check topic against each subscribed topic possible
+	if(strcmp(topic, sensor_settings_topic) == 0) {
+		ESP_LOGI(TAG, "Sensor settings received");
+
+		// Update sensor settings
+		update_settings(data);
+	} else {
+		// Topic doesn't match any known topics
+		ESP_LOGE(TAG, "Topic unknown");
+	}
 
 	free(topic);
 	free(data);
