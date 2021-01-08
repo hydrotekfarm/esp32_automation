@@ -66,7 +66,7 @@ static void json_parser(const char *buffer)
 }
 
 /* An HTTP POST handler */
-static esp_err_t echo_post_handler(httpd_req_t *req)
+static esp_err_t setup_post_handler(httpd_req_t *req)
 {
    char buf[200];
    int ret, remaining = req->content_len;
@@ -92,6 +92,7 @@ static esp_err_t echo_post_handler(httpd_req_t *req)
    }
 
    // End response
+   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
    httpd_resp_set_status(req, "200");
    httpd_resp_send_chunk(req, NULL, 0);
    xEventGroupSetBits(json_information_event_group, INFORMATION_TRANSFERRED_BIT);
@@ -104,19 +105,16 @@ static esp_err_t device_info_get_handler(httpd_req_t *req) {
 	cJSON *obj = cJSON_CreateObject();
 	cJSON *name = cJSON_CreateString("Hydrotek Fertigation System");
 	cJSON_AddItemToObject(obj, "device_type", name);
-	char buf[50];
-	memset(buf, 0, sizeof(buf));
-	size_t buf_len = httpd_req_get_hdr_value_len(req, "Host") + 1;
-	httpd_req_get_hdr_value_str(req, "Host", buf, buf_len);
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 	httpd_resp_send(req, cJSON_PrintUnformatted(obj), HTTPD_RESP_USE_STRLEN);
+	cJSON_Delete(obj);
 	return ESP_OK;
 }
 
-static const httpd_uri_t echo = {
-   .uri       = "/echo",
+static const httpd_uri_t setup = {
+   .uri       = "/setup",
    .method    = HTTP_POST,
-   .handler   = echo_post_handler,
+   .handler   = setup_post_handler,
    .user_ctx  = NULL
 };
 
@@ -137,7 +135,7 @@ httpd_handle_t start_webserver(void)
    if (httpd_start(&server, &config) == ESP_OK) {
       // Set URI handlers
       ESP_LOGI(TAG, "Registering URI handlers");
-      httpd_register_uri_handler(server, &echo);
+      httpd_register_uri_handler(server, &setup);
       httpd_register_uri_handler(server, &uri_device_info);
       return server;
    }

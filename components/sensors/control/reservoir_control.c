@@ -1,5 +1,7 @@
 #include "reservoir_control.h"
 #include <esp_log.h>
+#include <esp_err.h>
+#include <esp_system.h>
 #include "ph_control.h"
 #include "ec_control.h"
 #include "ports.h"

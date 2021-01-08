@@ -40,3 +40,17 @@ void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_
 
 	vTaskPrioritySet(&sensor_in->task_handle, task_priority);
 }
+
+void sensor_get_json(struct sensor *sensor_in, cJSON **obj) {
+	*obj = cJSON_CreateObject();
+	cJSON *name, *value;
+
+	name = cJSON_CreateString(sensor_in->name);
+
+	char value_str[8];
+	snprintf(value_str, sizeof(value_str), "%.2f", sensor_in->current_value);
+	value = cJSON_CreateString(value_str);
+
+	cJSON_AddItemToObject(*obj, "name", name);
+	cJSON_AddItemToObject(*obj, "value", value);
+}
