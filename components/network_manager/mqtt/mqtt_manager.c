@@ -160,6 +160,7 @@ void mqtt_connect() {
 	mqtt_connect_semaphore = xSemaphoreCreateBinary();
 	esp_mqtt_client_start(mqtt_client);
 	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); // TODO add approximate time to connect to mqtt
+
 	// Subscribe to topics
 	subscribe_topics();
 
