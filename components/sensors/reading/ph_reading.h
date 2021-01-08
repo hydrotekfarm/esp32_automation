@@ -6,7 +6,7 @@
 struct sensor ph_sensor;
 
 // Get ph sensor
-const struct sensor* get_ph_sensor();
+struct sensor* get_ph_sensor();
 
 // Measures water ph
 void measure_ph();

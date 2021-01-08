@@ -178,6 +178,8 @@ bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 		break;
 	}
 	case STRING:
+		err = nvs_get_str(handle, key, NULL, &temp_size);
+		if(err != ESP_OK) break;
 		err = nvs_get_str(handle, key, data, &temp_size);
 		break;
 	}
@@ -185,7 +187,7 @@ bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(TAG, "Failed getting data from NVS");
+		ESP_LOGI(TAG, "Failed getting data from NVS. Error: %d", err);
 		return false;
 	}
 

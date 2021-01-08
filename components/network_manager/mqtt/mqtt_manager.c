@@ -1,6 +1,5 @@
 #include "mqtt_manager.h"
 
-#include <mqtt_client.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_err.h>
@@ -14,19 +13,20 @@
 #include "boot.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
-#include "ultrasonic_reading.h"
 #include "water_temp_reading.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "sync_sensors.h"
 #include "rtc.h"
+#include "network_settings.h"
+#include "wifi_connect.h"
 
-static void mqtt_event_handler(esp_mqtt_event_handle_t event) {		// MQTT Event Callback Functions
+void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
 	switch (event->event_id) {
 	case MQTT_EVENT_CONNECTED:
-		xTaskNotifyGive(publish_task_handle);
 		ESP_LOGI(TAG, "Connected\n");
+		xSemaphoreGive(mqtt_connect_semaphore);
 		break;
 	case MQTT_EVENT_DISCONNECTED:
 		ESP_LOGI(TAG, "Disconnected\n");
@@ -101,117 +101,163 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
-void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
-	const char *TAG = "Publisher";
+void init_topic(char **topic, int topic_len) {
+	*topic = malloc(sizeof(char) * topic_len);
+	strcpy(*topic, get_network_settings()->device_id);
+}
 
-	cluster_id = "Cluster_1";
-	device_id = "System_1";
+void add_heading(char *topic, char *heading) {
+	strcat(topic, "/");
+	strcat(topic, heading);
+}
 
+void make_topics() {
+	ESP_LOGI("", "Starting make topics");
+
+	int device_id_len = strlen(get_network_settings()->device_id);
+
+	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1);
+	add_heading(wifi_connect_topic, WIFI_CONNECT_HEADING);
+	ESP_LOGI("", "Wifi Topic: %s", wifi_connect_topic);
+
+	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1);
+	add_heading(sensor_data_topic, SENSOR_DATA_HEADING);
+	ESP_LOGI("", "Sensor data topic: %s", sensor_data_topic);
+
+	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1);
+	add_heading(sensor_settings_topic, SENSOR_SETTINGS_HEADING);
+	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
+}
+
+void subscribe_topics() {
+	// Subscribe to topics
+	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+}
+
+void init_mqtt() {
 	// Set broker configuration
 	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = "136.37.190.205",
+			.host = get_network_settings()->broker_ip,
 			.port = 1883,
 			.event_handle = mqtt_event_handler
 	};
 
-	// Create and initialize MQTT client
-	esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-	esp_mqtt_client_start(client);
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+	// Create MQTT client
+	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
-	// Create topics
-	create_sensor_data_topic();
-	create_settings_data_topic();
+	make_topics();
+	// TOOD subscribe to topics here
+}
 
-	ESP_LOGI(TAG, "Sensor data topic4: %s", sensor_data_topic);
+void mqtt_connect() {
+	// First check if wifi is connected
+	if(!is_wifi_connected) {
+		is_mqtt_connected = false;
+		return;
+	}
+
+	// Connect mqtt
+	mqtt_connect_semaphore = xSemaphoreCreateBinary();
+	esp_mqtt_client_start(mqtt_client);
+	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); // TODO add approximate time to connect to mqtt
 
 	// Subscribe to topics
-	esp_mqtt_client_subscribe(client, settings_data_topic, SUBSCRIBE_DATA_QOS);
+	subscribe_topics();
+
+	// Send connect success message (must be retain message)
+	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
+
+	is_mqtt_connected = true;
+}
+
+
+void create_time_json(cJSON **time_json) {
+	char time_str[TIME_STRING_LENGTH];
+
+	struct tm time;
+	get_date_time(&time);
+
+	sprintf(time_str, "%.4d", time.tm_year + 1900);
+	strcat(time_str, "-");
+	sprintf(time_str + 5, "%.2d", time.tm_mon);
+	strcat(time_str, "-");
+	sprintf(time_str + 8, "%.2d", time.tm_mday);
+	strcat(time_str, "T");
+	sprintf(time_str + 11, "%.2d", time.tm_hour);
+	strcat(time_str, "-");
+	sprintf(time_str + 14, "%.2d", time.tm_min);
+	strcat(time_str, "-");
+	sprintf(time_str + 17, "%.2d", time.tm_sec);
+	strcat(time_str, "Z");
+
+	*time_json = cJSON_CreateString(time_str);
+}
+
+void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
+	const char *TAG = "Publisher";
+
+	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	for (;;) {
-		// Create and initially assign JSON data
-		char *data = NULL;
-		create_str(&data, "{ \"time\": ");
+		if(!is_mqtt_connected) {
+			ESP_LOGE(TAG, "Wifi not connected, cannot send MQTT data");
 
-		// Add timestamp to data
-		struct tm time;
-		get_date_time(&time);
+			// Wait for delay period and try again
+			vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			continue;
+		}
 
-		// Convert all time componenets to string
-		uint32_t year_int = time.tm_year + 1900;
-		char year[8];
-		snprintf(year, sizeof(year), "%.4d", year_int);
+		cJSON *root, *time, *sensor_arr, *sensor;
 
-		uint32_t month_int = time.tm_mon + 1;
-		char month[8];
-		snprintf(month, sizeof(month), "%.2d", month_int);
+		// Initializing json object and sensor array
+		root = cJSON_CreateObject();
+		sensor_arr = cJSON_CreateArray();
 
-		char day[8];
-		snprintf(day, sizeof(day), "%.2d", time.tm_mday);
+		// Adding time
+		create_time_json(&time);
+		cJSON_AddItemToObject(root, "time", time);
 
-		char hour[8];
-		snprintf(hour, sizeof(hour), "%.2d", time.tm_hour);
+		// Adding water temperature
+		sensor_get_json(get_water_temp_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
 
-		char min[8];
-		snprintf(min, sizeof(min), "%.2d", time.tm_min);
+		// Adding ec
+		sensor_get_json(get_ec_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
 
-		char sec[8];
-		snprintf(sec, sizeof(sec), "%.2d", time.tm_sec);
+		// Adding pH
+		sensor_get_json(get_ph_sensor(), &sensor);
+		cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Format timestamp in standard ISO format (https://www.w3.org/TR/NOTE-datetime)
-		char *date = NULL;;
-		create_str(&date, "\"");
-		append_str(&date, year);
-		append_str(&date, "-");
-		append_str(&date, month);
-		append_str(&date, "-");
-		append_str(&date,  day);
-		append_str(&date, "T");
-		append_str(&date, hour);
-		append_str(&date, "-");
-		append_str(&date, min);
-		append_str(&date, "-");
-		append_str(&date, sec);
-		append_str(&date, "Z\", \"sensors\": [");
+		// Adding array to object
+		cJSON_AddItemToObject(root, "sensors", sensor_arr);
 
-		// Append formatted timestamp to data
-		append_str(&data, date);
-		free(date);
-		date = NULL;
+		// Creating string from JSON
+		char *data = cJSON_PrintUnformatted(root);
 
-		// Variable for adding comma to every entry except first
-		bool first = true;
-
-		// Check if all the sensors are active and add data to JSON string if so using corresponding key and value
-		add_entry(&data, &first, "water temp", sensor_get_value(get_water_temp_sensor()));
-		add_entry(&data, &first, "ec", sensor_get_value(get_ec_sensor()));
-		add_entry(&data, &first, "ph", sensor_get_value(get_ph_sensor()));
-		if(ultrasonic_active) { add_entry(&data, &first, "distance", _distance); }
-
-		// Add closing tag
-		append_str(&data, "]}");
+		// Free memory
+		cJSON_Delete(root);
 
 		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
+		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
 		ESP_LOGI(TAG, "Message: %s", data);
 		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
 
-		// Free allocated memory
-		free(data);
-		data = NULL;
-
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 	}
+
+	free(wifi_connect_topic);
+	free(sensor_data_topic);
+	free(sensor_settings_topic);
 }
 
-void update_settings() {
+void update_settings(char *settings) {
 	const char *TAG = "UPDATE_SETTINGS";
 	ESP_LOGI(TAG, "Settings data");
 
-	char *data_string = "{\"data\":[{\"ph\":{\"monitoring_only\":true,\"control\":{\"dosing_time\":10,\"dosing_interval\":2,\"day_and_night\":false,\"day_target_value\":6,\"night_target_value\":6,\"target_value\":5,\"pumps\":{\"pump_1_enabled\":true,\"pump_2_enabled\":false}},\"alarm_min\":3,\"alarm_max\":7}},{\"ec\":{\"monitoring_only\":false,\"control\":{\"dosing_time\":30,\"dosing_interval\":50,\"day_and_night\":true,\"day_target_value\":23,\"night_target_value\":4,\"target_value\":4,\"pumps\":{\"pump_1\":{\"enabled\":true,\"value\":10},\"pump_2\":{\"enabled\":false,\"value\":4},\"pump_3\":{\"enabled\":true,\"value\":2},\"pump_4\":{\"enabled\":false,\"value\":7},\"pump_5\":{\"enabled\":true,\"value\":3}}},\"alarm_min\":1.5,\"alarm_max\":4}}]}";
-	cJSON *root = cJSON_Parse(data_string);
+	cJSON *root = cJSON_Parse(settings);
 	cJSON *arr = root->child;
 
 	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
@@ -235,57 +281,38 @@ void update_settings() {
 	cJSON_Delete(root);
 }
 
-void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
+void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
 	const char *TAG = "DATA_HANDLER";
 
-	char topic_temp[topic_len-1];
-	char data_temp[data_len];
+	// Create dynamically allocated vars for topic and data
+	char *topic = malloc(sizeof(char) * (topic_len+1));
+	char *data = malloc(sizeof(char) * (data_len+1));
 
-	strncpy(topic_temp, topic, topic_len-1);
-	strncpy(data_temp, data, data_len);
-
-	if(/*strcmp(topic_temp, settings_data_topic)*/0 == 0) {
-		update_settings();
-	} else {
-		ESP_LOGE(TAG, "Topic not recognized");
+	// Copy over topic
+	for(int i = 0; i < topic_len; i++) {
+		topic[i] = topic_in[i];
 	}
-}
+	topic[topic_len] = 0;
 
-void create_sensor_data_topic() {
-	const char *TAG = "SENSOR_DATA_TOPIC_CREATOR";
+	// Copy over data
+	for(int i = 0; i < data_len; i++) {
+		data[i] = data_in[i];
+	}
+	data[data_len] = 0;
 
-	// Create and structure topic for publishing data through MQTT
-	char *topic = NULL;
-	create_str(&topic, cluster_id);
-	append_str(&topic, "/");
-	append_str(&topic, device_id);
-	append_str(&topic, "/");
-	append_str(&topic, SENSOR_DATA_HEADING);
+	ESP_LOGI(TAG, "Incoming Topic: %s", topic);
 
-	// Assign variable
-	strcpy(sensor_data_topic, topic);
-	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
+	// Check topic against each subscribed topic possible
+	if(strcmp(topic, sensor_settings_topic) == 0) {
+		ESP_LOGI(TAG, "Sensor settings received");
 
-	// Free memory
+		// Update sensor settings
+		update_settings(data);
+	} else {
+		// Topic doesn't match any known topics
+		ESP_LOGE(TAG, "Topic unknown");
+	}
+
 	free(topic);
-}
-
-void create_settings_data_topic() {
-	const char *TAG = "SETTINGS_DATA_TOPIC_CREATOR";
-
-	// Create and structure topic for publishing data through MQTT
-	char *topic = NULL;
-	create_str(&topic, cluster_id);
-	append_str(&topic, "/");
-	append_str(&topic, device_id);
-	append_str(&topic, "/");
-	append_str(&topic, SENSOR_SETTINGS_HEADING);
-
-	// Assign variable
-	strcpy(settings_data_topic, "test");
-	ESP_LOGI(TAG, "Settings data topic: %s", settings_data_topic);
-
-	// Free memory
-	free(topic);
-
+	free(data);
 }
