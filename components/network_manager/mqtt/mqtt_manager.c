@@ -279,18 +279,24 @@ void update_settings() {
 	cJSON_Delete(root);
 }
 
-void data_handler(char *topic, uint32_t topic_len, char *data, uint32_t data_len) {
+void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
 	const char *TAG = "DATA_HANDLER";
 
-	char topic_temp[topic_len-1];
-	char data_temp[data_len];
+	char *topic = malloc(sizeof(char) * (topic_len+1));
+	char *data = malloc(sizeof(char) * (data_len+1));
 
-	strncpy(topic_temp, topic, topic_len-1);
-	strncpy(data_temp, data, data_len);
-
-	if(/*strcmp(topic_temp, settings_data_topic)*/0 == 0) {
-		update_settings();
-	} else {
-		ESP_LOGE(TAG, "Topic not recognized");
+	for(int i = 0; i < topic_len; i++) {
+		topic[i] = topic_in[i];
 	}
+	topic[topic_len] = 0;
+
+	for(int i = 0; i < data_len; i++) {
+		data[i] = data_in[i];
+	}
+	data[data_len] = 0;
+
+	ESP_LOGI(TAG, "Incoming Topic: %s", topic);
+
+	free(topic);
+	free(data);
 }
