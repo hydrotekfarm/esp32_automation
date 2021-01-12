@@ -172,6 +172,8 @@ bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPE
 		break;
 	case FLOAT: {
 		float *fl_ptr;
+		err = nvs_get_str(handle, key, NULL, &temp_size);
+		if(err != ESP_OK) break;
 		err = nvs_get_str(handle, key, data, &temp_size);
 		fl_ptr = data;
 		*fl_ptr = atof(data);
