@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include <string.h>
 
 #include "rtc.h"
@@ -9,7 +10,7 @@
 #include "control_task.h"
 #include "sync_sensors.h"
 #include "ports.h"
-#include "JSON_keys.h"
+#include "control_settings_keys.h"
 #include "ec_control.h"
 #include "sensor.h"
 
@@ -50,7 +51,8 @@ void ph_pump_off() {
 }
 
 void ph_update_settings(cJSON *item) {
-	control_update_settings(&ph_control, item);
+	struct NVS_Data *data = nvs_init_data();
+	control_update_settings(&ph_control, item, data);
 
 	cJSON *element = item->child;
 	while(element != NULL) {

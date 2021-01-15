@@ -2,15 +2,16 @@
 
 #include <stdbool.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include <string.h>
 
+#include "control_settings_keys.h"
 #include "sensor_control.h"
 #include "ph_control.h"
 #include "rtc.h"
 #include "ec_reading.h"
 #include "control_task.h"
 #include "sync_sensors.h"
-#include "JSON_keys.h"
 #include "ports.h"
 
 struct sensor_control* get_ec_control() { return &ec_control; }
@@ -60,7 +61,8 @@ void ec_dose() {
 }
 
 void ec_update_settings(cJSON *item) {
-	control_update_settings(&ec_control, item);
+	struct NVS_Data *data = nvs_init_data();
+	control_update_settings(&ec_control, item, data);
 
 	cJSON *element = item->child;
 	while(element != NULL) {

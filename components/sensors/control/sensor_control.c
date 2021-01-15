@@ -2,9 +2,10 @@
 
 #include <string.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include "rtc.h"
 #include "sync_sensors.h"
-#include "JSON_keys.h"
+#include "control_settings_keys.h"
 
 // --------------------------------------------------- Helper functions ----------------------------------------------
 
@@ -34,7 +35,9 @@ float control_get_target_value(struct sensor_control *control_in) {
 
 void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in) {
 	strcpy(control_in->name, name_in);
-	control_update_settings(control_in, item);
+
+	struct NVS_Data *data = nvs_init_data();
+	control_update_settings(control_in, item, data);
 
 	control_in->is_control_active = false;
 	control_in->is_doser = false;
@@ -110,7 +113,7 @@ void control_start_wait_timer(struct sensor_control *control_in) { enable_timer(
 void control_set_dose_percentage(struct sensor_control *control_in, float value) { control_in->dose_percentage = value; }
 float control_get_dose_time(struct sensor_control *control_in) { return control_in->dose_time * control_in->dose_percentage; }
 
-void control_update_settings(struct sensor_control *control_in, cJSON *item) {
+void control_update_settings(struct sensor_control *control_in, cJSON *item, struct NVS_Data *data) {
 	cJSON *element = item->child;
 	while(element != NULL) {
 		char *key = element->string;

@@ -8,7 +8,7 @@
 #include "rtc.h"
 #include "ec_reading.h"
 #include "sync_sensors.h"
-#include "JSON_keys.h"
+#include "control_settings_keys.h"
 #include "control_task.h"
 #include "sensor_control.h"
 
