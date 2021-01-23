@@ -174,4 +174,17 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, str
 	ESP_LOGI(control_in->name, "Finished updating all values");
 }
 
+void control_get_nvs_settings(struct sensor_control *control_in, char *namespace) {
+	nvs_get_data(&control_in->is_control_enabled, namespace, MONITORING_ONLY, UINT8);
+	control_in->is_control_enabled = !control_in->is_control_enabled;
+
+	nvs_get_data(&control_in->target_value, namespace, TARGET_VALUE, FLOAT);
+	nvs_get_data(&control_in->is_day_night_active, namespace, DAY_AND_NIGHT, UINT8);
+	nvs_get_data(&control_in->night_target_value, namespace, NIGHT_TARGET_VALUE, FLOAT);
+	nvs_get_data(&control_in->is_up_control, namespace, UP_CONTROL, UINT8);
+	nvs_get_data(&control_in->is_down_control, namespace, DOWN_CONTROL, UINT8);
+	nvs_get_data(&control_in->dose_time, namespace, DOSING_TIME, FLOAT);
+	nvs_get_data(&control_in->wait_time, namespace, DOSING_INTERVAL, FLOAT);
+}
+
 // --------------------------------------------------------------------------------------------------------------------
