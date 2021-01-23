@@ -99,7 +99,7 @@ bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace) {
 			ESP_LOGI(TAG, "int64 data: %lld", *(int64_t*)(data->datum));
 			break;
 		case FLOAT:
-			snprintf(float_str, strlen((char*)(data->datum)), "%.2f", *(float*)(data->datum));
+			sprintf(float_str, "%.2f", *(float*)(data->datum));
 			err = nvs_set_str(handle, data->key, float_str);
 			ESP_LOGI(TAG, "float data: %s", float_str);
 			break;

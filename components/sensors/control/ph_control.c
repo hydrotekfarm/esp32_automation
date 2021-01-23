@@ -82,5 +82,8 @@ void ph_update_settings(cJSON *item) {
 		}
 		element = element->next;
 	}
+
+	nvs_commit_data(data, PH_NAMESPACE);
+	ESP_LOGI("", "Committed pH data to NVS");
 	ESP_LOGI("", "Finished updating pH settings");
 }

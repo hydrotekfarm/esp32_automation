@@ -7,6 +7,7 @@
 #include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
+#include "control_settings_keys.h"
 #include "sync_sensors.h"
 #include "ports.h"
 #include "rf_transmitter.h"
@@ -42,10 +43,10 @@ void sensor_control (void *parameter) {
 	cJSON *ec_item = cJSON_Parse(ec_data);
 	ec_item = ec_item->child;
 
-	init_sensor_control(get_ph_control(), "PH_CONTROL", ph_item, PH_MARGIN_ERROR);
+	init_sensor_control(get_ph_control(), "PH_CONTROL", PH_NAMESPACE, ph_item, PH_MARGIN_ERROR);
 	init_doser_control(get_ph_control());
 
-	init_sensor_control(get_ec_control(), "EC_CONTROL", ec_item, EC_MARGIN_ERROR);
+	init_sensor_control(get_ec_control(), "EC_CONTROL", EC_NAMESPACE, ec_item, EC_MARGIN_ERROR);
 	init_doser_control(get_ec_control());
 
 	water_in_rf_message.rf_address_ptr = water_in_address;

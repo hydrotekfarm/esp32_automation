@@ -29,4 +29,8 @@
 #define ENABLED "enbld"
 #define VALUE "value"
 
+// Sensor namespaces
+#define PH_NAMESPACE "PH"
+#define EC_NAMESPACE "EC"
+
 #endif

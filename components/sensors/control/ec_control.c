@@ -150,5 +150,8 @@ void ec_update_settings(cJSON *item) {
 		}
 		element = element->next;
 	}
+
+	nvs_commit_data(data, EC_NAMESPACE);
+	ESP_LOGI("", "Committed ec data to NVS");
 	ESP_LOGI("", "Finished updating ec settings");
 }
