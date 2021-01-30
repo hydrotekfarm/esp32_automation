@@ -18,7 +18,7 @@ void init_network_connections() {
 
 	// Check if initial properties haven't been initialized before
 	uint8_t init_properties_status;
-	if(!nvs_get_data(&init_properties_status, SYSTEM_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
+	if(!nvs_get_data(&init_properties_status, NETWORK_SETTINGS_NVS_NAMESPACE, INIT_PROPERTIES_KEY, UINT8) || init_properties_status == 0) {
 		ESP_LOGI(TAG, "Properties not initialized. Starting access point");
 
 		do {
@@ -51,14 +51,14 @@ void push_network_settings() {
 	nvs_add_data(data, BROKER_IP_KEY, STRING, network_settings.broker_ip);
 	nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &network_settings_status);
 
-	nvs_commit_data(data, SYSTEM_SETTINGS_NVS_NAMESPACE);
+	nvs_commit_data(data, NETWORK_SETTINGS_NVS_NAMESPACE);
 }
 
 void pull_network_settings() {
-	nvs_get_data(network_settings.wifi_ssid, SYSTEM_SETTINGS_NVS_NAMESPACE, WIFI_SSID_KEY, STRING);
-	nvs_get_data(network_settings.wifi_pw, SYSTEM_SETTINGS_NVS_NAMESPACE, WIFI_PW_KEY, STRING);
-	nvs_get_data(network_settings.device_id, SYSTEM_SETTINGS_NVS_NAMESPACE, DEVICE_ID_KEY, STRING);
-	nvs_get_data(network_settings.broker_ip, SYSTEM_SETTINGS_NVS_NAMESPACE, BROKER_IP_KEY, STRING);
+	nvs_get_data(network_settings.wifi_ssid, NETWORK_SETTINGS_NVS_NAMESPACE, WIFI_SSID_KEY, STRING);
+	nvs_get_data(network_settings.wifi_pw, NETWORK_SETTINGS_NVS_NAMESPACE, WIFI_PW_KEY, STRING);
+	nvs_get_data(network_settings.device_id, NETWORK_SETTINGS_NVS_NAMESPACE, DEVICE_ID_KEY, STRING);
+	nvs_get_data(network_settings.broker_ip, NETWORK_SETTINGS_NVS_NAMESPACE, BROKER_IP_KEY, STRING);
 }
 
 void set_invalid_network_settings() {
@@ -66,5 +66,5 @@ void set_invalid_network_settings() {
 
 	struct NVS_Data *data = nvs_init_data();
 	nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &network_settings_status);
-	nvs_commit_data(data, SYSTEM_SETTINGS_NVS_NAMESPACE);
+	nvs_commit_data(data, NETWORK_SETTINGS_NVS_NAMESPACE);
 }
