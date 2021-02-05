@@ -23,19 +23,35 @@ void init_grow_manager() {
 	}
 }
 
-void start_grow_cycle() {
-	is_grow_active = true;
+void push_grow_status() {
+	// Store in NVS
+	struct NVS_Data *data = nvs_init_data();
+	nvs_add_data(data, GROW_ACTIVE_KEY, UINT8, &is_grow_active);
+}
 
-	// TODO start grow cycle
+void push_grow_settings_status() {
+	// Store in NVS
+	struct NVS_Data *data = nvs_init_data();
+	nvs_add_data(data, GROW_ACTIVE_KEY, UINT8, &is_settings_received);
+}
+
+void start_grow_cycle() {
+	// Don't start unless settings have been received
+	if(!is_settings_received) return;
+
+	// Set active to true and store in NVS
+	is_grow_active = true;
+	push_grow_status();
 }
 
 void stop_grow_cycle() {
+	// Set active to false ands store in NVS
 	is_grow_active = false;
-
-	// TODO stop grow cycle
+	push_grow_status();
 }
 
 void settings_received() {
+	push_grow_settings_status();
 	is_settings_received = true;
 }
 

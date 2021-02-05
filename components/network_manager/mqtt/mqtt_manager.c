@@ -19,6 +19,7 @@
 #include "sync_sensors.h"
 #include "rtc.h"
 #include "network_settings.h"
+#include "grow_manager.h"
 #include "wifi_connect.h"
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
@@ -277,8 +278,10 @@ void update_settings(char *settings) {
 			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
 		}
 	}
-
 	cJSON_Delete(root);
+
+	ESP_LOGI(TAG, "Settings updated");
+	if(!get_is_settings_received()) settings_received();
 }
 
 void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {

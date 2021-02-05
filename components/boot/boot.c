@@ -73,6 +73,34 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 }
 
+void suspend_tasks() {
+	// Core 0 tasks
+	vTaskSuspend(&rf_transmitter_task_handle);
+	vTaskSuspend(&timer_alarm_task_handle);
+	// Note: don't suspend mqtt task
+	vTaskSuspend(&sensor_control_task_handle);
+
+	// Core 1
+	vTaskSuspend(sensor_get_task_handle(get_water_temp_sensor()));
+	vTaskSuspend(sensor_get_task_handle(get_ec_sensor()));
+	vTaskSuspend(sensor_get_task_handle(get_ph_sensor()));
+	vTaskSuspend(&sync_task_handle);
+}
+
+void resume_tasks() {
+	// Core 0 tasks
+	vTaskResume(&rf_transmitter_task_handle);
+	vTaskResume(&timer_alarm_task_handle);
+	// Note: don't need to resume mqtt task
+	vTaskResume(&sensor_control_task_handle);
+
+	// Core 1
+	vTaskResume(sensor_get_task_handle(get_water_temp_sensor()));
+	vTaskResume(sensor_get_task_handle(get_ec_sensor()));
+	vTaskResume(sensor_get_task_handle(get_ph_sensor()));
+	vTaskResume(&sync_task_handle);
+}
+
 void restart_esp32() { // Restart ESP32
 	ESP_LOGE("", "RESTARTING ESP32");
 	fflush(stdout);
