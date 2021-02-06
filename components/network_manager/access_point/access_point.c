@@ -8,7 +8,7 @@
 #include <nvs_flash.h>
 #include <sys/param.h>
 #include <string.h>
-#include <cjson.h>
+#include <cJSON.h>
 #include "nvs_flash.h"
 #include "esp_eth.h"
 #include "lwip/err.h"

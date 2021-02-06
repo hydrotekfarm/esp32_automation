@@ -5,9 +5,9 @@
 #include "ec_control.h"
 #include "sync_sensors.h"
 #include "ports.h"
-#include <cjson.h> //TODO remove later
+#include <cJSON.h> //TODO remove later
 #include "rf_transmitter.h"
-#include "FreeRTOS/queue.h"
+#include "freertos/queue.h"
 #include <esp_log.h>
 
 void sensor_control (void *parameter) {

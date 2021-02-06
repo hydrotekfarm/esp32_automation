@@ -1,5 +1,5 @@
 #include <freertos/FreeRTOS.h>
-#include <Freertos/task.h>
+#include <freertos/task.h>
 #include <freertos/event_groups.h>
 
 #define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms

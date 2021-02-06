@@ -5,7 +5,7 @@
 #define NUM_CHECKS 6
 
 #include <stdbool.h>
-#include <cjson.h>
+#include <cJSON.h>
 #include "rtc.h"
 
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_

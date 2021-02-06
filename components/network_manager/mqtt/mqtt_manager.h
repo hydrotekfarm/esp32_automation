@@ -1,5 +1,5 @@
-#include <Freertos/freertos.h>
-#include <Freertos/task.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <mqtt_client.h>
 #include <string.h>
 
@@ -10,6 +10,9 @@
 #define WIFI_CONNECT_HEADING "wifi_connect_status"
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "device_settings"
+
+#define FW_UPGRADE_SUBSCRIBE_TOPIC   "/fw_upgrade/cmd"
+#define FW_UPGRADE_PUBLISH_ACK_TOPIC "/fw_upgrade/ack"
 
 #define TIME_STRING_LENGTH 21
 
@@ -49,3 +52,6 @@ void create_sensor_data_topic();
 
 // Create settings data topic
 void create_settings_data_topic();
+
+// OTA reject publish message
+void publish_ota_reject(esp_mqtt_client_handle_t client);

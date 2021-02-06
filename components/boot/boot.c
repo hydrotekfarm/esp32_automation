@@ -27,8 +27,12 @@
 #include "network_settings.h"
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
+#include "ota.h"
 
 void boot_sequence() {
+        // Init OTA
+        init_ota();
+
 	// Init nvs
 	init_nvs();
 

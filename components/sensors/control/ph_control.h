@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include <cjson.h>
+#include <cJSON.h>
 #include "sensor_control.h"
 
 // Margin of error

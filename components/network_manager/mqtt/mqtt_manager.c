@@ -3,12 +3,13 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_err.h>
+#include <esp_system.h>
 #include <freertos/semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <cjson.h>
+#include <cJSON.h>
 
 #include "boot.h"
 #include "ec_reading.h"
@@ -21,39 +22,89 @@
 #include "network_settings.h"
 #include "wifi_connect.h"
 
-void mqtt_event_handler(esp_mqtt_event_handle_t event) {
-	const char *TAG = "MQTT_Event_Handler";
-	switch (event->event_id) {
-	case MQTT_EVENT_CONNECTED:
-		ESP_LOGI(TAG, "Connected\n");
-		xSemaphoreGive(mqtt_connect_semaphore);
-		break;
-	case MQTT_EVENT_DISCONNECTED:
-		ESP_LOGI(TAG, "Disconnected\n");
-		break;
-	case MQTT_EVENT_SUBSCRIBED:
-		ESP_LOGI(TAG, "Subscribed\n");
-		break;
-	case MQTT_EVENT_UNSUBSCRIBED:
-		ESP_LOGI(TAG, "UnSubscribed\n");
-		break;
-	case MQTT_EVENT_PUBLISHED:
-		ESP_LOGI(TAG, "Published\n");
-		break;
-	case MQTT_EVENT_DATA:
-		ESP_LOGI(TAG, "Message received\n");
-		data_handler(event->topic, event->topic_len, event->data, event->data_len);
-		break;
-	case MQTT_EVENT_ERROR:
-		ESP_LOGI(TAG, "Error\n");
-		break;
-	case MQTT_EVENT_BEFORE_CONNECT:
-		ESP_LOGI(TAG, "Before Connection\n");
-		break;
-	default:
-		ESP_LOGI(TAG, "Other Command\n");
-		break;
-	}
+#include "ota.h"
+
+extern char *url_buf;
+
+esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
+   const char *TAG = "MQTT_Event_Handler";
+   esp_mqtt_client_handle_t client = event->client;
+   int msg_id;
+   
+   switch (event->event_id) {
+      case MQTT_EVENT_CONNECTED:
+         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+         xSemaphoreGive(mqtt_connect_semaphore);
+         /* Subscribing firmware upgrade topic*/
+         msg_id = esp_mqtt_client_subscribe(client, FW_UPGRADE_SUBSCRIBE_TOPIC, 0);
+         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+         break;
+      case MQTT_EVENT_DISCONNECTED:
+         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+         break;
+
+      case MQTT_EVENT_SUBSCRIBED:
+         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_UNSUBSCRIBED:
+         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_PUBLISHED:
+         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_DATA:
+         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+         printf("DATA=%.*s\r\n", event->data_len, event->data);
+
+         /* Get FW upgrade URL recevied via MQTT */
+         if (NULL != strstr(event->topic, FW_UPGRADE_SUBSCRIBE_TOPIC))
+         {
+            printf("FW upgrade command received over MQTT - checking for valid URL\n");
+            if (event->data_len > OTA_URL_SIZE)
+            {
+               printf("URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
+               publish_ota_reject(client);
+            }
+            else
+            {
+               /* Copy FW upgrade URL to local buffer */
+               printf("Received URL lenght is: %d\r\n", event->data_len);
+               url_buf = (char *)malloc(event->data_len + 1);
+               if (NULL == url_buf)
+               {
+                  printf("Unable to allocate memory to save received URL\r\n");
+                  publish_ota_reject(client);
+               }
+               else
+               {
+                  memset(url_buf, 0x00, event->data_len + 1);
+                  strncpy(url_buf, event->data, event->data_len);
+                  printf("Received URL is: %s\r\n", url_buf);
+
+                  /* Starting OTA thread */
+                  xTaskCreate(&ota_task, "ota_task", 8192, client, 5, NULL);
+               }
+            }
+         }
+         else
+         {
+            printf("Received topic is not %s\n", FW_UPGRADE_SUBSCRIBE_TOPIC);
+            data_handler(event->topic, event->topic_len, event->data, event->data_len);
+         }
+         break;
+      case MQTT_EVENT_ERROR:
+         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+         break;
+      case MQTT_EVENT_BEFORE_CONNECT:
+         ESP_LOGI(TAG, "Before Connection\n");
+         break;
+      default:
+         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+         break;
+   }
+
+   return 0;
 }
 
 void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
@@ -316,3 +367,20 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 	free(topic);
 	free(data);
 }
+
+void publish_ota_reject(esp_mqtt_client_handle_t client)
+{
+   int msg_id;
+   uint8_t mac[6];//To save WiFi STA MAC address
+   char mac_str[18];
+   char msg[32];
+   const char *TAG = "PUBLISH_OTA_REJECT";
+   printf("Aborting OTA\r\n");
+   esp_read_mac(mac, ESP_MAC_WIFI_STA);
+   sprintf(mac_str, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+   snprintf(msg, sizeof(msg), "%s:ota_failed", mac_str);
+   ESP_LOGI(TAG, "msg=%s", msg);
+   msg_id = esp_mqtt_client_publish(client, FW_UPGRADE_PUBLISH_ACK_TOPIC, msg, 0, 1, 0);
+   ESP_LOGI(TAG, "ota_failed message publish successful, msg_id=%d", msg_id);
+}
+
