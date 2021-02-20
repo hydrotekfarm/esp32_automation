@@ -25,13 +25,17 @@ void init_grow_manager() {
 		stop_grow_cycle();
 		return;
 	} else {
-		is_settings_received = true;
+		ESP_LOGI("", "Settings stored in NVS");
+		settings_received();
 	}
 
+	ESP_LOGI("", "About to check");
 	// Check for grow cycle status
 	if(!nvs_get_data(&status, GROW_SETTINGS_NVS_NAMESPACE, GROW_ACTIVE_KEY, UINT8) || !status) {
+		ESP_LOGI("", "About to stop cycle");
 		stop_grow_cycle();
 	} else {
+		ESP_LOGI("", "About to start cycle");
 		start_grow_cycle();
 	}
 }
@@ -40,12 +44,14 @@ void push_grow_status() {
 	// Store in NVS
 	struct NVS_Data *data = nvs_init_data();
 	nvs_add_data(data, GROW_ACTIVE_KEY, UINT8, &is_grow_active);
+	nvs_commit_data(data, GROW_SETTINGS_NVS_NAMESPACE);
 }
 
 void push_grow_settings_status() {
 	// Store in NVS
 	struct NVS_Data *data = nvs_init_data();
-	nvs_add_data(data, GROW_ACTIVE_KEY, UINT8, &is_settings_received);
+	nvs_add_data(data, SETTINGS_RECEIVED_KEY, UINT8, &is_settings_received);
+	nvs_commit_data(data, GROW_SETTINGS_NVS_NAMESPACE);
 }
 
 void suspend_tasks() {
@@ -102,8 +108,8 @@ void stop_grow_cycle() {
 }
 
 void settings_received() {
-	push_grow_settings_status();
 	is_settings_received = true;
+	push_grow_settings_status();
 }
 
 bool get_is_settings_received() { return is_settings_received; }

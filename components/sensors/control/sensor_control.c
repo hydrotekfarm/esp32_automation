@@ -33,13 +33,8 @@ float control_get_target_value(struct sensor_control *control_in) {
 
 // --------------------------------------------------- Public interface ----------------------------------------------
 
-void init_sensor_control(struct sensor_control *control_in, char *name_in, char *namespace, cJSON *item, float margin_error_in) {
+void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in) {
 	strcpy(control_in->name, name_in);
-
-	struct NVS_Data *data = nvs_init_data();
-	control_update_settings(control_in, item, data);
-	nvs_commit_data(data, namespace);
-	ESP_LOGI(control_in->name, "Committed data to NVS");
 
 	control_in->is_control_active = false;
 	control_in->is_doser = false;

@@ -18,6 +18,7 @@
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "reservoir_control.h"
+#include "control_task.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "control_task.h"
@@ -53,6 +54,9 @@ void boot_sequence() {
 
 	// Set all sync bits var
 	set_sensor_sync_bits();
+
+	// Init sensor control
+	init_control();
 
 	// Init rtc and check if time needs to be set
 	init_rtc();

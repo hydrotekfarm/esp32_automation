@@ -38,7 +38,7 @@ struct sensor_control {
 // TODO add RME's
 
 // Initialize control structure
-void init_sensor_control(struct sensor_control *control_in, char *name_in, char *namespace, cJSON *item, float margin_error_in);
+void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in);
 void init_doser_control(struct sensor_control *control_in);
 
 // Get enable/active statuses
