@@ -27,6 +27,7 @@
 #include "network_settings.h"
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
+#include "grow_manager.h"
 
 void boot_sequence() {
 	// Init nvs
@@ -40,7 +41,7 @@ void boot_sequence() {
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	// Init grow manager
-	void init_grow_manager();
+	init_grow_manager();
 
 	// Init network properties
 	init_network_connections();
@@ -71,34 +72,6 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, sensor_get_task_handle(get_ec_sensor()), 1);
 	xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, sensor_get_task_handle(get_ph_sensor()), 1);
 	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
-}
-
-void suspend_tasks() {
-	// Core 0 tasks
-	vTaskSuspend(&rf_transmitter_task_handle);
-	vTaskSuspend(&timer_alarm_task_handle);
-	// Note: don't suspend mqtt task
-	vTaskSuspend(&sensor_control_task_handle);
-
-	// Core 1
-	vTaskSuspend(sensor_get_task_handle(get_water_temp_sensor()));
-	vTaskSuspend(sensor_get_task_handle(get_ec_sensor()));
-	vTaskSuspend(sensor_get_task_handle(get_ph_sensor()));
-	vTaskSuspend(&sync_task_handle);
-}
-
-void resume_tasks() {
-	// Core 0 tasks
-	vTaskResume(&rf_transmitter_task_handle);
-	vTaskResume(&timer_alarm_task_handle);
-	// Note: don't need to resume mqtt task
-	vTaskResume(&sensor_control_task_handle);
-
-	// Core 1
-	vTaskResume(sensor_get_task_handle(get_water_temp_sensor()));
-	vTaskResume(sensor_get_task_handle(get_ec_sensor()));
-	vTaskResume(sensor_get_task_handle(get_ph_sensor()));
-	vTaskResume(&sync_task_handle);
 }
 
 void restart_esp32() { // Restart ESP32

@@ -102,14 +102,14 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
-void init_topic(char **topic, int topic_len) {
+void init_topic(char **topic, int topic_len, char *heading) {
 	*topic = malloc(sizeof(char) * topic_len);
-	strcpy(*topic, get_network_settings()->device_id);
+	strcpy(*topic, heading);
 }
 
-void add_heading(char *topic, char *heading) {
+void add_id(char *topic) {
 	strcat(topic, "/");
-	strcat(topic, heading);
+	strcat(topic, get_network_settings()->device_id);
 }
 
 void make_topics() {
@@ -117,16 +117,16 @@ void make_topics() {
 
 	int device_id_len = strlen(get_network_settings()->device_id);
 
-	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1);
-	add_heading(wifi_connect_topic, WIFI_CONNECT_HEADING);
+	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
+	add_id(wifi_connect_topic);
 	ESP_LOGI("", "Wifi Topic: %s", wifi_connect_topic);
 
-	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1);
-	add_heading(sensor_data_topic, SENSOR_DATA_HEADING);
+	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
+	add_id(sensor_data_topic);
 	ESP_LOGI("", "Sensor data topic: %s", sensor_data_topic);
 
-	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1);
-	add_heading(sensor_settings_topic, SENSOR_SETTINGS_HEADING);
+	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
+	add_id(sensor_settings_topic);
 	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
 }
 

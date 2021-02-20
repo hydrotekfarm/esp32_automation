@@ -12,7 +12,7 @@ struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 
-	init_sensor(&water_temp_sensor, "water temp", true, false);
+	init_sensor(&water_temp_sensor, "water_temp", true, false);
 
 	ds18x20_addr_t ds18b20_address[1];
 

@@ -1,6 +1,7 @@
 #include "grow_manager.h"
 
-#include <esp_system.h>
+#include <esp_log.h>
+#include <esp_err.h>
 
 #include "nvs_manager.h"
 #include "nvs_namespace_keys.h"
@@ -11,15 +12,17 @@ void init_grow_manager() {
 	// Check for sensor settings status
 	if(!nvs_get_data(&status, GROW_SETTINGS_NVS_NAMESPACE, SETTINGS_RECEIVED_KEY, UINT8) || !status) {
 		is_settings_received = false;
+		stop_grow_cycle();
+		return;
 	} else {
 		is_settings_received = true;
 	}
 
 	// Check for grow cycle status
 	if(!nvs_get_data(&status, GROW_SETTINGS_NVS_NAMESPACE, GROW_ACTIVE_KEY, UINT8) || !status) {
-		is_grow_active = false;
+		stop_grow_cycle();
 	} else {
-		is_grow_active = true;
+		start_grow_cycle();
 	}
 }
 
@@ -40,12 +43,16 @@ void start_grow_cycle() {
 	if(!is_settings_received) return;
 
 	// Set active to true and store in NVS
+	ESP_LOGI("", "Starting Grow Cycle");
+
 	is_grow_active = true;
 	push_grow_status();
 }
 
 void stop_grow_cycle() {
 	// Set active to false ands store in NVS
+	ESP_LOGI("", "Stopping Grow Cycle");
+
 	is_grow_active = false;
 	push_grow_status();
 }

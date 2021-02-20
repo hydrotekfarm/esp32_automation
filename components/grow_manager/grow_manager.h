@@ -11,7 +11,7 @@ bool is_grow_active;
 void init_grow_manager();
 
 // Start/stop grow cycle
-void start_grow_cyle();
+void start_grow_cycle();
 void stop_grow_cycle();
 
 // Function called when JSON settings are received through MQTT
