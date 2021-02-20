@@ -10,6 +10,7 @@
 #define WIFI_CONNECT_HEADING "wifi_connect_status"
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "device_settings"
+#define GROW_CYCLE_HEADING "device_status"
 
 #define TIME_STRING_LENGTH 21
 
@@ -26,6 +27,7 @@ bool is_mqtt_connected;
 char *wifi_connect_topic;
 char *sensor_data_topic;
 char *sensor_settings_topic;
+char *grow_cycle_topic;
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 

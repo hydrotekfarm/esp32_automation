@@ -79,7 +79,10 @@ void resume_tasks() {
 
 void start_grow_cycle() {
 	// Don't start unless settings have been received
-	if(!is_settings_received) return;
+	if(!is_settings_received){
+		ESP_LOGE("Error", "Attempted to start grow cycle before sending settings");
+		return;
+	}
 
 	// Set active to true and store in NVS
 	is_grow_active = true;

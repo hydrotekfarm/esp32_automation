@@ -128,11 +128,15 @@ void make_topics() {
 	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
 	add_id(sensor_settings_topic);
 	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
-}
+
+	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
+	add_id(grow_cycle_topic);
+	ESP_LOGI("", "Sensor settings topic: %s", grow_cycle_topic);}
 
 void subscribe_topics() {
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -311,7 +315,14 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 
 		// Update sensor settings
 		update_settings(data);
-	} else {
+	} else if(strcmp(topic, grow_cycle_topic) == 0) {
+		ESP_LOGI(TAG, "Grow cycle status received");
+
+		// Start/stop grow cycle according to message
+		if(data[0] == '0') stop_grow_cycle();
+		else start_grow_cycle();
+	}
+	else {
 		// Topic doesn't match any known topics
 		ESP_LOGE(TAG, "Topic unknown");
 	}
