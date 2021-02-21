@@ -275,9 +275,9 @@ void update_settings(char *settings) {
 		} else if(strcmp("ec", data_topic) == 0) {
 			ESP_LOGI(TAG, "ec data received");
 			ec_update_settings(subitem);
-		} else if(strcmp("air_temperature", data_topic) == 0) {
-			// Add air temp call when control is implemented
-			ESP_LOGI(TAG, "air temperature data received");
+		} else if(strcmp("water_temp", data_topic) == 0) {
+			// Add water temp call when control is implemented
+			ESP_LOGI(TAG, "water temperature data received");
 		} else {
 			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
 		}
