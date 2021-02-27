@@ -138,16 +138,19 @@ void ec_update_settings(cJSON *item) {
 									//TODO update ec pump 5 value
 									ESP_LOGI("Updated ec pump 5 value to: ", "%d", pump5_element->valueint);
 								}
+								ESP_LOGI("Test", "1");
 								pump5_element = pump5_element->next;
 							}
 						}
+						ESP_LOGI("Test", "2");
 						pumps_element = pumps_element->next;
 					}
 				}
-
+				ESP_LOGI("Test", "3");
 				control_element = control_element->next;
 			}
 		}
+		ESP_LOGI("Test", "4");
 		element = element->next;
 	}
 
