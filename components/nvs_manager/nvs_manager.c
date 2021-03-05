@@ -1,13 +1,12 @@
 #include "nvs_manager.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <esp_err.h>
 #include <esp_system.h>
 #include <esp_event.h>
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <nvs.h>
+#include <stdlib.h>
 #include <string.h>
 
 void init_nvs() {
@@ -133,63 +132,217 @@ bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace) {
 	return true;
 }
 
-bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type) {
-	const char TAG[] = "NVS_GET_DATA";
-
+bool nvs_get_uint8(char *namespace, char *key, uint8_t *data) {
 	nvs_handle_t handle;
-	esp_err_t err  = nvs_open(nvs_namespace, NVS_READONLY, &handle);
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
 	if(err != ESP_OK) {
-		ESP_LOGI(TAG, "Unable to open NVS");
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
 		nvs_close(handle);
 		return false;
 	}
 
-	switch(data_type) {
-	size_t temp_size;
-	case UINT8:
-		err = nvs_get_u8(handle, key, data);
-		break;
-	case INT8:
-		err = nvs_get_i8(handle, key, data);
-		break;
-	case UINT16:
-		err = nvs_get_u16(handle, key, data);
-		break;
-	case INT16:
-		err = nvs_get_i16(handle, key, data);
-		break;
-	case UINT32:
-		err = nvs_get_u32(handle, key, data);
-		break;
-	case INT32:
-		err = nvs_get_i32(handle, key, data);
-		break;
-	case UINT64:
-		err = nvs_get_u64(handle, key, data);
-		break;
-	case INT64:
-		err = nvs_get_i64(handle, key, data);
-		break;
-	case FLOAT: {
-		float *fl_ptr;
-		err = nvs_get_str(handle, key, NULL, &temp_size);
-		if(err != ESP_OK) break;
-		err = nvs_get_str(handle, key, data, &temp_size);
-		fl_ptr = data;
-		*fl_ptr = atof(data);
-		break;
-	}
-	case STRING:
-		err = nvs_get_str(handle, key, NULL, &temp_size);
-		if(err != ESP_OK) break;
-		err = nvs_get_str(handle, key, data, &temp_size);
-		break;
-	}
+	err = nvs_get_u8(handle, key, data);
 
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_int8(char *namespace, char *key, int8_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_i8(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_uint16(char *namespace, char *key, uint16_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_u16(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_int16(char *namespace, char *key, int16_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_i16(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_uint32(char *namespace, char *key, uint32_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_u32(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_int32(char *namespace, char *key, int32_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_i32(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_uint64(char *namespace, char *key, uint64_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_u64(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_int64(char *namespace, char *key, int64_t *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_i64(handle, key, data);
+
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	return true;
+}
+bool nvs_get_float(char *namespace, char *key, float *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	size_t str_size;
+	err = nvs_get_str(handle, key, NULL, &str_size);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		nvs_close(handle);
+		return false;
+	}
+
+	char *fl_str = NULL;
+	err = nvs_get_str(handle, key, fl_str, &str_size);
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		return false;
+	}
+
+	*data = atof(fl_str);
+	return true;
+}
+bool nvs_get_string(char *namespace, char *key, char *data) {
+	nvs_handle_t handle;
+	esp_err_t err = nvs_open(namespace, NVS_READONLY, &handle);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Unable to open NVS");
+		nvs_close(handle);
+		return false;
+	}
+
+	size_t str_size;
+	err = nvs_get_str(handle, key, NULL, &str_size);
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		nvs_close(handle);
+		return false;
+	}
+
+	err = nvs_get_str(handle, key, data, &str_size);
+	nvs_close(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
 		return false;
 	}
 

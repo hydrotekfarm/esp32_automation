@@ -170,16 +170,16 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, str
 }
 
 void control_get_nvs_settings(struct sensor_control *control_in, char *namespace) {
-	nvs_get_data(&control_in->is_control_enabled, namespace, MONITORING_ONLY, UINT8);
+	nvs_get_uint8(namespace, MONITORING_ONLY, (uint8_t*)(&control_in->is_control_enabled));
 	control_in->is_control_enabled = !control_in->is_control_enabled;
 
-	nvs_get_data(&control_in->target_value, namespace, TARGET_VALUE, FLOAT);
-	nvs_get_data(&control_in->is_day_night_active, namespace, DAY_AND_NIGHT, UINT8);
-	nvs_get_data(&control_in->night_target_value, namespace, NIGHT_TARGET_VALUE, FLOAT);
-	nvs_get_data(&control_in->is_up_control, namespace, UP_CONTROL, UINT8);
-	nvs_get_data(&control_in->is_down_control, namespace, DOWN_CONTROL, UINT8);
-	nvs_get_data(&control_in->dose_time, namespace, DOSING_TIME, FLOAT);
-	nvs_get_data(&control_in->wait_time, namespace, DOSING_INTERVAL, FLOAT);
+	nvs_get_float(namespace, TARGET_VALUE, &control_in->target_value);
+	nvs_get_uint8(namespace, DAY_AND_NIGHT, (uint8_t*)(&control_in->is_day_night_active));
+	nvs_get_float(namespace, NIGHT_TARGET_VALUE, &control_in->night_target_value);
+	nvs_get_uint8(namespace, UP_CONTROL, (uint8_t*)(&control_in->is_up_control));
+	nvs_get_uint8(namespace, DOWN_CONTROL, (uint8_t*)(&control_in->is_down_control));
+	nvs_get_float(namespace, DOSING_TIME, &control_in->dose_time);
+	nvs_get_float(namespace, DOSING_INTERVAL, &control_in->wait_time);
 }
 
 // --------------------------------------------------------------------------------------------------------------------

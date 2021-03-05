@@ -20,7 +20,7 @@ void init_grow_manager() {
 	uint8_t status; // Holds vars coming from NVS
 
 	// Check for sensor settings status
-	if(!nvs_get_data(&status, GROW_SETTINGS_NVS_NAMESPACE, SETTINGS_RECEIVED_KEY, UINT8) || !status) {
+	if(!nvs_get_uint8(GROW_SETTINGS_NVS_NAMESPACE, SETTINGS_RECEIVED_KEY, &status) || !status) {
 		is_settings_received = false;
 		stop_grow_cycle();
 		return;
@@ -31,7 +31,7 @@ void init_grow_manager() {
 
 	ESP_LOGI("", "About to check");
 	// Check for grow cycle status
-	if(!nvs_get_data(&status, GROW_SETTINGS_NVS_NAMESPACE, GROW_ACTIVE_KEY, UINT8) || !status) {
+	if(!nvs_get_uint8(GROW_SETTINGS_NVS_NAMESPACE, GROW_ACTIVE_KEY, &status) || !status) {
 		ESP_LOGI("", "About to stop cycle");
 		stop_grow_cycle();
 	} else {

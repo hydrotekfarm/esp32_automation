@@ -1,7 +1,10 @@
 #include <stdbool.h>
+#include <stdio.h>
 
 #ifndef NVS_MANAGER_H
 #define NVS_MANAGER_H
+
+#define NVS_TAG "NVS_MANAGER"
 
 // Enum storing data types compatible with NVS
 enum NVS_DATA_TYPES {
@@ -46,5 +49,14 @@ void nvs_add_data(struct NVS_Data *data, char *key_in, enum NVS_DATA_TYPES data_
 // Commits data entered thus far to
 bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace);
 
-// Gets data stored in nvs and stores it in data
-bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type);
+// NVS getters
+bool nvs_get_uint8(char *namespace, char *key, uint8_t *data);
+bool nvs_get_int8(char *namespace, char *key, int8_t *data);
+bool nvs_get_uint16(char *namespace, char *key, uint16_t *data);
+bool nvs_get_int16(char *namespace, char *key, int16_t *data);
+bool nvs_get_uint32(char *namespace, char *key, uint32_t *data);
+bool nvs_get_int32(char *namespace, char *key, int32_t *data);
+bool nvs_get_uint64(char *namespace, char *key, uint64_t *data);
+bool nvs_get_int64(char *namespace, char *key, int64_t *data);
+bool nvs_get_float(char *namespace, char *key, float *data);
+bool nvs_get_string(char *namespace, char *key, char *data);
