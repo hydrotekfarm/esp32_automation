@@ -5,7 +5,6 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <nvs_flash.h>
-#include <nvs.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,111 +24,146 @@ void nvs_clear() {
 	ESP_ERROR_CHECK(nvs_flash_init());
 }
 
-struct NVS_Data* nvs_init_data() {
-	struct NVS_Data *data = malloc(sizeof(struct NVS_Data));
-	data->next = NULL;
-	return data;
+nvs_handle_t* nvs_get_handle(char *namespace) {
+	nvs_handle_t *handle = malloc(sizeof(nvs_handle_t));
+	nvs_open(namespace, NVS_READWRITE, handle);
+	return handle;
 }
 
-void nvs_add_data(struct NVS_Data *data, char *key_in, enum NVS_DATA_TYPES data_type_in, void *datum_in) {
-	struct NVS_Data* new_data = nvs_init_data();
-	new_data->key = key_in;
-	new_data->data_type = data_type_in;
-	new_data->datum = datum_in;
+void nvs_add_uint8(nvs_handle_t *handle, char *key, uint8_t data) {
+	esp_err_t err = nvs_set_u8(*handle, key, data);
 
-	while(data->next != NULL) {
-		data = data->next;
-	}
-	data->next = new_data;
-}
-
-void nvs_delete_data(struct NVS_Data *data) {
-	while(data != NULL)  {
-		struct NVS_Data *temp = data;
-		data = data->next;
-		free(temp);
-	}
-}
-
-bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace) {
-	char *TAG = "NVS_COMMIT_DATA";
-
-	nvs_handle_t handle;
-	esp_err_t err  = nvs_open(nvs_namespace, NVS_READWRITE, &handle);
 	if(err != ESP_OK) {
-		ESP_LOGI(TAG, "Unable to open NVS");
-		nvs_delete_data(data);
-		nvs_close(handle);
-		return false;
-	}
-	while(data != NULL) {
-		char float_str[10];
-		switch(data->data_type) {
-		case UINT8:
-			err = nvs_set_u8(handle, data->key, *(uint8_t*)(data->datum));
-			ESP_LOGI(TAG, "uint8 data: %d", *(uint8_t*)(data->datum));
-			break;
-		case INT8:
-			err = nvs_set_i8(handle, data->key, *(int8_t*)(data->datum));
-			ESP_LOGI(TAG, "int8 data: %d", *(int8_t*)(data->datum));
-			break;
-		case UINT16:
-			err = nvs_set_u16(handle, data->key, *(uint16_t*)(data->datum));
-			ESP_LOGI(TAG, "uint16 data: %d", *(uint16_t*)(data->datum));
-			break;
-		case INT16:
-			err = nvs_set_i16(handle, data->key, *(int16_t*)(data->datum));
-			ESP_LOGI(TAG, "int16 data: %d", *(int16_t*)(data->datum));
-			break;
-		case UINT32:
-			err = nvs_set_u32(handle, data->key, *(uint32_t*)(data->datum));
-			ESP_LOGI(TAG, "uint32 data: %d", *(uint32_t*)(data->datum));
-			break;
-		case INT32:
-			err = nvs_set_i32(handle, data->key, *(int32_t*)(data->datum));
-			ESP_LOGI(TAG, "int32 data: %d", *(int32_t*)(data->datum));
-			break;
-		case UINT64:
-			err = nvs_set_u64(handle, data->key, *(uint64_t*)(data->datum));
-			ESP_LOGI(TAG, "uint64 data: %lld", *(uint64_t*)(data->datum));
-			break;
-		case INT64:
-			err = nvs_set_i64(handle, data->key, *(int64_t*)(data->datum));
-			ESP_LOGI(TAG, "int64 data: %lld", *(int64_t*)(data->datum));
-			break;
-		case FLOAT:
-			sprintf(float_str, "%.2f", *(float*)(data->datum));
-			err = nvs_set_str(handle, data->key, float_str);
-			ESP_LOGI(TAG, "float data: %s", float_str);
-			break;
-		case STRING:
-			err = nvs_set_str(handle, data->key, (char*)(data->datum));
-			ESP_LOGI(TAG, "string data: %s", (char*)(data->datum));
-			break;
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
 		}
-
-		if(err != ESP_OK) {
-			ESP_LOGI(TAG, "Failed adding data to NVS");
-			nvs_delete_data(data);
-			nvs_close(handle);
-			return false;
-		}
-
-		struct NVS_Data *temp = data;
-		data = data->next;
-		free(temp);
 	}
+}
+void nvs_add_int8(nvs_handle_t *handle, char *key, int8_t data) {
+	esp_err_t err = nvs_set_i8(*handle, key, data);
 
-	err = nvs_commit(handle);
 	if(err != ESP_OK) {
-		ESP_LOGI(TAG, "Failed committing data to NVS");
-		nvs_close(handle);
-		return false;
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
 	}
+}
+void nvs_add_uint16(nvs_handle_t *handle, char *key, uint16_t data) {
+	esp_err_t err = nvs_set_u16(*handle, key, data);
 
-	nvs_close(handle);
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_int16(nvs_handle_t *handle, char *key, int16_t data) {
+	esp_err_t err = nvs_set_i16(*handle, key, data);
 
-	return true;
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_uint32(nvs_handle_t *handle, char *key, uint32_t data) {
+	esp_err_t err = nvs_set_u32(*handle, key, data);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_int32(nvs_handle_t *handle, char *key, int32_t data) {
+	esp_err_t err = nvs_set_i32(*handle, key, data);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_uint64(nvs_handle_t *handle, char *key, uint64_t data) {
+	esp_err_t err = nvs_set_u64(*handle, key, data);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_int64(nvs_handle_t *handle, char *key, int64_t data) {
+	esp_err_t err = nvs_set_i64(*handle, key, data);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_float(nvs_handle_t *handle, char *key, float data) {
+	const size_t FLOAT_SIZE = 10;
+	char float_str[FLOAT_SIZE];
+	snprintf(float_str, FLOAT_SIZE, "%.2f", data);
+
+	esp_err_t err = nvs_set_str(*handle, key, float_str);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+void nvs_add_string(nvs_handle_t *handle, char *key, char *data) {
+	esp_err_t err = nvs_set_str(*handle, key, data);
+
+	if(err != ESP_OK) {
+		if(err == ESP_ERR_NVS_NOT_ENOUGH_SPACE) {
+			ESP_LOGE(NVS_TAG, "NOT ENOUGH STORAGE");
+			// TODO take action, probably restart
+		} else {
+			ESP_LOGE(NVS_TAG, "Failed putting data in NVS, error:  %d", err);
+		}
+	}
+}
+
+void nvs_commit_data(nvs_handle_t *handle) {
+	esp_err_t err = nvs_commit(*handle);
+
+	nvs_close(*handle);
+	free(handle);
+
+	if(err != ESP_OK) {
+		ESP_LOGI(NVS_TAG, "Failed committing data to NVS");
+	}
 }
 
 bool nvs_get_uint8(char *namespace, char *key, uint8_t *data) {

@@ -51,8 +51,8 @@ void ph_pump_off() {
 }
 
 void ph_update_settings(cJSON *item) {
-	struct NVS_Data *data = nvs_init_data();
-	control_update_settings(&ph_control, item, data);
+	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
+	control_update_settings(&ph_control, item, handle);
 	ESP_LOGI("Test", "1");
 	cJSON *element = item->child;
 	ESP_LOGI("Test", "2");
@@ -93,7 +93,7 @@ void ph_update_settings(cJSON *item) {
 		element = element->next;
 	}
 	ESP_LOGI("...", "about to commit");
-	nvs_commit_data(data, PH_NAMESPACE);
+	nvs_commit_data(handle);
 	ESP_LOGI("", "Committed pH data to NVS");
 	ESP_LOGI("", "Finished updating pH settings");
 }

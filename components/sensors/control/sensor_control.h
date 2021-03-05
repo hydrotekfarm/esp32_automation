@@ -6,6 +6,8 @@
 
 #include <stdbool.h>
 #include <cjson.h>
+#include <nvs.h>
+
 #include "rtc.h"
 #include "nvs_manager.h"
 
@@ -68,7 +70,7 @@ void control_set_dose_percentage(struct sensor_control *control_in, float value)
 float control_get_dose_time(struct sensor_control *control_in);
 
 // Update settings using JSON string
-void control_update_settings(struct sensor_control *control_in, cJSON *item, struct NVS_Data *data);
+void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs_handle_t *handle);
 
 // Get sensor settings stored in NVS
 void control_get_nvs_settings(struct sensor_control *control_in, char *namespace);

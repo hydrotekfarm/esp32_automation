@@ -43,15 +43,15 @@ void init_network_connections() {
 void push_network_settings() {
 	uint8_t network_settings_status = 1;
 
-	struct NVS_Data *data = nvs_init_data();
+	nvs_handle_t *handle = nvs_get_handle(NETWORK_SETTINGS_NVS_NAMESPACE);
 
-	nvs_add_data(data, WIFI_SSID_KEY, STRING, network_settings.wifi_ssid);
-	nvs_add_data(data, WIFI_PW_KEY, STRING, network_settings.wifi_pw);
-	nvs_add_data(data, DEVICE_ID_KEY, STRING, network_settings.device_id);
-	nvs_add_data(data, BROKER_IP_KEY, STRING, network_settings.broker_ip);
-	nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &network_settings_status);
+	nvs_add_string(handle, WIFI_SSID_KEY, network_settings.wifi_ssid);
+	nvs_add_string(handle, WIFI_PW_KEY, network_settings.wifi_pw);
+	nvs_add_string(handle, DEVICE_ID_KEY, network_settings.device_id);
+	nvs_add_string(handle, BROKER_IP_KEY, network_settings.broker_ip);
+	nvs_add_uint8(handle, INIT_PROPERTIES_KEY, network_settings_status);
 
-	nvs_commit_data(data, NETWORK_SETTINGS_NVS_NAMESPACE);
+	nvs_commit_data(handle);
 }
 
 void pull_network_settings() {
@@ -64,7 +64,7 @@ void pull_network_settings() {
 void set_invalid_network_settings() {
 	uint8_t network_settings_status = 0;
 
-	struct NVS_Data *data = nvs_init_data();
-	nvs_add_data(data, INIT_PROPERTIES_KEY, UINT8, &network_settings_status);
-	nvs_commit_data(data, NETWORK_SETTINGS_NVS_NAMESPACE);
+	nvs_handle_t *handle = nvs_get_handle(NETWORK_SETTINGS_NVS_NAMESPACE);
+	nvs_add_uint8(handle, INIT_PROPERTIES_KEY, network_settings_status);
+	nvs_commit_data(handle);
 }

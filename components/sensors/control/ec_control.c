@@ -61,8 +61,8 @@ void ec_dose() {
 }
 
 void ec_update_settings(cJSON *item) {
-	struct NVS_Data *data = nvs_init_data();
-	control_update_settings(&ec_control, item, data);
+	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
+	control_update_settings(&ec_control, item, handle);
 
 	cJSON *element = item->child;
 	while(element != NULL) {
@@ -154,7 +154,7 @@ void ec_update_settings(cJSON *item) {
 		element = element->next;
 	}
 
-	nvs_commit_data(data, EC_NAMESPACE);
+	nvs_commit_data(handle);
 	ESP_LOGI("", "Committed ec data to NVS");
 	ESP_LOGI("", "Finished updating ec settings");
 }

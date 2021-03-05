@@ -42,16 +42,16 @@ void init_grow_manager() {
 
 void push_grow_status() {
 	// Store in NVS
-	struct NVS_Data *data = nvs_init_data();
-	nvs_add_data(data, GROW_ACTIVE_KEY, UINT8, &is_grow_active);
-	nvs_commit_data(data, GROW_SETTINGS_NVS_NAMESPACE);
+	nvs_handle_t *handle = nvs_get_handle(GROW_SETTINGS_NVS_NAMESPACE);
+	nvs_add_uint8(handle, GROW_ACTIVE_KEY, is_grow_active);
+	nvs_commit_data(handle);
 }
 
 void push_grow_settings_status() {
 	// Store in NVS
-	struct NVS_Data *data = nvs_init_data();
-	nvs_add_data(data, SETTINGS_RECEIVED_KEY, UINT8, &is_settings_received);
-	nvs_commit_data(data, GROW_SETTINGS_NVS_NAMESPACE);
+	nvs_handle_t *handle = nvs_get_handle(GROW_SETTINGS_NVS_NAMESPACE);
+	nvs_add_uint8(handle, SETTINGS_RECEIVED_KEY, is_settings_received);
+	nvs_commit_data(handle);
 }
 
 void suspend_tasks() {
