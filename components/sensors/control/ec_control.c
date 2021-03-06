@@ -2,15 +2,16 @@
 
 #include <stdbool.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include <string.h>
 
+#include "control_settings_keys.h"
 #include "sensor_control.h"
 #include "ph_control.h"
 #include "rtc.h"
 #include "ec_reading.h"
 #include "control_task.h"
 #include "sync_sensors.h"
-#include "JSON_keys.h"
 #include "ports.h"
 
 struct sensor_control* get_ec_control() { return &ec_control; }
@@ -60,7 +61,8 @@ void ec_dose() {
 }
 
 void ec_update_settings(cJSON *item) {
-	control_update_settings(&ec_control, item);
+	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
+	control_update_settings(&ec_control, item, handle);
 
 	cJSON *element = item->child;
 	while(element != NULL) {
@@ -136,17 +138,23 @@ void ec_update_settings(cJSON *item) {
 									//TODO update ec pump 5 value
 									ESP_LOGI("Updated ec pump 5 value to: ", "%d", pump5_element->valueint);
 								}
+								ESP_LOGI("Test", "1");
 								pump5_element = pump5_element->next;
 							}
 						}
+						ESP_LOGI("Test", "2");
 						pumps_element = pumps_element->next;
 					}
 				}
-
+				ESP_LOGI("Test", "3");
 				control_element = control_element->next;
 			}
 		}
+		ESP_LOGI("Test", "4");
 		element = element->next;
 	}
+
+	nvs_commit_data(handle);
+	ESP_LOGI("", "Committed ec data to NVS");
 	ESP_LOGI("", "Finished updating ec settings");
 }

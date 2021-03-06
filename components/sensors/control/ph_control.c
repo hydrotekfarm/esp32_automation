@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include <string.h>
 
 #include "rtc.h"
@@ -9,7 +10,7 @@
 #include "control_task.h"
 #include "sync_sensors.h"
 #include "ports.h"
-#include "JSON_keys.h"
+#include "control_settings_keys.h"
 #include "ec_control.h"
 #include "sensor.h"
 
@@ -50,19 +51,30 @@ void ph_pump_off() {
 }
 
 void ph_update_settings(cJSON *item) {
-	control_update_settings(&ph_control, item);
-
+	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
+	control_update_settings(&ph_control, item, handle);
+	ESP_LOGI("Test", "1");
 	cJSON *element = item->child;
+	ESP_LOGI("Test", "2");
 	while(element != NULL) {
+		ESP_LOGI("Test", "3");
 		char *key = element->string;
+		ESP_LOGI("Test", "4");
 		if(strcmp(key, CONTROL) == 0) {
+			ESP_LOGI("Test", "5");
 			cJSON *control_element = element->child;
+			ESP_LOGI("Test", "6");
 			while(control_element != NULL) {
+				ESP_LOGI("Test", "7");
 				char *control_key = control_element->string;
+				ESP_LOGI("Test", "8");
 				if(strcmp(control_key, PUMPS) == 0) {
+					ESP_LOGI("Test", "9");
 					//TODO update target value
 					cJSON *pumps_element = control_element->child;
+					ESP_LOGI("Test", "10");
 					while(pumps_element != NULL) {
+						ESP_LOGI("Test", "11");
 						char *pumps_key = pumps_element->string;
 						if(strcmp(pumps_key, PUMP_1_ENABLED) == 0) {
 							//TODO update ph pump 1
@@ -74,11 +86,14 @@ void ph_update_settings(cJSON *item) {
 						pumps_element = pumps_element->next;
 					}
 				}
-
 				control_element = control_element->next;
 			}
 		}
+		ESP_LOGI("", "next element");
 		element = element->next;
 	}
+	ESP_LOGI("...", "about to commit");
+	nvs_commit_data(handle);
+	ESP_LOGI("", "Committed pH data to NVS");
 	ESP_LOGI("", "Finished updating pH settings");
 }

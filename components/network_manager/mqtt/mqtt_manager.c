@@ -19,6 +19,7 @@
 #include "sync_sensors.h"
 #include "rtc.h"
 #include "network_settings.h"
+#include "grow_manager.h"
 #include "wifi_connect.h"
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
@@ -101,14 +102,14 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
-void init_topic(char **topic, int topic_len) {
+void init_topic(char **topic, int topic_len, char *heading) {
 	*topic = malloc(sizeof(char) * topic_len);
-	strcpy(*topic, get_network_settings()->device_id);
+	strcpy(*topic, heading);
 }
 
-void add_heading(char *topic, char *heading) {
+void add_id(char *topic) {
 	strcat(topic, "/");
-	strcat(topic, heading);
+	strcat(topic, get_network_settings()->device_id);
 }
 
 void make_topics() {
@@ -116,22 +117,26 @@ void make_topics() {
 
 	int device_id_len = strlen(get_network_settings()->device_id);
 
-	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1);
-	add_heading(wifi_connect_topic, WIFI_CONNECT_HEADING);
+	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
+	add_id(wifi_connect_topic);
 	ESP_LOGI("", "Wifi Topic: %s", wifi_connect_topic);
 
-	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1);
-	add_heading(sensor_data_topic, SENSOR_DATA_HEADING);
+	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
+	add_id(sensor_data_topic);
 	ESP_LOGI("", "Sensor data topic: %s", sensor_data_topic);
 
-	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1);
-	add_heading(sensor_settings_topic, SENSOR_SETTINGS_HEADING);
+	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
+	add_id(sensor_settings_topic);
 	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
-}
+
+	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
+	add_id(grow_cycle_topic);
+	ESP_LOGI("", "Sensor settings topic: %s", grow_cycle_topic);}
 
 void subscribe_topics() {
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -270,15 +275,17 @@ void update_settings(char *settings) {
 		} else if(strcmp("ec", data_topic) == 0) {
 			ESP_LOGI(TAG, "ec data received");
 			ec_update_settings(subitem);
-		} else if(strcmp("air_temperature", data_topic) == 0) {
-			// Add air temp call when control is implemented
-			ESP_LOGI(TAG, "air temperature data received");
+		} else if(strcmp("water_temp", data_topic) == 0) {
+			// Add water temp call when control is implemented
+			ESP_LOGI(TAG, "water temperature data received");
 		} else {
 			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
 		}
 	}
-
 	cJSON_Delete(root);
+
+	ESP_LOGI(TAG, "Settings updated");
+	if(!get_is_settings_received()) settings_received();
 }
 
 void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
@@ -308,7 +315,14 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 
 		// Update sensor settings
 		update_settings(data);
-	} else {
+	} else if(strcmp(topic, grow_cycle_topic) == 0) {
+		ESP_LOGI(TAG, "Grow cycle status received");
+
+		// Start/stop grow cycle according to message
+		if(data[0] == '0') stop_grow_cycle();
+		else start_grow_cycle();
+	}
+	else {
 		// Topic doesn't match any known topics
 		ESP_LOGE(TAG, "Topic unknown");
 	}

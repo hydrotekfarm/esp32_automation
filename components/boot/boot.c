@@ -18,6 +18,7 @@
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "reservoir_control.h"
+#include "control_task.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "control_task.h"
@@ -27,6 +28,7 @@
 #include "network_settings.h"
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
+#include "grow_manager.h"
 
 void boot_sequence() {
 	// Init nvs
@@ -53,12 +55,18 @@ void boot_sequence() {
 	// Set all sync bits var
 	set_sensor_sync_bits();
 
+	// Init sensor control
+	init_control();
+
 	// Init rtc and check if time needs to be set
 	init_rtc();
 	check_rtc_reset();
 
+	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
+
 	// Create core 0 tasks
 	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
+	//vTaskSuspend(rf_transmitter_task_handle);
 	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 	xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
@@ -68,6 +76,9 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, sensor_get_task_handle(get_ec_sensor()), 1);
 	xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, sensor_get_task_handle(get_ph_sensor()), 1);
 	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
+
+	// Init grow manager
+	init_grow_manager();
 }
 
 void restart_esp32() { // Restart ESP32
