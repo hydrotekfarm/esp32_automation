@@ -4,6 +4,9 @@
 // Task handle
 TaskHandle_t sensor_control_task_handle;
 
+// Init control
+void init_control();
+
 // Sensor control task
 void sensor_control();
 

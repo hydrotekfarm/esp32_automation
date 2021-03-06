@@ -1,8 +1,11 @@
 #ifndef NVS_NAMESPACE_KEYS_H
 #define NVS_NAMESPACE_KEYS_H
 
-// System settings namespace
-#define SYSTEM_SETTINGS_NVS_NAMESPACE "SYSTEM"
+// Network settings namespace
+#define NETWORK_SETTINGS_NVS_NAMESPACE "NETWORK"
+
+// Grow settings namespace
+#define GROW_SETTINGS_NVS_NAMESPACE "GROW"
 
 // Timer/alarm namespace
 #define TIMER_ALARM_NVS_NAMESPACE "TIMER_ALARM"

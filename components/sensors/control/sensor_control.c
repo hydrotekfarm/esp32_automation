@@ -2,9 +2,10 @@
 
 #include <string.h>
 #include <esp_log.h>
+#include <esp_err.h>
 #include "rtc.h"
 #include "sync_sensors.h"
-#include "JSON_keys.h"
+#include "control_settings_keys.h"
 
 // --------------------------------------------------- Helper functions ----------------------------------------------
 
@@ -32,9 +33,8 @@ float control_get_target_value(struct sensor_control *control_in) {
 
 // --------------------------------------------------- Public interface ----------------------------------------------
 
-void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in) {
+void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in) {
 	strcpy(control_in->name, name_in);
-	control_update_settings(control_in, item);
 
 	control_in->is_control_active = false;
 	control_in->is_doser = false;
@@ -110,13 +110,14 @@ void control_start_wait_timer(struct sensor_control *control_in) { enable_timer(
 void control_set_dose_percentage(struct sensor_control *control_in, float value) { control_in->dose_percentage = value; }
 float control_get_dose_time(struct sensor_control *control_in) { return control_in->dose_time * control_in->dose_percentage; }
 
-void control_update_settings(struct sensor_control *control_in, cJSON *item) {
+void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs_handle_t *handle) {
 	cJSON *element = item->child;
 	while(element != NULL) {
 		char *key = element->string;
 		if(strcmp(key, MONITORING_ONLY) == 0) {
 			if(!element->valueint) control_enable(control_in);
 			else control_disable(control_in);
+			nvs_add_uint8(handle, MONITORING_ONLY, element->valueint);
 			ESP_LOGI(control_in->name, "Updated control only to: %s", element->valueint != 0 ? "false" : "true");
 		} else if(strcmp(key, CONTROL) == 0) {
 			cJSON *control_element = element->child;
@@ -124,24 +125,31 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item) {
 				char *control_key = control_element->string;
 				if(strcmp(control_key, DOSING_TIME) == 0) {
 					control_in->dose_time = control_element->valuedouble;
+					nvs_add_float(handle, DOSING_TIME, control_in->dose_time);
 					ESP_LOGI(control_in->name, "Updated dosing time to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, DOSING_INTERVAL) == 0) {
 					control_in->wait_time = control_element->valuedouble;
+					nvs_add_float(handle, DOSING_INTERVAL, control_in->wait_time);
 					ESP_LOGI(control_in->name, "Updated wait time to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, DAY_AND_NIGHT) == 0) {
 					control_in->is_day_night_active = control_element->valueint;
+					nvs_add_uint8(handle, DAY_AND_NIGHT, control_element->valueint);
 					ESP_LOGI(control_in->name,"Updated day night control status to: %s", control_element->valueint == 0 ? "false" : "true");
 				} else if(strcmp(control_key, DAY_TARGET_VALUE) == 0 || strcmp(control_key, TARGET_VALUE) == 0) {
 					control_in->target_value = control_element->valuedouble;
+					nvs_add_float(handle, DAY_TARGET_VALUE, control_in->target_value);
 					ESP_LOGI(control_in->name, "Updated target value to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, NIGHT_TARGET_VALUE) == 0) {
 					control_in->night_target_value = control_element->valuedouble;
+					nvs_add_float(handle, NIGHT_TARGET_VALUE, (control_in->night_target_value));
 					ESP_LOGI(control_in->name, "Updated night target value to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, UP_CONTROL) == 0) {
 					control_in->is_up_control = control_element->valueint;
+					nvs_add_uint8(handle, UP_CONTROL, control_element->valueint);
 					ESP_LOGI(control_in->name, "Updated up control status to: %s", control_element->valueint ? "true" : "false");
 				} else if(strcmp(control_key, DOWN_CONTROL) == 0) {
 					control_in->is_down_control = control_element->valueint;
+					nvs_add_uint8(handle, DOWN_CONTROL, control_element->valueint);
 					ESP_LOGI(control_in->name, "Updated down control status to: %s", control_element->valueint ? "true" : "false");
 				}
 				control_element = control_element->next;
@@ -159,6 +167,19 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item) {
 		element = element->next;
 	}
 	ESP_LOGI(control_in->name, "Finished updating all values");
+}
+
+void control_get_nvs_settings(struct sensor_control *control_in, char *namespace) {
+	nvs_get_uint8(namespace, MONITORING_ONLY, (uint8_t*)(&control_in->is_control_enabled));
+	control_in->is_control_enabled = !control_in->is_control_enabled;
+
+	nvs_get_float(namespace, TARGET_VALUE, &control_in->target_value);
+	nvs_get_uint8(namespace, DAY_AND_NIGHT, (uint8_t*)(&control_in->is_day_night_active));
+	nvs_get_float(namespace, NIGHT_TARGET_VALUE, &control_in->night_target_value);
+	nvs_get_uint8(namespace, UP_CONTROL, (uint8_t*)(&control_in->is_up_control));
+	nvs_get_uint8(namespace, DOWN_CONTROL, (uint8_t*)(&control_in->is_down_control));
+	nvs_get_float(namespace, DOSING_TIME, &control_in->dose_time);
+	nvs_get_float(namespace, DOSING_INTERVAL, &control_in->wait_time);
 }
 
 // --------------------------------------------------------------------------------------------------------------------

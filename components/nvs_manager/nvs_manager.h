@@ -1,32 +1,8 @@
 #include <stdbool.h>
+#include <stdio.h>
+#include <nvs.h>
 
-#ifndef NVS_MANAGER_H
-#define NVS_MANAGER_H
-
-// Enum storing data types compatible with NVS
-enum NVS_DATA_TYPES {
-	UINT8,
-	INT8,
-	UINT16,
-	INT16,
-	UINT32,
-	INT32,
-	UINT64,
-	INT64,
-	FLOAT,
-	STRING
-};
-
-// Linked list to store data needed to be committed to NVS
-struct NVS_Data {
-	struct NVS_Data *next;
-	char *key;
-	enum NVS_DATA_TYPES data_type;
-	void *datum;
-};
-
-
-#endif
+#define NVS_TAG "NVS_MANAGER"
 
 
 // ----------------------------------------------------- MEMBER FUNCTIONS -----------------------------------------------------------------------
@@ -37,14 +13,32 @@ void init_nvs();
 // Clear nvs data
 void nvs_clear();
 
-// Start inputting new data for commitment. Returns true if currently possible, false otherwise
-struct NVS_Data* nvs_init_data();
+// Get NVS handle
+nvs_handle_t* nvs_get_handle(char *namespace);
 
-// Add data to linked list to be stored for commitment
-void nvs_add_data(struct NVS_Data *data, char *key_in, enum NVS_DATA_TYPES data_type_in, void *datum_in);
+// NVS setters
+void nvs_add_uint8(nvs_handle_t *handle, char *key, uint8_t data);
+void nvs_add_int8(nvs_handle_t *handle, char *key, int8_t data);
+void nvs_add_uint16(nvs_handle_t *handle, char *key, uint16_t data);
+void nvs_add_int16(nvs_handle_t *handle, char *key, int16_t data);
+void nvs_add_uint32(nvs_handle_t *handle, char *key, uint32_t data);
+void nvs_add_int32(nvs_handle_t *handle, char *key, int32_t data);
+void nvs_add_uint64(nvs_handle_t *handle, char *key, uint64_t data);
+void nvs_add_int64(nvs_handle_t *handle, char *key, int64_t data);
+void nvs_add_float(nvs_handle_t *handle, char *key, float data);
+void nvs_add_string(nvs_handle_t *handle, char *key, char *data);
 
-// Commits data entered thus far to
-bool nvs_commit_data(struct NVS_Data *data, char *nvs_namespace);
+// Commit data
+void nvs_commit_data(nvs_handle_t *handle);
 
-// Gets data stored in nvs and stores it in data
-bool nvs_get_data(void *data, char *nvs_namespace, char *key, enum NVS_DATA_TYPES data_type);
+// NVS getters
+bool nvs_get_uint8(char *namespace, char *key, uint8_t *data);
+bool nvs_get_int8(char *namespace, char *key, int8_t *data);
+bool nvs_get_uint16(char *namespace, char *key, uint16_t *data);
+bool nvs_get_int16(char *namespace, char *key, int16_t *data);
+bool nvs_get_uint32(char *namespace, char *key, uint32_t *data);
+bool nvs_get_int32(char *namespace, char *key, int32_t *data);
+bool nvs_get_uint64(char *namespace, char *key, uint64_t *data);
+bool nvs_get_int64(char *namespace, char *key, int64_t *data);
+bool nvs_get_float(char *namespace, char *key, float *data);
+bool nvs_get_string(char *namespace, char *key, char *data);
