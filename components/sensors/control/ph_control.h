@@ -2,6 +2,8 @@
 #include <cjson.h>
 #include "sensor_control.h"
 
+#define PH_TAG "PH_CONTROL"
+
 // Margin of error
 static const float PH_MARGIN_ERROR = 0.3;
 

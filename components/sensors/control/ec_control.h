@@ -3,11 +3,16 @@
 #include <cjson.h>
 #include "sensor_control.h"
 
+#define EC_TAG "EC_CONTROL"
+
 // Margin of error
 static const float EC_MARGIN_ERROR = 0.1;
 
 // Number of pumps
 #define EC_NUM_PUMPS 6
+
+// Index of pump number in tag
+#define PUMP_NUM_INDEX 5
 
 // Control struct
 struct sensor_control ec_control;
