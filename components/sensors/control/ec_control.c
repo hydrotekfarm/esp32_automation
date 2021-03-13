@@ -101,11 +101,12 @@ void ec_get_nvs_settings() {
 	// Get ec proportions from NVS
 	size_t num_index = strlen(PUMP_NUM);
 	char *key = malloc((num_index + 2) * sizeof(char));
-	key[strlen(key)] = '\0';
+	strcpy(key, PUMP_NUM);
+	key[num_index+1] = '\0';
 
 	for(int i = 0; i < EC_NUM_PUMPS; ++i) {
 		key[num_index] = i + '1';
-		//nvs_get_float(EC_NAMESPACE, key, &ec_nutrient_proportions[i]);
+		nvs_get_float(EC_NAMESPACE, key, &ec_nutrient_proportions[i]);
 	}
 
 	free(key);
