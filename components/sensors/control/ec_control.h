@@ -9,7 +9,7 @@
 static const float EC_MARGIN_ERROR = 0.1;
 
 // Number of pumps
-#define EC_NUM_PUMPS 6
+#define EC_NUM_PUMPS 5
 
 // Index of pump number in tag
 #define PUMP_NUM_INDEX 5
@@ -37,3 +37,6 @@ void ec_dose();
 
 // Update settings
 void ec_update_settings(cJSON *item);
+
+// Get and store settings from NVS
+void ec_get_nvs_settings();

@@ -92,5 +92,23 @@ void ec_update_settings(cJSON *item) {
 	}
 
 	nvs_commit_data(handle);
-	ESP_LOGI(EC_TAG, "Updating settings and committed ec data to NVS");
+	ESP_LOGI(EC_TAG, "Updating settings and committed data to NVS");
+}
+
+void ec_get_nvs_settings() {
+	control_get_nvs_settings(&ec_control, EC_NAMESPACE);
+
+	// Get ec proportions from NVS
+	size_t num_index = strlen(PUMP_NUM);
+	char *key = malloc((num_index + 2) * sizeof(char));
+	key[strlen(key)] = '\0';
+
+	for(int i = 0; i < EC_NUM_PUMPS; ++i) {
+		key[num_index] = i + '1';
+		//nvs_get_float(EC_NAMESPACE, key, &ec_nutrient_proportions[i]);
+	}
+
+	free(key);
+
+	ESP_LOGI(EC_TAG, "Updated settings from NVS");
 }

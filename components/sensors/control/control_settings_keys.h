@@ -17,11 +17,7 @@
 #define ALARM_MAX "alarm_max"
 
 // ec specific keys
-#define PUMP_1 "pump_1"
-#define PUMP_2 "pump_2"
-#define PUMP_3 "pump_3"
-#define PUMP_4 "pump_4"
-#define PUMP_5 "pump_5"
+#define PUMP_NUM "pump_"
 
 // Sensor namespaces
 #define PH_NAMESPACE "PH"

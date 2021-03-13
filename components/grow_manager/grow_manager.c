@@ -12,6 +12,8 @@
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "mqtt_manager.h"
+#include "ph_control.h"
+#include "ec_control.h"
 #include "control_task.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
@@ -25,17 +27,19 @@ void init_grow_manager() {
 		stop_grow_cycle();
 		return;
 	} else {
-		ESP_LOGI("", "Settings stored in NVS");
+		ESP_LOGI(GROW_MANAGER_TAG, "Settings stored in NVS");
+		ph_get_nvs_settings();
+		ec_get_nvs_settings();
 		settings_received();
 	}
 
-	ESP_LOGI("", "About to check");
+	ESP_LOGI(GROW_MANAGER_TAG, "About to check");
 	// Check for grow cycle status
 	if(!nvs_get_uint8(GROW_SETTINGS_NVS_NAMESPACE, GROW_ACTIVE_KEY, &status) || !status) {
-		ESP_LOGI("", "About to stop cycle");
+		ESP_LOGI(GROW_MANAGER_TAG, "About to stop cycle");
 		stop_grow_cycle();
 	} else {
-		ESP_LOGI("", "About to start cycle");
+		ESP_LOGI(GROW_MANAGER_TAG, "About to start cycle");
 		start_grow_cycle();
 	}
 }
@@ -95,7 +99,7 @@ void start_grow_cycle() {
 	push_grow_status();
 
 	resume_tasks();
-	ESP_LOGI("", "Started Grow Cycle");
+	ESP_LOGI(GROW_MANAGER_TAG, "Started Grow Cycle");
 }
 
 void stop_grow_cycle() {
@@ -103,7 +107,7 @@ void stop_grow_cycle() {
 	is_grow_active = false;
 	push_grow_status();
 
-	ESP_LOGI("", "Stopped Grow Cycle");
+	ESP_LOGI(GROW_MANAGER_TAG, "Stopped Grow Cycle");
 	suspend_tasks();
 }
 

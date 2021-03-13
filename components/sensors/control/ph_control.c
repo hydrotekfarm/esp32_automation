@@ -51,9 +51,14 @@ void ph_pump_off() {
 }
 
 void ph_update_settings(cJSON *item) {
-	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
+	nvs_handle_t *handle = nvs_get_handle(PH_NAMESPACE);
 	control_update_settings(&ph_control, item, handle);
 
 	nvs_commit_data(handle);
-	ESP_LOGI(PH_TAG, "Updated settings and committed pH data to NVS");
+	ESP_LOGI(PH_TAG, "Updated settings and committed data to NVS");
+}
+
+void ph_get_nvs_settings() {
+	control_get_nvs_settings(&ph_control, PH_NAMESPACE);
+	ESP_LOGI(PH_TAG ,"Updated settings from NVS");
 }

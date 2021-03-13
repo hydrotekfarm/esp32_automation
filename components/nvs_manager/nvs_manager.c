@@ -343,16 +343,18 @@ bool nvs_get_float(char *namespace, char *key, float *data) {
 		return false;
 	}
 
-	char *fl_str = NULL;
+	char *fl_str = malloc(str_size * sizeof(char));
 	err = nvs_get_str(handle, key, fl_str, &str_size);
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
 		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		free(fl_str);
 		return false;
 	}
 
 	*data = atof(fl_str);
+	free(fl_str);
 	return true;
 }
 bool nvs_get_string(char *namespace, char *key, char *data) {
