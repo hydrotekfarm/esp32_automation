@@ -33,9 +33,10 @@ float control_get_target_value(struct sensor_control *control_in) {
 
 // --------------------------------------------------- Public interface ----------------------------------------------
 
-void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in) {
+void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *object_in, float margin_error_in) {
 	strcpy(control_in->name, name_in);
 
+	control_in->status_object = object_in;
 	control_in->is_control_active = false;
 	control_in->is_doser = false;
 	control_in->margin_error = margin_error_in;

@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <cjson.h>
 
 #include "boot.h"
 #include "ec_reading.h"
@@ -120,23 +119,27 @@ void make_topics() {
 
 	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
 	add_id(wifi_connect_topic);
-	ESP_LOGI("", "Wifi Topic: %s", wifi_connect_topic);
+	ESP_LOGI(MQTT_TAG, "Wifi Topic: %s", wifi_connect_topic);
 
 	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
 	add_id(sensor_data_topic);
-	ESP_LOGI("", "Sensor data topic: %s", sensor_data_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
 	add_id(sensor_settings_topic);
-	ESP_LOGI("", "Sensor settings topic: %s", sensor_settings_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", sensor_settings_topic);
+
+	init_topic(&equipment_status_topic, device_id_len + 1 + strlen(EQUIPMENT_STATUS_HEADING) + 1, EQUIPMENT_STATUS_HEADING);
+	add_id(equipment_status_topic);
+	ESP_LOGI(MQTT_TAG, "Equipment settings topic: %s", equipment_status_topic);
 
 	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
 	add_id(grow_cycle_topic);
-	ESP_LOGI("", "Sensor settings topic: %s", grow_cycle_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", grow_cycle_topic);
 
 	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
 	add_id(rf_control_topic);
-	ESP_LOGI("", "RF control settings topic: %s", rf_control_topic);
+	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 }
 
 void subscribe_topics() {
@@ -205,14 +208,12 @@ void create_time_json(cJSON **time_json) {
 	*time_json = cJSON_CreateString(time_str);
 }
 
-void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
-	const char *TAG = "Publisher";
-
-	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
+void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing Task
+	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	for (;;) {
 		if(!is_mqtt_connected) {
-			ESP_LOGE(TAG, "Wifi not connected, cannot send MQTT data");
+			ESP_LOGE(MQTT_TAG, "Wifi not connected, cannot send MQTT data");
 
 			// Wait for delay period and try again
 			vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -253,8 +254,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
-		ESP_LOGI(TAG, "Message: %s", data);
-		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+		ESP_LOGI(MQTT_TAG, "Sensor data: %s", data);
 
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -265,10 +265,28 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	free(sensor_settings_topic);
 }
 
-void update_settings(char *settings) {
-	const char *TAG = "UPDATE_SETTINGS";
-	ESP_LOGI(TAG, "Settings data");
+cJSON* get_ph_status() { return ph_status; }
+cJSON* get_ec_status() { return ec_status; }
 
+void init_equipment_status() {
+	equipment_root = cJSON_CreateObject();
+
+	// Create objects
+	// TODO
+
+	// TODO add water temp, rf, and reservoir control
+
+	cJSON_AddItemToObject(equipment_root, "ph_control", ph_status);
+	cJSON_AddItemToObject(equipment_root, "ec_control", ec_status);
+}
+
+void public_equipment_status() {
+	char *data = cJSON_PrintUnformatted(equipment_root); // Create data string
+	esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 0); // Publish data
+	ESP_LOGI(MQTT_TAG, "Equipment Data: %s", data);
+}
+
+void update_settings(char *settings) {
 	cJSON *root = cJSON_Parse(settings);
 	cJSON *arr = root->child;
 
@@ -277,21 +295,21 @@ void update_settings(char *settings) {
 		char *data_topic = subitem->string;
 
 		if(strcmp("ph", data_topic) == 0) {
-			ESP_LOGI(TAG, "pH data received");
+			ESP_LOGI(MQTT_TAG, "pH data received");
 			ph_update_settings(subitem);
 		} else if(strcmp("ec", data_topic) == 0) {
-			ESP_LOGI(TAG, "ec data received");
+			ESP_LOGI(MQTT_TAG, "ec data received");
 			ec_update_settings(subitem);
 		} else if(strcmp("water_temp", data_topic) == 0) {
 			// Add water temp call when control is implemented
-			ESP_LOGI(TAG, "water temperature data received");
+			ESP_LOGI(MQTT_TAG, "water temperature data received");
 		} else {
-			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
+			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}
 	}
 	cJSON_Delete(root);
 
-	ESP_LOGI(TAG, "Settings updated");
+	ESP_LOGI(MQTT_TAG, "Settings updated");
 	if(!get_is_settings_received()) settings_received();
 }
 
@@ -331,8 +349,8 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 	} else if(strcmp(topic, rf_control_topic) == 0) {
 		cJSON *obj = cJSON_Parse(data);
 		obj = obj->child;
-		ESP_LOGI(TAG, "RF id number: RF state: %d", 1);
-		control_power_outlet(0, 1);
+		ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
+		control_power_outlet(atoi(obj->string), obj->valueint);
 	} else {
 		// Topic doesn't match any known topics
 		ESP_LOGE(TAG, "Topic unknown");
