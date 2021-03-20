@@ -71,7 +71,8 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 		return ESP_FAIL;
 	}
 
-	xQueueSend(rf_transmitter_queue, &setup_rf_message, portMAX_DELAY); // TODO check if rf_message_address is not null (very important)
+	xQueueSend(rf_transmitter_queue, &setup_rf_message, pdMS_TO_TICKS(20000)); // TODO check if rf_message_address is not null (very important)
+	ESP_LOGI(RF_TAG, "xqueue sent");
 	return ESP_OK;
 
 }
@@ -81,7 +82,7 @@ void rf_transmitter(void *parameter) {
 	init_rf_addresses();
 
 	struct rf_message message;
-	rf_transmitter_queue = xQueueCreate(1, sizeof(message));
+	rf_transmitter_queue = xQueueCreate(20, sizeof(message));
 
 	for(;;) {
 		if(xQueueReceive(rf_transmitter_queue, &message, portMAX_DELAY)) {

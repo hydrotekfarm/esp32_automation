@@ -16,6 +16,8 @@
 static const char on_binary_code[] = "0011";
 static const char off_binary_code[] = "1100";
 
+#define RF_TAG "RF_TRANSMITTER"
+
 enum power_outlets {
 	WATER_COOLER,
 	WATER_HEATER,
@@ -51,7 +53,7 @@ QueueHandle_t rf_transmitter_queue;
 void init_rf();
 
 // Send rf message
-void send_rf_transmission();
+esp_err_t control_power_outlet(int power_outlet_id, bool state);
 
 // RF Task
 void rf_transmitter();

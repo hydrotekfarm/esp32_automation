@@ -11,6 +11,7 @@
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "device_settings"
 #define GROW_CYCLE_HEADING "device_status"
+#define RF_CONTROL_HEADING "manual_rf_control"
 
 #define TIME_STRING_LENGTH 21
 
@@ -28,6 +29,7 @@ char *wifi_connect_topic;
 char *sensor_data_topic;
 char *sensor_settings_topic;
 char *grow_cycle_topic;
+char *rf_control_topic;
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 

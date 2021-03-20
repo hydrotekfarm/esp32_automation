@@ -17,6 +17,7 @@
 #include "ec_control.h"
 #include "ph_control.h"
 #include "sync_sensors.h"
+#include "rf_transmitter.h"
 #include "rtc.h"
 #include "network_settings.h"
 #include "grow_manager.h"
@@ -131,12 +132,18 @@ void make_topics() {
 
 	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
 	add_id(grow_cycle_topic);
-	ESP_LOGI("", "Sensor settings topic: %s", grow_cycle_topic);}
+	ESP_LOGI("", "Sensor settings topic: %s", grow_cycle_topic);
+
+	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
+	add_id(rf_control_topic);
+	ESP_LOGI("", "RF control settings topic: %s", rf_control_topic);
+}
 
 void subscribe_topics() {
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -321,8 +328,12 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 		// Start/stop grow cycle according to message
 		if(data[0] == '0') stop_grow_cycle();
 		else start_grow_cycle();
-	}
-	else {
+	} else if(strcmp(topic, rf_control_topic) == 0) {
+		cJSON *obj = cJSON_Parse(data);
+		obj = obj->child;
+		ESP_LOGI(TAG, "RF id number: RF state: %d", 1);
+		control_power_outlet(0, 1);
+	} else {
 		// Topic doesn't match any known topics
 		ESP_LOGE(TAG, "Topic unknown");
 	}
