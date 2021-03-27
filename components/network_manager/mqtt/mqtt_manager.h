@@ -4,6 +4,8 @@
 #include <cjson.h>
 #include <string.h>
 
+#include "rf_transmitter.h"
+
 // QOS settings
 #define PUBLISH_DATA_QOS 1
 #define SUBSCRIBE_DATA_QOS 2
@@ -39,13 +41,18 @@ char *rf_control_topic;
 SemaphoreHandle_t mqtt_connect_semaphore;
 
 // JSON objects for equipment status
-cJSON *equipment_root;
-cJSON *ph_status;
-cJSON *ec_status;
+cJSON *equipment_status_root;
+cJSON *control_status_root;
+cJSON *ph_control_status;
+cJSON *ec_control_status;
+cJSON *rf_status_root;
+cJSON *rf_statuses[NUM_OUTLETS];
+
 
 // Get JSON objects
-cJSON* get_ph_status();
-cJSON* get_ec_status();
+cJSON *get_ph_control_status();
+cJSON *get_ec_control_status();
+cJSON **get_rf_statuses();
 
 // Set broker IP config in MQTT
 void mqtt_connect();

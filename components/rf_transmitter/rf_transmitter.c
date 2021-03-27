@@ -1,11 +1,14 @@
 #include "rf_transmitter.h"
-#include "ports.h"
 
 #include <Freertos/freertos.h>
 #include <freertos/task.h>
 #include <string.h>
 #include <esp_err.h>
 #include <esp_log.h>
+#include <cJSON.h>
+
+#include "ports.h"
+#include "mqtt_manager.h"
 
 void init_rf_protocol() {
 	// Setup Transmission Protocol
@@ -70,6 +73,9 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 	else {
 		return ESP_FAIL;
 	}
+
+	cJSON_SetNumberValue(get_rf_statuses()[power_outlet_id], state);
+	publish_equipment_status();
 
 	xQueueSend(rf_transmitter_queue, &setup_rf_message, pdMS_TO_TICKS(20000)); // TODO check if rf_message_address is not null (very important)
 	ESP_LOGI(RF_TAG, "xqueue sent");

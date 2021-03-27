@@ -28,10 +28,10 @@ void init_control() {
 	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
 	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
 
-	init_sensor_control(get_ph_control(), "PH_CONTROL", get_ph_status(), PH_MARGIN_ERROR);
+	init_sensor_control(get_ph_control(), "PH_CONTROL", get_ph_control_status(), PH_MARGIN_ERROR);
 	init_doser_control(get_ph_control());
 
-	init_sensor_control(get_ec_control(), "EC_CONTROL", get_ec_status(), EC_MARGIN_ERROR);
+	init_sensor_control(get_ec_control(), "EC_CONTROL", get_ec_control_status(), EC_MARGIN_ERROR);
 	init_doser_control(get_ec_control());
 
 	water_in_rf_message.rf_address_ptr = water_in_address;

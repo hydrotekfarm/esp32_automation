@@ -160,8 +160,11 @@ void init_mqtt() {
 	// Create MQTT client
 	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
+	// Dynamically create topics
 	make_topics();
-	// TOOD subscribe to topics here
+
+	// Create equipment status JSON
+	init_equipment_status();
 }
 
 void mqtt_connect() {
@@ -181,6 +184,9 @@ void mqtt_connect() {
 
 	// Send connect success message (must be retain message)
 	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
+
+	// Send equipment statuses
+	publish_equipment_status();
 
 	is_mqtt_connected = true;
 }
@@ -265,24 +271,37 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 	free(sensor_settings_topic);
 }
 
-cJSON* get_ph_status() { return ph_status; }
-cJSON* get_ec_status() { return ec_status; }
+cJSON* get_ph_control_status() { return ph_control_status; }
+cJSON* get_ec_control_status() { return ec_control_status; }
+cJSON **get_rf_statuses() { return rf_statuses; }
 
 void init_equipment_status() {
-	equipment_root = cJSON_CreateObject();
+	equipment_status_root = cJSON_CreateObject();
+	control_status_root = cJSON_CreateObject();
+	rf_status_root = cJSON_CreateObject();
 
-	// Create objects
-	// TODO
+	// Create sensor statuses
+	ph_control_status = cJSON_CreateNumber(0);
+	ec_control_status = cJSON_CreateNumber(0);
+	cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
+	cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
 
-	// TODO add water temp, rf, and reservoir control
+	// Create rf statuses
+	char key[3];
+	for(uint8_t i = 0; i < NUM_OUTLETS; ++i) {
+		rf_statuses[i] = cJSON_CreateNumber(0);
 
-	cJSON_AddItemToObject(equipment_root, "ph_control", ph_status);
-	cJSON_AddItemToObject(equipment_root, "ec_control", ec_status);
+		sprintf(key, "%d", i);
+		cJSON_AddItemToObject(rf_status_root, key, rf_statuses[i]);
+	}
+
+	cJSON_AddItemToObject(equipment_status_root, "rf", rf_status_root);
+	cJSON_AddItemToObject(equipment_status_root, "control", control_status_root);
 }
 
-void public_equipment_status() {
-	char *data = cJSON_PrintUnformatted(equipment_root); // Create data string
-	esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 0); // Publish data
+void publish_equipment_status() {
+	char *data = cJSON_Print(equipment_status_root); // Create data string
+	esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 1); // Publish data
 	ESP_LOGI(MQTT_TAG, "Equipment Data: %s", data);
 }
 
