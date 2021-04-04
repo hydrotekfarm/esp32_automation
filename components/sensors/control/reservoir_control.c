@@ -125,7 +125,7 @@ void check_water_level() {
 				return;
 			}
 			set_reservoir_change_flag(false); // Set Reservoir Change flag to false as process is successfully complete
-			enable_timer(&dev, &water_pump_timer, water_pump_off_time); // TODO this has to be replaced
+			enable_timer(&dev, &irrigation_timer, irrigation_off_time); // TODO this has to be replaced
 			return;
 		}
 		if(top_float_switch_trigger) {

@@ -205,9 +205,9 @@ void create_time_json(cJSON **time_json) {
 	sprintf(time_str + 8, "%.2d", time.tm_mday);
 	strcat(time_str, "T");
 	sprintf(time_str + 11, "%.2d", time.tm_hour);
-	strcat(time_str, "-");
+	strcat(time_str, ":");
 	sprintf(time_str + 14, "%.2d", time.tm_min);
-	strcat(time_str, "-");
+	strcat(time_str, ":");
 	sprintf(time_str + 17, "%.2d", time.tm_sec);
 	strcat(time_str, "Z");
 
@@ -322,6 +322,8 @@ void update_settings(char *settings) {
 		} else if(strcmp("water_temp", data_topic) == 0) {
 			// Add water temp call when control is implemented
 			ESP_LOGI(MQTT_TAG, "water temperature data received");
+		} else if(strcmp("irrigation", data_topic) == 0) {
+			update_irrigation_timings(subitem);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}

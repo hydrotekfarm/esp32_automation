@@ -16,7 +16,10 @@
 #define WATER_TEMP_NVS_NAMESPACE "WATER_TEMP"
 
 // Water reservoir namespace
-#define WATER_RESRVOIR "RESERVOIR"
+#define WATER_RESRVOIR_NVS_NAMESPACE "RESERVOIR"
+
+// Irrigation namespace
+#define IRRIGATION_NVS_NAMESPACE "IRRIGATION"
 
 // RF transmitter namespace
 #define RF_TRANSMITTER_NVS_NAMESPACE "RF"

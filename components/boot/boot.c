@@ -55,12 +55,14 @@ void boot_sequence() {
 	// Set all sync bits var
 	set_sensor_sync_bits();
 
+	// Init rtc
+	init_rtc();
+
 	// Init sensor control
 	init_control();
 
-	// Init rtc and check if time needs to be set
-	init_rtc();
-	check_rtc_reset();
+	// Init irrigation
+	init_irrigation();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
