@@ -45,7 +45,7 @@ char water_out_address[RF_ADDRESS_LENGTH + 1];
 
 char irrigation_address[RF_ADDRESS_LENGTH + 1];
 
-char grow_lights_address[RF_ADDRESS_LENGTH + 1][MAX_GROW_LIGHT_ZONES];
+char grow_lights_address[MAX_GROW_LIGHT_ZONES][RF_ADDRESS_LENGTH + 1];
 
 TaskHandle_t rf_transmitter_task_handle;
 QueueHandle_t rf_transmitter_queue;
