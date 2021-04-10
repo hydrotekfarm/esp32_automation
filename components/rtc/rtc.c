@@ -1,7 +1,8 @@
 #include "rtc.h"
 #include <string.h>
 #include <esp_log.h>
-#include "freertos/FreeRTOS.h"
+#include <esp_sntp.h>
+#include <freertos/FreeRTOS.h>
 
 #include "ec_control.h"
 #include "ph_control.h"
@@ -60,7 +61,7 @@ void do_nothing() {}
 void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, SDA_GPIO, SCL_GPIO));
-	check_rtc_reset();
+	set_time();
 
 	// Water pump timings
 	irrigation_on_time = 15 * 60;
@@ -90,38 +91,32 @@ void init_rtc() { // Init RTC
 	init_alarm(&night_time_alarm, &night, true, false);
 	init_alarm(&day_time_alarm, &day, true, false);
 }
-void set_time() { // Set current time to some date
-	// TODO Have user input for time so actual time is set
-	struct tm time;
 
-	time.tm_year = 120; // Years since 1900
-	time.tm_mon = 6; // 0-11
-	time.tm_mday = 7; // day of month
-	time.tm_hour = 9; // 0-24
-	time.tm_min = 59;
-	time.tm_sec = 0;
+void init_sntp() {
+	sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+	sntp_init();
 
-	ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
+	while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) {
+        ESP_LOGI("", "Waiting for system time to be set...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
 }
 
-void check_rtc_reset() {
-	// Get current time
-	struct tm time;
-	ds3231_get_time(&dev, &time);
+void set_time() { // Set current time to some date
+	//ESP_ERROR_CHECK(ds3231_set_time(&dev, &time));
+	time_t now;
+	struct tm dateTime;
+	time(&now);
+	localtime_r(&now, &dateTime);
+	ESP_LOGI("", "Current time: %li", now);
+	ESP_ERROR_CHECK(ds3231_set_time(&dev, &dateTime));
 
-	// If year is less than 2020 (RTC was reset), set time again
-	if(time.tm_year < 120) set_time();
 }
 
 void get_date_time(struct tm *time) {
 	// Get current time and set it to return var
-	ds3231_get_time(&dev, &(*time));
-
-	// If year is less than 2020 (RTC was reset), set time again and set new time to return var
-	if(time->tm_year < 120) {
-		set_time();
-		ds3231_get_time(&dev, &(*time));
-	}
+	ds3231_get_time(&dev, time);
 }
 
 void manage_timers_alarms(void *parameter) {

@@ -41,11 +41,14 @@ uint32_t night_time_min;
 // Initialize rtc
 void init_rtc();
 
+// Initialize sntp server
+void init_sntp();
+
 // Set current time
 void set_time();
 
 // Check if rtc needs to be reset
-void check_rtc_reset();
+//void check_rtc_reset();
 
 // Get current day and time
 void get_date_time(struct tm *time);

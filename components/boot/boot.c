@@ -55,7 +55,8 @@ void boot_sequence() {
 	// Set all sync bits var
 	set_sensor_sync_bits();
 
-	// Init rtc
+	// Init time rtc
+	init_sntp();
 	init_rtc();
 
 	// Init sensor control
