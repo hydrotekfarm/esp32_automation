@@ -3,6 +3,7 @@ idf_component_register(
 	"control/control_task.c" 
 	"control/ec_control.c" 
 	"control/ph_control.c" 
+	"control/water_temp_control.c"
 	"control/reservoir_control.c" 
 	"control/sensor_control.c"
 	"libs/ds18x20.c" 

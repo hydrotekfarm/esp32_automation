@@ -14,6 +14,7 @@
 #include "mqtt_manager.h"
 #include "ph_control.h"
 #include "ec_control.h"
+#include "water_temp_control.h"
 #include "control_task.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
@@ -30,6 +31,7 @@ void init_grow_manager() {
 		ESP_LOGI(GROW_MANAGER_TAG, "Settings stored in NVS");
 		ph_get_nvs_settings();
 		ec_get_nvs_settings();
+		water_temp_get_nvs_settings();
 		settings_received();
 	}
 

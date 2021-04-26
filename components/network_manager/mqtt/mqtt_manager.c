@@ -15,6 +15,7 @@
 #include "water_temp_reading.h"
 #include "ec_control.h"
 #include "ph_control.h"
+#include "water_temp_control.h"
 #include "sync_sensors.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
@@ -273,6 +274,7 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 
 cJSON* get_ph_control_status() { return ph_control_status; }
 cJSON* get_ec_control_status() { return ec_control_status; }
+cJSON* get_water_temp_control_status() { return water_temp_control_status; }
 cJSON **get_rf_statuses() { return rf_statuses; }
 
 void init_equipment_status() {
@@ -283,8 +285,10 @@ void init_equipment_status() {
 	// Create sensor statuses
 	ph_control_status = cJSON_CreateNumber(0);
 	ec_control_status = cJSON_CreateNumber(0);
+	water_temp_control_status = cJSON_CreateNumber(0);
 	cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
 	cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
+	cJSON_AddItemToObject(control_status_root, "water_temp_control", water_temp_control_status);
 
 	// Create rf statuses
 	char key[3];
@@ -320,8 +324,8 @@ void update_settings(char *settings) {
 			ESP_LOGI(MQTT_TAG, "ec data received");
 			ec_update_settings(subitem);
 		} else if(strcmp("water_temp", data_topic) == 0) {
-			// Add water temp call when control is implemented
-			ESP_LOGI(MQTT_TAG, "water temperature data received");
+			ESP_LOGI(MQTT_TAG, "water temp data received");
+			water_temp_update_settings(subitem);
 		} else if(strcmp("irrigation", data_topic) == 0) {
 			update_irrigation_timings(subitem);
 		} else if(strcmp("grow_lights", data_topic) == 0) {

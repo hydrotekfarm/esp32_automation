@@ -45,6 +45,7 @@ cJSON *equipment_status_root;
 cJSON *control_status_root;
 cJSON *ph_control_status;
 cJSON *ec_control_status;
+cJSON *water_temp_control_status;
 cJSON *rf_status_root;
 cJSON *rf_statuses[NUM_OUTLETS];
 
@@ -52,6 +53,7 @@ cJSON *rf_statuses[NUM_OUTLETS];
 // Get JSON objects
 cJSON *get_ph_control_status();
 cJSON *get_ec_control_status();
+cJSON *get_water_temp_control_status();
 cJSON **get_rf_statuses();
 
 // Set broker IP config in MQTT
