@@ -13,6 +13,13 @@ i2c_dev_t dev;
 #define IRRIGATION_ON_KEY "on_interval"
 #define IRRIGATION_OFF_KEY "off_interval"
 
+#define LIGHTS_ON_KEY "lights_on"
+#define LIGHTS_OFF_KEY "lights_off"
+#define LIGHTS_ON_HR_KEY "on_hr"
+#define LIGHTS_ON_MIN_KEY "on_min"
+#define LIGHTS_OFF_HR_KEY "off_hr"
+#define LIGHTS_OFF_MIN_KEY "off_min"
+
 // Task handle
 TaskHandle_t timer_alarm_task_handle;
 
@@ -47,9 +54,6 @@ void init_sntp();
 // Set current time
 void set_time();
 
-// Check if rtc needs to be reset
-//void check_rtc_reset();
-
 // Get current day and time
 void get_date_time(struct tm *time);
 
@@ -64,6 +68,12 @@ void irrigation_control();
 
 // Update irrigation timings
 void update_irrigation_timings(cJSON *obj);
+
+// Initialize grow light control
+void init_lights();
+
+// Update growlight timings
+void update_grow_light_timings(cJSON *obj);
 
 // Turn irrigation on/off
 void irrigation_on();

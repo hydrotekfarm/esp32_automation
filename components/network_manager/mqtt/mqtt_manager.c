@@ -324,6 +324,8 @@ void update_settings(char *settings) {
 			ESP_LOGI(MQTT_TAG, "water temperature data received");
 		} else if(strcmp("irrigation", data_topic) == 0) {
 			update_irrigation_timings(subitem);
+		} else if(strcmp("grow_lights", data_topic) == 0) {
+			update_grow_light_timings(subitem);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}
