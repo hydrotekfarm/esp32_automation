@@ -59,4 +59,8 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state);
 // RF Task
 void rf_transmitter();
 
+// Turn all lights on
+void lights_on();
 
+// Turn all lights off
+void lights_off();

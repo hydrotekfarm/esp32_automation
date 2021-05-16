@@ -23,7 +23,7 @@ void reservoir_change() {
 void day() {
 	is_day = true;
 
-	// TODO Turn lights off
+	lights_on();
 	ESP_LOGI("", "Turning lights on");
 }
 
@@ -31,7 +31,7 @@ void day() {
 void night() {
 	is_day = false;
 
-	// TODO Turn lights off
+	lights_off();
 	ESP_LOGI("", "Turning lights off");
 }
 

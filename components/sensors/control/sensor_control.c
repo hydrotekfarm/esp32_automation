@@ -16,7 +16,7 @@ void control_reset_checks(struct sensor_control *control_in) {
 
 bool control_add_check(struct sensor_control *control_in) {
 	if(control_in->check_index == NUM_CHECKS) {
-		control_reset_checks(control_in);
+		if(control_in->is_doser) control_reset_checks(control_in);
 		return true;
 	}
 	control_in->sensor_checks[control_in->check_index++] = true;
