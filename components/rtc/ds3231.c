@@ -447,7 +447,6 @@ void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat,
 
 void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
 	// Set end time based on unix time for alarm time
-	alarm->alarm_time = alarm_time;
 	alarm->alarm_timer.end_time = mktime(&alarm_time);
 	alarm->alarm_timer.active = true;
 }
@@ -459,12 +458,12 @@ void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {
 		if(unix_time >= alarm->alarm_timer.end_time) {
 			// Reset alarm to next day if it is repeated
 			if(alarm->alarm_timer.repeat) {
-				alarm->alarm_time.tm_mday += 1;
-				mktime(&(alarm->alarm_time));
-				enable_alarm(alarm, alarm->alarm_time);
-				// Otherwise  disable alarm
-			} else alarm->alarm_timer.active = false;
-
+				alarm->alarm_timer.end_time += SECONDS_PER_DAY;
+			
+            // Otherwise  disable alarm
+			} else {
+                alarm->alarm_timer.active = false;
+            }
 			// Call trigger function
 			alarm->alarm_timer.trigger_function();
 		}

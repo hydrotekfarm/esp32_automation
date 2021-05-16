@@ -26,6 +26,7 @@ extern "C" {
 #endif
 
 #define DS3231_ADDR 0x68 //!< I2C address
+#define SECONDS_PER_DAY 86400 // Number of seconds in a day
 
 /**
  * Alarms
@@ -87,7 +88,6 @@ struct timer {
  */
 struct alarm {
 	struct timer alarm_timer;
-	struct tm alarm_time;
 };
 
 /**
