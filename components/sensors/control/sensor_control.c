@@ -16,7 +16,7 @@ void control_reset_checks(struct sensor_control *control_in) {
 
 bool control_add_check(struct sensor_control *control_in) {
 	if(control_in->check_index == NUM_CHECKS) {
-		control_reset_checks(control_in);
+		if(control_in->is_doser) control_reset_checks(control_in);
 		return true;
 	}
 	control_in->sensor_checks[control_in->check_index++] = true;
@@ -33,9 +33,10 @@ float control_get_target_value(struct sensor_control *control_in) {
 
 // --------------------------------------------------- Public interface ----------------------------------------------
 
-void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in) {
+void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *object_in, float margin_error_in) {
 	strcpy(control_in->name, name_in);
 
+	control_in->status_object = object_in;
 	control_in->is_control_active = false;
 	control_in->is_doser = false;
 	control_in->margin_error = margin_error_in;
@@ -63,6 +64,7 @@ void control_enable(struct sensor_control *control_in) {
 	ESP_LOGI(control_in->name, "Enabled");
 }
 void control_disable(struct sensor_control *control_in) {
+
 	control_in->is_control_enabled = false;
 	control_in->is_control_active = false;
 	control_in->dose_timer.active = false;
@@ -85,7 +87,6 @@ int control_check_sensor(struct sensor_control *control_in, float current_value)
 	if(!control_in->is_control_enabled) return 0;
 	if(control_in->is_control_active) {
 		if(control_in->is_doser && (control_in->dose_timer.active || control_in->wait_timer.active)) return 0;
-
 	}
 
 	bool under_target = control_in->is_up_control && control_is_under_target(control_in, current_value);
@@ -115,9 +116,8 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs
 	while(element != NULL) {
 		char *key = element->string;
 		if(strcmp(key, MONITORING_ONLY) == 0) {
-			if(!element->valueint) control_enable(control_in);
-			else control_disable(control_in);
-			nvs_add_uint8(handle, MONITORING_ONLY, element->valueint);
+			!element->valueint ? control_enable(control_in) : control_disable(control_in);
+			nvs_add_uint8(handle, MONITORING_ONLY, (uint8_t)(control_in->is_control_enabled));
 			ESP_LOGI(control_in->name, "Updated control only to: %s", element->valueint != 0 ? "false" : "true");
 		} else if(strcmp(key, CONTROL) == 0) {
 			cJSON *control_element = element->child;
@@ -137,7 +137,7 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs
 					ESP_LOGI(control_in->name,"Updated day night control status to: %s", control_element->valueint == 0 ? "false" : "true");
 				} else if(strcmp(control_key, DAY_TARGET_VALUE) == 0 || strcmp(control_key, TARGET_VALUE) == 0) {
 					control_in->target_value = control_element->valuedouble;
-					nvs_add_float(handle, DAY_TARGET_VALUE, control_in->target_value);
+					nvs_add_float(handle, TARGET_VALUE, control_in->target_value);
 					ESP_LOGI(control_in->name, "Updated target value to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, NIGHT_TARGET_VALUE) == 0) {
 					control_in->night_target_value = control_element->valuedouble;
@@ -170,8 +170,9 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs
 }
 
 void control_get_nvs_settings(struct sensor_control *control_in, char *namespace) {
-	nvs_get_uint8(namespace, MONITORING_ONLY, (uint8_t*)(&control_in->is_control_enabled));
-	control_in->is_control_enabled = !control_in->is_control_enabled;
+	uint8_t enable_status;
+	nvs_get_uint8(namespace, MONITORING_ONLY, (uint8_t*)(&enable_status));
+	enable_status ? control_enable(control_in) : control_disable(control_in);
 
 	nvs_get_float(namespace, TARGET_VALUE, &control_in->target_value);
 	nvs_get_uint8(namespace, DAY_AND_NIGHT, (uint8_t*)(&control_in->is_day_night_active));

@@ -7,9 +7,11 @@
 #include "reservoir_control.h"
 #include "ph_control.h"
 #include "ec_control.h"
+#include "water_temp_control.h"
 #include "control_settings_keys.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include "mqtt_manager.h"
 #include "rf_transmitter.h"
 
 void init_control() {
@@ -20,13 +22,6 @@ void init_control() {
 	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
 	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
-	ec_nutrient_proportions[0] = 0.40;
-	ec_nutrient_proportions[1] = 0.40;
-	ec_nutrient_proportions[2] = 0.20;
-	ec_nutrient_proportions[3] = 0;
-	ec_nutrient_proportions[4] = 0;
-	ec_nutrient_proportions[5] = 0;
-
 	// Float Switch Port Setup
 	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
 	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
@@ -34,11 +29,14 @@ void init_control() {
 	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
 	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
 
-	init_sensor_control(get_ph_control(), "PH_CONTROL", PH_MARGIN_ERROR);
+	init_sensor_control(get_ph_control(), "PH_CONTROL", get_ph_control_status(), PH_MARGIN_ERROR);
 	init_doser_control(get_ph_control());
 
-	init_sensor_control(get_ec_control(), "EC_CONTROL", EC_MARGIN_ERROR);
+	init_sensor_control(get_ec_control(), "EC_CONTROL", get_ec_control_status(), EC_MARGIN_ERROR);
 	init_doser_control(get_ec_control());
+
+	init_sensor_control(get_water_temp_control(), "WATER_TEMP_CONTROL", get_water_temp_control_status(), WATER_TEMP_MARGIN_ERROR);
+	is_water_cooler_on = false;
 
 	water_in_rf_message.rf_address_ptr = water_in_address;
 	water_out_rf_message.rf_address_ptr = water_out_address;
@@ -50,6 +48,7 @@ void sensor_control (void *parameter) {
 		if(reservoir_control_active) check_water_level(); // TODO remove if statement for consistency
 		check_ph();
 		check_ec();
+		check_water_temp();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

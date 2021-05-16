@@ -2,6 +2,8 @@
 #include <cjson.h>
 #include "sensor_control.h"
 
+#define PH_TAG "PH_CONTROL"
+
 // Margin of error
 static const float PH_MARGIN_ERROR = 0.3;
 
@@ -25,3 +27,6 @@ void ph_pump_off();
 
 // Update settings
 void ph_update_settings(cJSON *item);
+
+// Get and store settings from NVS
+void ph_get_nvs_settings();

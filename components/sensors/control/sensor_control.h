@@ -17,6 +17,7 @@
 // TODO separate out struct vars
 struct sensor_control {
 	char name[25];
+	cJSON *status_object;
 	bool is_control_enabled;
 	bool is_control_active;
 	bool is_doser;
@@ -40,7 +41,7 @@ struct sensor_control {
 // TODO add RME's
 
 // Initialize control structure
-void init_sensor_control(struct sensor_control *control_in, char *name_in, float margin_error_in);
+void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *object_in, float margin_error_in);
 void init_doser_control(struct sensor_control *control_in);
 
 // Get enable/active statuses

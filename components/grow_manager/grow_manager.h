@@ -3,6 +3,8 @@
 #define SETTINGS_RECEIVED_KEY "SET_REC"
 #define GROW_ACTIVE_KEY "GR_ACTV"
 
+#define GROW_MANAGER_TAG "GROW_MANAGER"
+
 // Vars to track status of settings and grow cycle
 bool is_settings_received;
 bool is_grow_active;

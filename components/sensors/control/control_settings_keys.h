@@ -16,18 +16,8 @@
 #define ALARM_MIN "alarm_min"
 #define ALARM_MAX "alarm_max"
 
-// pH specific keys
-#define PUMP_1_ENABLED "pump_1_enbld"
-#define PUMP_2_ENABLED "pump_2_enbld"
-
 // ec specific keys
-#define PUMP_1 "pump_1"
-#define PUMP_2 "pump_2"
-#define PUMP_3 "pump_3"
-#define PUMP_4 "pump_4"
-#define PUMP_5 "pump_5"
-#define ENABLED "enbld"
-#define VALUE "value"
+#define PUMP_NUM "pump_"
 
 // Sensor namespaces
 #define PH_NAMESPACE "PH"

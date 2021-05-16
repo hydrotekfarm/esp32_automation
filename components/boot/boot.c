@@ -33,7 +33,7 @@
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
-
+	
 	// Initialize deep sleep
 	init_power_button();
 
@@ -55,20 +55,22 @@ void boot_sequence() {
 	// Set all sync bits var
 	set_sensor_sync_bits();
 
+	// Init time rtc
+	init_sntp();
+	init_rtc();
+
 	// Init sensor control
 	init_control();
 
-	// Init rtc and check if time needs to be set
-	init_rtc();
-	check_rtc_reset();
+	// Init irrigation
+	init_irrigation();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
 	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
-	//vTaskSuspend(rf_transmitter_task_handle);
 	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-	xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+	xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
