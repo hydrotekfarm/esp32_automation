@@ -1,8 +1,8 @@
 /*
- * ph_sensor.c
+ * co2_sensor.c
  *
- *  Created on: May 10, 2020
- *      Author: ajayv
+ *  Created on: May 30, 2020
+ *      Author: Karthick Siva
  */
 
 #include "co2_sensor.h"
@@ -14,19 +14,21 @@
 #include <math.h>
 #include <stdio.h>
 
+
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
 
 #define I2C_FREQ_HZ 400000
 #define STABILIZATION_ACCURACY 0.002
 #define STABILIZATION_COUNT_MAX 10
 
-static const char *TAG = "Atlas PH Sensor";
+static const char *TAG = "Atlas CO2 Sensor";
 
-esp_err_t co2_init(ph_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gpio, int8_t scl_gpio) {
+
+esp_err_t co2_init(co2_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gpio, int8_t scl_gpio) {
 	// Check Arguments
     CHECK_ARG(dev);
-    if (addr < PH_ADDR_BASE || addr > PH_ADDR_BASE + 7)
-    {
+
+    if (addr < CO2_ADDR_BASE || addr > CO2_ADDR_BASE + 7) {
         ESP_LOGE(TAG, "Invalid device address: 0x%02x", addr);
         return ESP_ERR_INVALID_ARG;
     }
@@ -40,7 +42,7 @@ esp_err_t co2_init(ph_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_g
 
     return i2c_dev_create_mutex(dev);
 }
-
+/*
 esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	uint8_t count = 0;
 
@@ -94,43 +96,9 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
     vTaskDelay(pdMS_TO_TICKS(1000));	// Processing Delay
 	return ESP_OK;
 }
+*/
 
-esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
-	uint8_t response_code = 0;
-
-	// Create Read with temperature command
-	char cmd[10];
-	memset(&cmd, 0, sizeof(cmd));
-	snprintf(cmd, sizeof(cmd), "RT,%.1f", temperature);
-
-	// Create buffer to read data
-	char buffer[32];
-	memset(&buffer, 0, sizeof(buffer));
-
-	// write read with temperature command
-    I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));
-    I2C_DEV_GIVE_MUTEX(dev);
-
-    // processing delay for atlas sensor
-    vTaskDelay(pdMS_TO_TICKS(900));
-
-    // read ph from atlas sensor and store it in buffer
-    I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_read_ezo_sensor(dev, &response_code, buffer, 31));
-    I2C_DEV_GIVE_MUTEX(dev);
-
-    // convert buffer into a float and store it in ph variable
-    *ph = atof(buffer);
-
-    // return any error
-    if(response_code != 1) {
-    	return response_code;
-    }
-    return ESP_OK;
-}
-
-esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
+esp_err_t read_co2(co2_sensor_t *dev, uint_32 *co2) {
 	uint8_t response_code = 0;
 	char cmd = 'R';
 
@@ -138,13 +106,13 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	char buffer[32];
 	memset(&buffer, 0, sizeof(buffer));
 
-	// write read ph command
+	// write read co2 command
 	I2C_DEV_TAKE_MUTEX(dev);
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));
 	I2C_DEV_GIVE_MUTEX(dev);
 
 	// processing delay for atlas sensor
-	vTaskDelay(pdMS_TO_TICKS(900));
+	vTaskDelay(pdMS_TO_TICKS(10000));
 
 	// read ph from atlas sensor and store it in buffer
 	I2C_DEV_TAKE_MUTEX(dev);
@@ -152,7 +120,7 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	I2C_DEV_GIVE_MUTEX(dev);
 
 	// convert buffer into a float and store it in ph variable
-	*ph = atof(buffer);
+	*ph = atoi(buffer);
 
     // return any error
     if(response_code != 1) {
