@@ -41,7 +41,7 @@ esp_err_t co2_init(co2_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_
     return i2c_dev_create_mutex(dev);
 }
 
-esp_err_t read_co2(co2_sensor_t *dev, uint_32 *co2) {
+esp_err_t read_co2(co2_sensor_t *dev, unsigned int *co2) {
 	uint8_t response_code = 0;
 	char cmd = 'R';
 
