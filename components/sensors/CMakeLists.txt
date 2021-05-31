@@ -6,6 +6,7 @@ idf_component_register(
 	"control/water_temp_control.c"
 	"control/reservoir_control.c" 
 	"control/sensor_control.c"
+	"libs/co2_sensor.c"
 	"libs/ds18x20.c" 
 	"libs/ec_sensor.c" 
 	"libs/i2cdev.c" 
