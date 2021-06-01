@@ -55,7 +55,7 @@ esp_err_t read_co2(co2_sensor_t *dev, unsigned int *co2) {
 	I2C_DEV_GIVE_MUTEX(dev);
 
 	// processing delay for atlas sensor
-	vTaskDelay(pdMS_TO_TICKS(10000));
+	vTaskDelay(pdMS_TO_TICKS(900));
 
 	// read ph from atlas sensor and store it in buffer
 	I2C_DEV_TAKE_MUTEX(dev);
