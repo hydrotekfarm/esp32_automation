@@ -1,7 +1,7 @@
-#include "ph_reading.h"
+#include "co2_reading.h"
 #include <esp_log.h>
 #include <string.h>
-#include "co2_reading.h"
+#include "co2_sensor.h"
 #include "sync_sensors.h"
 #include "task_priorities.h"
 #include "ports.h"
