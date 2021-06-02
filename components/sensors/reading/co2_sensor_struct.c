@@ -14,9 +14,9 @@ void init_sensor(struct co2_sensor *sensor_in, char *name_in, bool active_in, bo
 
 TaskHandle_t* sensor_get_task_handle(struct co2_sensor *sensor_in) { return &sensor_in->task_handle; }
 
-float sensor_get_value(const struct co2_sensor *sensor_in) { return sensor_in->current_value; }
-float* sensor_get_address_value(struct co2_sensor *sensor_in) {	return &sensor_in->current_value; }
-void sensor_set_value(struct co2_sensor *sensor_in, float value) { sensor_in->current_value = value; }
+unsigned int sensor_get_value(const struct co2_sensor *sensor_in) { return sensor_in->current_value; }
+unsigned int* sensor_get_address_value(struct co2_sensor *sensor_in) {	return &sensor_in->current_value; }
+void sensor_set_value(struct co2_sensor *sensor_in, unsigned value) { sensor_in->current_value = value; }
 
 bool sensor_get_active_status(struct co2_sensor *sensor_in) { return sensor_in->is_active; }
 void sensor_set_active_status(struct co2_sensor *sensor_in, bool status) { sensor_in->is_active = status; }
@@ -32,7 +32,7 @@ void sensor_get_json(struct co2_sensor *sensor_in, cJSON **obj) {
 	name = cJSON_CreateString(sensor_in->name);
 
 	char value_str[8];
-	snprintf(value_str, sizeof(value_str), "%.2f", sensor_in->current_value);
+	snprintf(value_str, sizeof(value_str), "%d", sensor_in->current_value);
 	value = cJSON_CreateString(value_str);
 
 	cJSON_AddItemToObject(*obj, "name", name);

@@ -25,9 +25,9 @@ void init_sensor(struct co2_sensor *sensor_in, char *name_in, bool active_in, bo
 TaskHandle_t* sensor_get_task_handle(struct co2_sensor *sensor_in);
 
 // Get and set current value
-float sensor_get_value(const struct co2_sensor *sensor_in);
-float* sensor_get_address_value(struct co2_sensor *sensor_in);
-void sensor_set_value(struct co2_sensor *sensor_in, float value);
+unsigned int sensor_get_value(const struct co2_sensor *sensor_in);
+unsigned int* sensor_get_address_value(struct co2_sensor *sensor_in);
+void sensor_set_value(struct co2_sensor *sensor_in, unsigned int value);
 
 // Get and set current active status
 bool sensor_get_active_status(struct co2_sensor *sensor_in);
