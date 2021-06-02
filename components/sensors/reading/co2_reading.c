@@ -11,7 +11,7 @@ struct co2_sensor* get_co2_sensor() { return &co2_sensor; }
 void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
 	const char *TAG = "CO2_Task";
 
-	init_sensor(&co2_sensor, "co2", true, false);
+	co2_init_sensor(&co2_sensor, "co2", true, false);
 
 	co2_sensor_t dev;
 	memset(&dev, 0, sizeof(co2_sensor_t));
