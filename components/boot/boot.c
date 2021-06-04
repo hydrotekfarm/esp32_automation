@@ -61,10 +61,10 @@ void boot_sequence() {
 	init_rtc();
 
 	// Init sensor control
-	//init_control();
+	init_control();
 
-	// Init irrigation
-	//init_irrigation();
+	//Init irrigation
+	init_irrigation();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
@@ -81,10 +81,10 @@ void boot_sequence() {
 	//xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 	//co2 test task //
-	xTaskCreatePinnedToCore(measure_co2, "co2_task", 2500, NULL, 1, co2_sensor_get_task_handle(get_co2_sensor()), 1);
+	xTaskCreatePinnedToCore(measure_co2, "co2_task", 2500, NULL, 1, co2_sensor_get_task_handle(get_co2_sensor()), 0);
 
 	// Init grow manager
-	//init_grow_manager();
+	init_grow_manager();
 }
 
 void restart_esp32() { // Restart ESP32
