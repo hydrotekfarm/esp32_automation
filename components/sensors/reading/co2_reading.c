@@ -15,10 +15,10 @@ void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
 
 	co2_sensor_t dev;
 	memset(&dev, 0, sizeof(co2_sensor_t));
-
 	ESP_ERROR_CHECK(co2_init(&dev, 0, CO2_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize CO2 I2C communication
     vTaskDelay(pdMS_TO_TICKS(10000));
 	for (;;) {
+        
 			read_co2(&dev, co2_sensor_get_address_value(&co2_sensor));
 			ESP_LOGI(TAG, "co2: %d", co2_sensor_get_value(&co2_sensor));
             //testing//

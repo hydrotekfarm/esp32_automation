@@ -44,11 +44,9 @@ esp_err_t co2_init(co2_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_
 esp_err_t read_co2(co2_sensor_t *dev, unsigned int *co2) {
 	uint8_t response_code = 0;
 	char cmd = 'R';
-
 	// Create buffer to read data
 	char buffer[32];
 	memset(&buffer, 0, sizeof(buffer));
-
 	// write read co2 command
 	I2C_DEV_TAKE_MUTEX(dev);
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &cmd, sizeof(cmd)));

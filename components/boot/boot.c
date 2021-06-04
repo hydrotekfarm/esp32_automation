@@ -33,19 +33,19 @@
 
 void boot_sequence() {
 	// Init nvs
-	init_nvs();
+	//init_nvs();
 	
 	// Initialize deep sleep
 	init_power_button();
 
 	// Init connections
-	tcpip_adapter_init();
-	ESP_ERROR_CHECK(esp_event_loop_create_default());
+	//tcpip_adapter_init();
+	//ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	// Init network properties
-	init_network_connections();
+	//init_network_connections();
 
-	sensor_event_group = xEventGroupCreate();
+	//sensor_event_group = xEventGroupCreate();
 
 	// Init i2cdev
 	ESP_ERROR_CHECK(i2cdev_init());
@@ -54,17 +54,17 @@ void boot_sequence() {
 	is_day = true;
 
 	// Set all sync bits var
-	set_sensor_sync_bits();
+	//set_sensor_sync_bits();
 
 	// Init time rtc
-	init_sntp();
-	init_rtc();
+	//init_sntp();
+	//init_rtc();
 
 	// Init sensor control
-	init_control();
+	//init_control();
 
 	//Init irrigation
-	init_irrigation();
+	//init_irrigation();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
