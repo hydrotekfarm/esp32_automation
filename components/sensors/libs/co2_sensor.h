@@ -11,7 +11,7 @@
 #include <esp_err.h>
 #include "i2cdev.h"
 
-#define CO2_ADDR_BASE 0x69
+#define CO2_ADDR_BASE 105
 
 #ifdef __cplusplus
 extern "C" {
