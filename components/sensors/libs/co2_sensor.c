@@ -55,12 +55,12 @@ esp_err_t read_co2(co2_sensor_t *dev, float *co2) {
 	// processing delay for atlas sensor
 	vTaskDelay(pdMS_TO_TICKS(900));
 
-	// read ph from atlas sensor and store it in buffer
+	// read co2 from atlas sensor and store it in buffer
 	I2C_DEV_TAKE_MUTEX(dev);
 	I2C_DEV_CHECK(dev, i2c_read_ezo_sensor(dev, &response_code, buffer, 31));
 	I2C_DEV_GIVE_MUTEX(dev);
 
-	// convert buffer into a  and store it in co2 variable
+	// convert buffer  and store it in co2 variable
 	*co2 = atoi(buffer);
 
     // return any error
