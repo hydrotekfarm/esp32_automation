@@ -6,12 +6,12 @@
 #include "task_priorities.h"
 #include "ports.h"
 
-struct co2_sensor* get_co2_sensor() { return &co2_sensor; }
+struct sensor* get_co2_sensor() { return &co2_sensor; }
 
 void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
 	const char *TAG = "CO2_Task";
 
-	co2_init_sensor(&co2_sensor, "co2", true, false);
+	init_sensor(&co2_sensor, "co2", true, false);
 
 	co2_sensor_t dev;
 	memset(&dev, 0, sizeof(co2_sensor_t));
@@ -19,10 +19,10 @@ void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
     vTaskDelay(pdMS_TO_TICKS(10000));
 	for (;;) {
         
-			read_co2(&dev, co2_sensor_get_address_value(&co2_sensor));
-			ESP_LOGI(TAG, "co2: %d", co2_sensor_get_value(&co2_sensor));
+			read_co2(&dev, (int *) sensor_get_address_value(&co2_sensor));
+			ESP_LOGI(TAG, "co2: %d", (int) sensor_get_value(&co2_sensor));
             //testing//
-            printf("%i\n", co2_sensor_get_value(&co2_sensor));
+            printf("%d\n", (int) sensor_get_value(&co2_sensor));
 
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end
             /*

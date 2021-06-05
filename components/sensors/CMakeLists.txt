@@ -14,7 +14,6 @@ idf_component_register(
 	"libs/onewire.c" 
 	"libs/ph_sensor.c" 
 	"reading/co2_reading.c"
-	"reading/co2_sensor_struct.c"
 	"reading/ec_reading.c" 
 	"reading/ph_reading.c" 
 	"reading/sensor.c"
