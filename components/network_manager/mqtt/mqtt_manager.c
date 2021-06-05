@@ -311,29 +311,37 @@ void publish_equipment_status() {
 
 void update_settings(char *settings) {
 	cJSON *root = cJSON_Parse(settings);
-	cJSON *arr = root->child;
+	char* string = cJSON_Print(root);
+	ESP_LOGI(MQTT_TAG, "datavalue: %s\n", string);
+	cJSON *object_settings = root->child;
+	string = cJSON_Print(object_settings);
+	ESP_LOGI(MQTT_TAG, "object: %s\n", string);
+//	string = cJSON_Print(arr->child);
+//	ESP_LOGI(MQTT_TAG, "child: %s\n", string);
+//	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
+	//	cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
+		char *data_topic = object_settings->string;
+		string = cJSON_Print(object_settings->child);
+		ESP_LOGI(MQTT_TAG, "subitem: %s\n", string);
 
-	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-		cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
-		char *data_topic = subitem->string;
-
+		ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 		if(strcmp("ph", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "pH data received");
-			ph_update_settings(subitem);
+			ph_update_settings(object_settings);
 		} else if(strcmp("ec", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "ec data received");
-			ec_update_settings(subitem);
+			ec_update_settings(object_settings);
 		} else if(strcmp("water_temp", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "water temp data received");
-			water_temp_update_settings(subitem);
+			water_temp_update_settings(object_settings);
 		} else if(strcmp("irrigation", data_topic) == 0) {
-			update_irrigation_timings(subitem);
+			update_irrigation_timings(object_settings);
 		} else if(strcmp("grow_lights", data_topic) == 0) {
-			update_grow_light_timings(subitem);
+			update_grow_light_timings(object_settings);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}
-	}
+	//}
 	cJSON_Delete(root);
 
 	ESP_LOGI(MQTT_TAG, "Settings updated");
