@@ -20,7 +20,7 @@ void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
 	for (;;) {
         
 			read_co2(&dev, (int *) sensor_get_address_value(&co2_sensor));
-			ESP_LOGI(TAG, "co2: %d", (int) sensor_get_value(&co2_sensor));
+			ESP_LOGI(TAG, "co2 level: %d", (int) sensor_get_value(&co2_sensor));
             //testing//
             printf("%d\n", (int) sensor_get_value(&co2_sensor));
 
