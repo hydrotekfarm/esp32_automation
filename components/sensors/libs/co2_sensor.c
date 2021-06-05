@@ -41,7 +41,7 @@ esp_err_t co2_init(co2_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_
     return i2c_dev_create_mutex(dev);
 }
 
-esp_err_t read_co2(co2_sensor_t *dev, unsigned int *co2) {
+esp_err_t read_co2(co2_sensor_t *dev, float *co2) {
 	uint8_t response_code = 0;
 	char cmd = 'R';
 	// Create buffer to read data
@@ -60,7 +60,7 @@ esp_err_t read_co2(co2_sensor_t *dev, unsigned int *co2) {
 	I2C_DEV_CHECK(dev, i2c_read_ezo_sensor(dev, &response_code, buffer, 31));
 	I2C_DEV_GIVE_MUTEX(dev);
 
-	// convert buffer into a float and store it in co2 variable
+	// convert buffer into a  and store it in co2 variable
 	*co2 = atoi(buffer);
 
     // return any error
