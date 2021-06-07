@@ -13,9 +13,14 @@
 
 #include "task_priorities.h"
 #include "ports.h"
+#include "ec_reading.h"
+#include "ph_reading.h"
+#include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "reservoir_control.h"
 #include "control_task.h"
+#include "ec_control.h"
+#include "ph_control.h"
 #include "control_task.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
@@ -45,7 +50,7 @@ void boot_sequence() {
 	// Init i2cdev
 	ESP_ERROR_CHECK(i2cdev_init());
 
-	//init_ports();
+	init_ports();
 	//is_day = true;
 
 	// Set all sync bits var
@@ -70,11 +75,12 @@ void boot_sequence() {
 	//xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
-	xTaskCreatePinnedToCore(co2_task, "co2_task", 2500, NULL, CO2_TASK_PRIORITY, sensor_get_task_handle(get_co2_sensor()), 1);
+	xTaskCreatePinnedToCore(measure_co2, "co2_task", 2500, NULL, CO2_TASK_PRIORITY, sensor_get_task_handle(get_co2_sensor()), 1);
+	//xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 
 	// Init grow manager
-	init_grow_manager();
+	//init_grow_manager();
 }
 
 void restart_esp32() { // Restart ESP32
