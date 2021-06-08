@@ -44,6 +44,6 @@ esp_err_t read_co2(co2_sensor_t *dev, float * co2);
 }
 #endif
 
-#endif /* CO@_SENSOR_H */
+#endif /* CO2_SENSOR_H */
 
 

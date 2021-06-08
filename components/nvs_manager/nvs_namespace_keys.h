@@ -14,6 +14,7 @@
 #define EC_NVS_NAMESPACE "EC"
 #define PH_NVS_NAMESPACE "PH"
 #define WATER_TEMP_NVS_NAMESPACE "WATER_TEMP"
+#define CO2_NVS_NAMESPACE "CO2"
 
 // Water reservoir namespace
 #define WATER_RESRVOIR_NVS_NAMESPACE "RESERVOIR"

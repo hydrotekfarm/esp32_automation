@@ -22,6 +22,7 @@ static const char off_binary_code[] = "1100";
 enum power_outlets {
 	WATER_COOLER,
 	WATER_HEATER,
+	CO2_INJECTION
 	IRRIGATION,
 	RESERVOIR_WATER_IN,
 	RESERVOIR_WATER_OUT,

@@ -21,9 +21,6 @@ void measure_co2(void *parameter) {		// co2 Sensor Measurement Task
       
 			read_co2(&dev, sensor_get_address_value(&co2_sensor));
 			ESP_LOGI(TAG, "co2 level: %d", (unsigned int) sensor_get_value(&co2_sensor));
-            //testing//
-            //printf("test int: %d\n", (unsigned int) sensor_get_value(&co2_sensor));
-
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end
             /*
 			xEventGroupSync(sensor_event_group, PH_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
