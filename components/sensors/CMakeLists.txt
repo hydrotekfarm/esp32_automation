@@ -1,5 +1,6 @@
 idf_component_register(
 	SRCS 
+	"control/co2_control.c"
 	"control/control_task.c" 
 	"control/ec_control.c" 
 	"control/ph_control.c" 
