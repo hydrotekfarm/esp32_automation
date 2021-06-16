@@ -10,12 +10,11 @@
 #include <string.h>
 
 #include "boot.h"
-#include "ec_reading.h"
-#include "ph_reading.h"
-#include "water_temp_reading.h"
-#include "ec_control.h"
-#include "ph_control.h"
-#include "water_temp_control.h"
+#include "co2_reading.h"
+#include "bme_reading.h"
+#include "co2_control.h"
+#include "humidity_control.h"
+#include "temperature_control.h"
 #include "sync_sensors.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
@@ -237,16 +236,16 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 		create_time_json(&time);
 		cJSON_AddItemToObject(root, "time", time);
 
-		// Adding water temperature
-		sensor_get_json(get_water_temp_sensor(), &sensor);
+		//Adding co2
+		sensor_get_json(get_co2_sensor(), &sensor);
 		cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Adding ec
-		sensor_get_json(get_ec_sensor(), &sensor);
+		//Adding humidity
+		sensor_get_json(get_humidity_sensor(), &sensor);
 		cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Adding pH
-		sensor_get_json(get_ph_sensor(), &sensor);
+		//Adding temperature
+		sensor_get_json(get_temperature_sensor(), &sensor);
 		cJSON_AddItemToArray(sensor_arr, sensor);
 
 		// Adding array to object
@@ -272,9 +271,9 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 	free(sensor_settings_topic);
 }
 
-cJSON* get_ph_control_status() { return ph_control_status; }
-cJSON* get_ec_control_status() { return ec_control_status; }
-cJSON* get_water_temp_control_status() { return water_temp_control_status; }
+cJSON* get_co2_control_status() { return co2_control_status; }
+cJSON* get_humidity_control_status() { return humidity_control_status; }
+cJSON* get_temperature_control_status() { return temperature_control_status; }
 cJSON **get_rf_statuses() { return rf_statuses; }
 
 void init_equipment_status() {
@@ -283,13 +282,12 @@ void init_equipment_status() {
 	rf_status_root = cJSON_CreateObject();
 
 	// Create sensor statuses
-	ph_control_status = cJSON_CreateNumber(0);
-	ec_control_status = cJSON_CreateNumber(0);
-	water_temp_control_status = cJSON_CreateNumber(0);
-	cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
-	cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
-	cJSON_AddItemToObject(control_status_root, "water_temp_control", water_temp_control_status);
-
+	co2_control_status = cJSON_CreateNumber(0);
+	temperature_control_status = cJSON_CreateNumber(0);
+	humidity_control_status = cJSON_CreateNumber(0);
+	cJSON_AddItemToObject(control_status_root, "co2_control", co2_control_status);
+	cJSON_AddItemToObject(control_status_root, "temperature_control", temperature_control_status);
+	cJSON_AddItemToObject(control_status_root, "humidity_control", humidity_control_status);
 	// Create rf statuses
 	char key[3];
 	for(uint8_t i = 0; i < NUM_OUTLETS; ++i) {
@@ -325,19 +323,15 @@ void update_settings(char *settings) {
 		ESP_LOGI(MQTT_TAG, "subitem: %s\n", string);
 
 		ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
-		if(strcmp("ph", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "pH data received");
-			ph_update_settings(object_settings);
-		} else if(strcmp("ec", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "ec data received");
-			ec_update_settings(object_settings);
-		} else if(strcmp("water_temp", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "water temp data received");
-			water_temp_update_settings(object_settings);
-		} else if(strcmp("irrigation", data_topic) == 0) {
-			update_irrigation_timings(object_settings);
-		} else if(strcmp("grow_lights", data_topic) == 0) {
-			update_grow_light_timings(object_settings);
+		if(strcmp("co2", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "co2 data received");
+			co2_update_settings(object_settings);
+		}else if(strcmp("temperature", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "temperature data received");
+			temperature_update_settings(object_settings);
+		} else if(strcmp("humidity", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "humidity data received");
+			humidity_update_settings(object_settings);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}

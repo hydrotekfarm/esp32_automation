@@ -5,7 +5,6 @@
 
 #define RF_CODE_LENGTH 24
 #define RF_ADDRESS_LENGTH 20
-#define MAX_GROW_LIGHT_ZONES 10
 #define NUM_OUTLETS MAX_GROW_LIGHT_ZONES+5
 #define DEFAULT_ADDRESS_INDEX 100000
 
@@ -20,13 +19,11 @@ static const char off_binary_code[] = "1100";
 #define RF_TAG "RF_TRANSMITTER"
 
 enum power_outlets {
-	WATER_COOLER,
-	WATER_HEATER,
 	CO2_INJECTION,
-	IRRIGATION,
-	RESERVOIR_WATER_IN,
-	RESERVOIR_WATER_OUT,
-	GROW_LIGHTS
+	HUMIDIFIER_INCREASE,
+	HUMIDIFIER_DECREASE,
+	TEMPERATURE_INCREASE,
+	TEMPERATURE_DECREASE
 };
 
 struct rf_message {
@@ -38,15 +35,14 @@ struct rf_message {
 uint32_t address_index;
 uint8_t grow_light_arr_current_length;
 
-char water_cooler_address[RF_ADDRESS_LENGTH + 1];
-char water_heater_address[RF_ADDRESS_LENGTH + 1];
 
-char water_in_address[RF_ADDRESS_LENGTH + 1];
-char water_out_address[RF_ADDRESS_LENGTH + 1];
+char co2_injector_address[RF_ADDRESS_LENGTH + 1];
 
-char irrigation_address[RF_ADDRESS_LENGTH + 1];
+char temp_inc_address[RF_ADDRESS_LENGTH + 1];
+char temp_dec_address[RF_ADDRESS_LENGTH + 1];
 
-char grow_lights_address[MAX_GROW_LIGHT_ZONES][RF_ADDRESS_LENGTH + 1];
+char humidifier_inc_address[RF_ADDRESS_LENGTH + 1];
+char humidifier_dec_address[RF_ADDRESS_LENGTH + 1];
 
 TaskHandle_t rf_transmitter_task_handle;
 QueueHandle_t rf_transmitter_queue;
@@ -59,9 +55,3 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state);
 
 // RF Task
 void rf_transmitter();
-
-// Turn all lights on
-void lights_on();
-
-// Turn all lights off
-void lights_off();

@@ -11,19 +11,9 @@
 #define TIMER_ALARM_NVS_NAMESPACE "TIMER_ALARM"
 
 // Sensor namespaces
-#define EC_NVS_NAMESPACE "EC"
-#define PH_NVS_NAMESPACE "PH"
-#define WATER_TEMP_NVS_NAMESPACE "WATER_TEMP"
 #define CO2_NVS_NAMESPACE "CO2"
-
-// Water reservoir namespace
-#define WATER_RESRVOIR_NVS_NAMESPACE "RESERVOIR"
-
-// Irrigation namespace
-#define IRRIGATION_NVS_NAMESPACE "IRRIGATION"
-
-// Grow lights namespace
-#define GROW_LIGHT_NVS_NAMESPACE "GROWLIGHT"
+#define HUMIDITY_NVS_NAMESPACE "HUMIDITY"
+#define TEMPERATURE_NVS_NAMESPACE "TEMPERATURE"
 
 // RF transmitter namespace
 #define RF_TRANSMITTER_NVS_NAMESPACE "RF"

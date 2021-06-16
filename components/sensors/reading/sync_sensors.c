@@ -6,13 +6,12 @@
 #include <esp_log.h>
 #include <esp_system.h>
 
-#include "ec_reading.h"
-#include "ph_reading.h"
-#include "water_temp_reading.h"
+#include "co2_reading.h"
+#include "bme_reading.h"
 #include "sensor.h"
 
 void set_sensor_sync_bits() {
-	sensor_sync_bits = DELAY_BIT | EC_BIT | PH_BIT | (sensor_get_active_status(get_water_temp_sensor()) ? WATER_TEMPERATURE_BIT : 0);
+	sensor_sync_bits = DELAY_BIT | CO2_BIT | BME_BIT;
 }
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task

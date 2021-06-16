@@ -6,18 +6,17 @@
 #include <freertos/task.h>
 
 #include "nvs_manager.h"
+#include "co2_reading.h"
+#include "bme_reading.h"
 #include "nvs_namespace_keys.h"
-#include "ec_reading.h"
-#include "ph_reading.h"
-#include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "mqtt_manager.h"
-#include "ph_control.h"
-#include "ec_control.h"
-#include "water_temp_control.h"
 #include "control_task.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
+#include "co2_control.h"
+#include "humidity_control.h"
+#include "temperature_control.h"
 
 void init_grow_manager() {
 	uint8_t status; // Holds vars coming from NVS
@@ -29,9 +28,10 @@ void init_grow_manager() {
 		return;
 	} else {
 		ESP_LOGI(GROW_MANAGER_TAG, "Settings stored in NVS");
-		ph_get_nvs_settings();
-		ec_get_nvs_settings();
-		water_temp_get_nvs_settings();
+		co2_get_nvs_settings();
+		humidity_get_nvs_settings();
+		temperature_get_nvs_settings();
+
 		settings_received();
 	}
 
@@ -68,9 +68,8 @@ void suspend_tasks() {
 	vTaskSuspend(sensor_control_task_handle);
 
 	// Core 1
-	vTaskSuspend(*sensor_get_task_handle(get_water_temp_sensor()));
-	vTaskSuspend(*sensor_get_task_handle(get_ec_sensor()));
-	vTaskSuspend(*sensor_get_task_handle(get_ph_sensor()));
+	vTaskSuspend(*sensor_get_task_handle(get_co2_sensor()));
+	vTaskSuspend(*bme_task_handle);
 	vTaskSuspend(sync_task_handle);
 }
 
@@ -82,9 +81,8 @@ void resume_tasks() {
 	vTaskResume(sensor_control_task_handle);
 
 	// Core 1
-	vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
-	vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
-	vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
+	vTaskResume(*sensor_get_task_handle(get_co2_sensor()));
+	vTaskResume(*bme_task_handle);
 	vTaskResume(sync_task_handle);
 }
 

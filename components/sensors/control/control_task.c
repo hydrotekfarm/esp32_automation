@@ -4,10 +4,9 @@
 #include <sdkconfig.h>
 
 #include "sensor_control.h"
-#include "reservoir_control.h"
-#include "ph_control.h"
-#include "ec_control.h"
-#include "water_temp_control.h"
+#include "co2_control.c"
+#include "humidity_control.c"
+#include "temperature_control.c"
 #include "control_settings_keys.h"
 #include "sync_sensors.h"
 #include "ports.h"
@@ -15,40 +14,27 @@
 #include "rf_transmitter.h"
 
 void init_control() {
-	ec_pump_gpios[0] = EC_NUTRIENT_1_PUMP_GPIO;
-	ec_pump_gpios[1] = EC_NUTRIENT_2_PUMP_GPIO;
-	ec_pump_gpios[2] = EC_NUTRIENT_3_PUMP_GPIO;
-	ec_pump_gpios[3] = EC_NUTRIENT_4_PUMP_GPIO;
-	ec_pump_gpios[4] = EC_NUTRIENT_5_PUMP_GPIO;
-	ec_pump_gpios[5] = EC_NUTRIENT_6_PUMP_GPIO;
 
-	// Float Switch Port Setup
-	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
-	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
+	//For Co2 //
+	init_sensor_control(get_co2_control(), "CO2_CONTROL", get_co2_control_status(), CO2_MARGIN_ERROR);
+	is_co2_injector_on = false;
 
-	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
-	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
+	//Humidity// 
+	init_sensor_control(get_humidity_control(), "HUMIDITY_CONTROL", get_humidity_control_status(), HUMIDITY_MARGIN_ERROR);
+	is_humidifier_on = false;
 
-	init_sensor_control(get_ph_control(), "PH_CONTROL", get_ph_control_status(), PH_MARGIN_ERROR);
-	init_doser_control(get_ph_control());
+	//Temperature// 
+	init_sensor_control(get_temperature_control(), "TEMPERATURE_CONTROL", get_temperature_control_status(), TEMPERATURE_MARGIN_ERROR);
+	is_thermostat_on = false;
 
-	init_sensor_control(get_ec_control(), "EC_CONTROL", get_ec_control_status(), EC_MARGIN_ERROR);
-	init_doser_control(get_ec_control());
-
-	init_sensor_control(get_water_temp_control(), "WATER_TEMP_CONTROL", get_water_temp_control_status(), WATER_TEMP_MARGIN_ERROR);
-	is_water_cooler_on = false;
-
-	water_in_rf_message.rf_address_ptr = water_in_address;
-	water_out_rf_message.rf_address_ptr = water_out_address;
 }
 
 void sensor_control (void *parameter) {
 	for(;;)  {
 		// Check sensors
-		if(reservoir_control_active) check_water_level(); // TODO remove if statement for consistency
-		check_ph();
-		check_ec();
-		check_water_temp();
+		check_co2();
+		check_humidity();
+		check_temperature();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

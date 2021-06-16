@@ -4,12 +4,8 @@
 // GPIO Ports
 #define POWER_BUTTON_GPIO			2
 #define RF_TRANSMITTER_GPIO 		4
-#define FLOAT_SWITCH_BOTTOM_GPIO	13
-#define TEMPERATURE_SENSOR_GPIO 	17
-#define INTA_GPIO 					19
 #define SDA_GPIO 					21
 #define SCL_GPIO 					22
-#define FLOAT_SWITCH_TOP_GPIO 		32
 
 // MCP23017 GPIO Expansion Ports
 #define EC_NUTRIENT_1_PUMP_GPIO 	5

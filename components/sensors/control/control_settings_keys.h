@@ -16,11 +16,6 @@
 #define ALARM_MIN "alarm_min"
 #define ALARM_MAX "alarm_max"
 
-// ec specific keys
-#define PUMP_NUM "pump_"
-
 // Sensor namespaces
-#define PH_NAMESPACE "PH"
-#define EC_NAMESPACE "EC"
 
 #endif

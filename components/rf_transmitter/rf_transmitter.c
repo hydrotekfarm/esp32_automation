@@ -32,45 +32,37 @@ void generate_rf_address(char *rf_address, long int current_num) {
 
 void init_rf_addresses() {
 	address_index = DEFAULT_ADDRESS_INDEX;	// get from NVS
-	grow_light_arr_current_length = 3;		// get from NVS
-	generate_rf_address(water_cooler_address, address_index + (int) WATER_COOLER);
-	generate_rf_address(water_heater_address, address_index + (int) WATER_HEATER);
-	generate_rf_address(water_in_address, address_index + (int) RESERVOIR_WATER_IN);
-	generate_rf_address(water_out_address, address_index + (int) RESERVOIR_WATER_OUT);
-	generate_rf_address(irrigation_address, address_index + (int) IRRIGATION);
-	for(int i = 0; i < grow_light_arr_current_length; i++) {
-		generate_rf_address(grow_lights_address[i], address_index + (int) GROW_LIGHTS + i);
-	}
+	generate_rf_address(co2_injector_address, address_index + (int) CO2_INJECTION);
+	generate_rf_address(temp_inc_address, address_index + (int) TEMPERATURE_INCREASE);
+	generate_rf_address(temp_dec_address, address_index + (int) TEMPERATURE_DECREASE);
+	generate_rf_address(humidifier_inc_address, address_index + (int) HUMIDIFIER_INCREASE);
+	generate_rf_address(humidifier_dec_address, address_index + (int) HUMIDIFIER_DECREASE);
 }
 
 esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 	struct rf_message setup_rf_message;
 	setup_rf_message.state = state;
 
-	if(power_outlet_id == (int) WATER_COOLER) {
-		setup_rf_message.rf_address_ptr = water_cooler_address;
+	if(power_outlet_id == (int) CO2_INJECTION) {
+		setup_rf_message.rf_address_ptr = co2_injector_address; 
+	} 
+	
+	else if (power_outlet_id =- (int) HUMIDIFIER_INCREASE) {
+		setup_rf_message.rf_address_ptr = humidifier_inc_address; 
 	}
 
-	else if(power_outlet_id == (int) WATER_HEATER) {
-		setup_rf_message.rf_address_ptr = water_heater_address;
+	else if (power_outlet_id =- (int) HUMIDIFIER_DECREASE) {
+		setup_rf_message.rf_address_ptr = humidifier_dec_address; 
+	} 
+
+	else if (power_outlet_id =- (int) TEMPERATURE_INCREASE) {
+		setup_rf_message.rf_address_ptr = temp_inc_address; 
 	}
 
-	else if(power_outlet_id == (int) IRRIGATION) {
-		setup_rf_message.rf_address_ptr = irrigation_address;
+	else if (power_outlet_id =- (int) TEMPERATURE_DECREASE) {
+		setup_rf_message.rf_address_ptr = temp_dec_address; 
 	}
 
-	else if(power_outlet_id == (int) RESERVOIR_WATER_IN) {
-		setup_rf_message.rf_address_ptr = water_in_address;
-	}
-
-	else if(power_outlet_id == (int) RESERVOIR_WATER_OUT) {
-		setup_rf_message.rf_address_ptr = water_out_address;
-	}
-
-	else if(power_outlet_id >= (int) GROW_LIGHTS && power_outlet_id <= ((int) GROW_LIGHTS) + MAX_GROW_LIGHT_ZONES) {
-		ESP_LOGI("Turning on grow lights", "Index number %d", power_outlet_id - (int) GROW_LIGHTS);
-		setup_rf_message.rf_address_ptr = grow_lights_address[power_outlet_id - (int) GROW_LIGHTS];
-	}
 	else {
 		return ESP_FAIL;
 	}
@@ -99,17 +91,5 @@ void rf_transmitter(void *parameter) {
 				send_message(message.rf_address_ptr, off_binary_code);
 			}
 		}
-	}
-}
-
-void lights_on() {
-	for(int i = 0; i < MAX_GROW_LIGHT_ZONES; ++i) {
-		control_power_outlet(GROW_LIGHTS + i, true);
-	}
-}
-
-void lights_off() {
-	for(int i = 0; i < MAX_GROW_LIGHT_ZONES; ++i) {
-		control_power_outlet(GROW_LIGHTS + i, false);
 	}
 }
