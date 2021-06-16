@@ -47,19 +47,19 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 		setup_rf_message.rf_address_ptr = co2_injector_address; 
 	} 
 	
-	else if (power_outlet_id =- (int) HUMIDIFIER_INCREASE) {
+	else if (power_outlet_id == (int) HUMIDIFIER_INCREASE) {
 		setup_rf_message.rf_address_ptr = humidifier_inc_address; 
 	}
 
-	else if (power_outlet_id =- (int) HUMIDIFIER_DECREASE) {
+	else if (power_outlet_id == (int) HUMIDIFIER_DECREASE) {
 		setup_rf_message.rf_address_ptr = humidifier_dec_address; 
 	} 
 
-	else if (power_outlet_id =- (int) TEMPERATURE_INCREASE) {
+	else if (power_outlet_id == (int) TEMPERATURE_INCREASE) {
 		setup_rf_message.rf_address_ptr = temp_inc_address; 
 	}
 
-	else if (power_outlet_id =- (int) TEMPERATURE_DECREASE) {
+	else if (power_outlet_id == (int) TEMPERATURE_DECREASE) {
 		setup_rf_message.rf_address_ptr = temp_dec_address; 
 	}
 

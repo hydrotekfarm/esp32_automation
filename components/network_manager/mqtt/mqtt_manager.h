@@ -21,6 +21,10 @@
 
 #define MQTT_TAG "MQTT_MANAGER"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Task handle
 TaskHandle_t publish_task_handle;
 
@@ -82,3 +86,8 @@ void create_sensor_data_topic();
 
 // Create settings data topic
 void create_settings_data_topic();
+
+#ifdef __cplusplus
+}
+#endif
+

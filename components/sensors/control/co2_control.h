@@ -1,3 +1,5 @@
+
+
 #include <stdbool.h>
 #include <cjson.h>
 
@@ -32,3 +34,5 @@ void co2_update_settings(cJSON *item);
 
 // Get and store settings from NVS
 void co2_get_nvs_settings();
+
+

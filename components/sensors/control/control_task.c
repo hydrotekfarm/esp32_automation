@@ -4,9 +4,9 @@
 #include <sdkconfig.h>
 
 #include "sensor_control.h"
-#include "co2_control.c"
-#include "humidity_control.c"
-#include "temperature_control.c"
+#include "co2_control.h"
+#include "humidity_control.h"
+#include "temperature_control.h"
 #include "control_settings_keys.h"
 #include "sync_sensors.h"
 #include "ports.h"
