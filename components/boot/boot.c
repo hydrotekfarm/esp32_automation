@@ -13,8 +13,13 @@
 
 #include "task_priorities.h"
 #include "ports.h"
+#include "co2_reading.h"
+#include "bme_reading.h"
 #include "sync_sensors.h"
 #include "control_task.h"
+#include "co2_control.h"
+#include "humidity_control.h"
+#include "temperature_control.h"
 #include "rtc.h"
 #include "rf_transmitter.h"
 #include "mqtt_manager.h"
@@ -22,8 +27,6 @@
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
 #include "grow_manager.h"
-#include "co2_reading.h"
-#include "bme_reading.h"
 
 void boot_sequence() {
 	// Init nvs

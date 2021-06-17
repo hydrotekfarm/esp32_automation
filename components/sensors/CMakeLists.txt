@@ -9,8 +9,6 @@ idf_component_register(
 	"libs/co2_sensor.c"
 	"libs/i2cdev.c" 
 	"libs/mcp23x17.c" 
-	"libs/onewire.c" 
-	"libs/ultrasonic.c"
 	"reading/bme_reading.c" 
 	"reading/co2_reading.c"
 	"reading/sensor.c"
