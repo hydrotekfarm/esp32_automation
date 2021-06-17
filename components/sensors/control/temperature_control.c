@@ -25,18 +25,18 @@ void check_temperature() {
 
 void increase_temperature() {
     ESP_LOGI(TEMPERATURE_TAG, "Increasing Temperature");
-    control_power_outlet(TEMPERATURE_INCREASE, true);
+    control_power_outlet(TEMPERATURE_HEATER, true);
 }
 
 void decrease_temperature() {
     ESP_LOGI(TEMPERATURE_TAG, "Decreasing Temperature");
-    control_power_outlet(TEMPERATURE_DECREASE, true);
+    control_power_outlet(TEMPERATURE_COOLER, true);
 }
 
 void stop_temperature_adjustment() {
     ESP_LOGI(TEMPERATURE_TAG, "Turning off temperature control");
-    control_power_outlet(TEMPERATURE_INCREASE, false);
-    control_power_outlet(TEMPERATURE_DECREASE, false);
+    control_power_outlet(TEMPERATURE_HEATER, false);
+    control_power_outlet(TEMPERATURE_COOLER, false);
 }
 
 void temperature_update_settings(cJSON *item) {

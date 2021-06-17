@@ -25,18 +25,18 @@ void check_humidity() {
 
 void increase_humidity() {
     ESP_LOGI(HUMIDITY_TAG, "Increasing Humidity");
-    control_power_outlet(HUMIDIFIER_INCREASE, true);
+    control_power_outlet(HUMIDIFIER, true);
 }
 
 void decrease_humidity() {
     ESP_LOGI(HUMIDITY_TAG, "Decreasing Humidity");
-    control_power_outlet(HUMIDIFIER_DECREASE, true);
+    control_power_outlet(DEHUMIDIFIER, true);
 }
 
 void stop_humidity_adjustment() {
     ESP_LOGI(HUMIDITY_TAG, "Turning off humidifier control");
-    control_power_outlet(HUMIDIFIER_INCREASE, false);
-    control_power_outlet(HUMIDIFIER_DECREASE, false);
+    control_power_outlet(HUMIDIFIER, false);
+    control_power_outlet(DEHUMIDIFIER, false);
 }
 
 void humidity_update_settings(cJSON *item) {
