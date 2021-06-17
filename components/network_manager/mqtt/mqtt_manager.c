@@ -214,6 +214,7 @@ void create_time_json(cJSON **time_json) {
 	*time_json = cJSON_CreateString(time_str);
 }
 
+
 void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
@@ -271,9 +272,9 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 	free(sensor_settings_topic);
 }
 
-cJSON* get_co2_control_status() { return co2_control_status; }
-cJSON* get_humidity_control_status() { return humidity_control_status; }
-cJSON* get_temperature_control_status() { return temperature_control_status; }
+cJSON  *get_co2_control_status() { return co2_control_status; }
+cJSON  *get_humidity_control_status() { return humidity_control_status; }
+cJSON  *get_temperature_control_status() { return temperature_control_status; }
 cJSON **get_rf_statuses() { return rf_statuses; }
 
 void init_equipment_status() {
