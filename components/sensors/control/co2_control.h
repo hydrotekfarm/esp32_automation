@@ -14,7 +14,7 @@ static const float CO2_MARGIN_ERROR = 10;
 struct sensor_control co2_control;
 
 // Track if co2 injector is on
-bool is_co2_injector_on;
+bool is_co2_control_on;
 
 // Get control
 struct sensor_control* get_co2_control();

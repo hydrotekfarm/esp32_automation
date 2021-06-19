@@ -12,7 +12,7 @@ static const float TEMPERATURE_MARGIN_ERROR = 1.5;
 struct sensor_control temperature_control;
 
 // Track if thermostat is on
-bool is_thermostat_on;
+bool is_temperature_control_on;
 
 // Get control
 struct sensor_control* get_temperature_control();

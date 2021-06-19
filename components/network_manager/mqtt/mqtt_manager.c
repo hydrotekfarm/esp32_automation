@@ -135,7 +135,7 @@ void make_topics() {
 
 	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
 	add_id(grow_cycle_topic);
-	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", grow_cycle_topic);
+	ESP_LOGI(MQTT_TAG, "Grow Cycle topic: %s", grow_cycle_topic);
 
 	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
 	add_id(rf_control_topic);

@@ -11,15 +11,15 @@ struct sensor_control* get_temperature_control() { return &temperature_control; 
 
 void check_temperature() {
     int result = control_check_sensor(&temperature_control, sensor_get_value(get_temperature_sensor()));
-    if(!is_thermostat_on && result == -1) {
+    if(!is_temperature_control_on && result == -1) {
         increase_temperature();
-        is_thermostat_on = true;
-    } else if(!is_thermostat_on && result == 1) {
+        is_temperature_control_on = true;
+    } else if(!is_temperature_control_on && result == 1) {
         decrease_temperature();
-        is_thermostat_on = true;
-    } else if(is_thermostat_on && result == 0) {
+        is_temperature_control_on = true;
+    } else if(is_temperature_control_on && result == 0) {
         stop_temperature_adjustment();
-        is_thermostat_on = false;
+        is_temperature_control_on = false;
     }
 }
 

@@ -20,7 +20,7 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 	for (;;) {
 		// Provide a minimum amount of time before event group round resets
 		vTaskDelay(pdMS_TO_TICKS(10000));
-		returnBits = xEventGroupSync(sensor_event_group, DELAY_BIT, sensor_sync_bits, pdMS_TO_TICKS(10000));
+		returnBits = xEventGroupSync(sensor_event_group, DELAY_BIT, sensor_sync_bits, pdMS_TO_TICKS(MEASUREMENT_INTERVAL));
 		// Check Whether all tasks were completed on time
 		if ((returnBits & sensor_sync_bits) == sensor_sync_bits) {
 			ESP_LOGI(TAG, "Completed");

@@ -38,6 +38,21 @@ void get_day_night_times(struct tm *day_time, struct tm *night_time) {
 
 void do_nothing() {}
 
+void init_rtc() { // Init RTC
+	memset(&dev, 0, sizeof(i2c_dev_t));
+	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, SDA_GPIO, SCL_GPIO));
+	set_time();
+
+	// Lights
+	night_time_hour = 21;
+	night_time_min = 0;
+	day_time_hour  = 6;
+	day_time_min = 0;
+
+	// Initialize alarms
+	init_alarm(&night_time_alarm, &night, true, false);
+	init_alarm(&day_time_alarm, &day, true, false);
+}
 
 void init_sntp() {
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -63,7 +78,7 @@ void set_time() { // Set current time to some date
 
 
 
-/*
+
 void manage_timers_alarms(void *parameter) {
 	const char *TAG = "TIMER_TASK";
 
@@ -72,25 +87,18 @@ void manage_timers_alarms(void *parameter) {
 		time_t unix_time;
 		get_unix_time(&dev, &unix_time);
 
-		// Check if timers are done
-		check_timer(&dev, &irrigation_timer, unix_time);
-		check_timer(&dev, control_get_dose_timer(get_ph_control()), unix_time);
-		check_timer(&dev, control_get_wait_timer(get_ph_control()), unix_time);
-		check_timer(&dev, control_get_dose_timer(get_ec_control()), unix_time);
-		check_timer(&dev, control_get_wait_timer(get_ec_control()), unix_time);
-
 		// Check if alarms are done
 		check_alarm(&dev, &night_time_alarm, unix_time);
 		check_alarm(&dev, &day_time_alarm, unix_time);
 
 		// Check if any timer or alarm is urgent
-		bool urgent = (irrigation_timer.active && irrigation_timer.high_priority) || (get_ph_control()->dose_timer.active && get_ph_control()->dose_timer.high_priority) || (get_ph_control()->wait_timer.active && get_ph_control()->wait_timer.high_priority) || (get_ec_control()->dose_timer.active && get_ec_control()->dose_timer.high_priority) || (get_ec_control()->wait_timer.active && get_ec_control()->wait_timer.high_priority) || (night_time_alarm.alarm_timer.active && night_time_alarm.alarm_timer.high_priority) || (day_time_alarm.alarm_timer.active && day_time_alarm.alarm_timer.high_priority);
+		bool urgent = (night_time_alarm.alarm_timer.active && night_time_alarm.alarm_timer.high_priority) || (day_time_alarm.alarm_timer.active && day_time_alarm.alarm_timer.high_priority);
 
 		// Set priority and delay based on urgency of timers and alarms
 		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
 		vTaskDelay(pdMS_TO_TICKS(urgent ? TIMER_ALARM_URGENT_DELAY : TIMER_ALARM_REGULAR_DELAY));
 	}
 }
-*/
+
 
 

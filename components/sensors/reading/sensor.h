@@ -7,6 +7,8 @@
 #ifndef COMPONENTS_SENSORS_READING_SENSOR_H_
 #define COMPONENTS_SENSORS_READING_SENSOR_H_
 
+#define MEASUREMENT_INTERVAL 10000
+
 struct sensor {
 	char name[25];
 	TaskHandle_t task_handle;

@@ -17,15 +17,15 @@ void init_control() {
 
 	//For Co2 //
 	init_sensor_control(get_co2_control(), "CO2_CONTROL", get_co2_control_status(), CO2_MARGIN_ERROR);
-	is_co2_injector_on = false;
+	is_co2_control_on = false;
 
 	//Humidity// 
 	init_sensor_control(get_humidity_control(), "HUMIDITY_CONTROL", get_humidity_control_status(), HUMIDITY_MARGIN_ERROR);
-	is_humidifier_on = false;
+	is_humidity_control_on = false;
 
 	//Temperature// 
 	init_sensor_control(get_temperature_control(), "TEMPERATURE_CONTROL", get_temperature_control_status(), TEMPERATURE_MARGIN_ERROR);
-	is_thermostat_on = false;
+	is_temperature_control_on = false;
 
 }
 

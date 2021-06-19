@@ -11,15 +11,15 @@ struct sensor_control* get_humidity_control() { return &humidity_control; }
 
 void check_humidity() {
     int result = control_check_sensor(&humidity_control, sensor_get_value(get_humidity_sensor()));
-    if(!is_humidifier_on && result == -1) {
+    if(!is_humidity_control_on && result == -1) {
         increase_humidity();
-        is_humidifier_on = true;
-    } else if(!is_humidifier_on && result == 1) {
+        is_humidity_control_on = true;
+    } else if(!is_humidity_control_on && result == 1) {
         decrease_humidity();
-        is_humidifier_on = true;
-    } else if(is_humidifier_on && result == 0) {
+        is_humidity_control_on = true;
+    } else if(is_humidity_control_on && result == 0) {
         stop_humidity_adjustment();
-        is_humidifier_on = false;
+        is_humidity_control_on = false;
     }
 }
 

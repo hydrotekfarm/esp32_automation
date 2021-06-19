@@ -12,7 +12,7 @@ static const float HUMIDITY_MARGIN_ERROR = 5;
 struct sensor_control humidity_control;
 
 // Track if humidifier is on
-bool is_humidifier_on;
+bool is_humidity_control_on;
 
 // Get control
 struct sensor_control* get_humidity_control();

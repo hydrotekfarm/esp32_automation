@@ -11,12 +11,12 @@ struct sensor_control* get_co2_control() { return &co2_control; }
 
 void check_co2() {
     int result = control_check_sensor(&co2_control, sensor_get_value(get_co2_sensor()));
-    if(!is_co2_injector_on && result == -1) {
+    if(!is_co2_control_on && result == -1) {
         inject_co2();
-        is_co2_injector_on = true;
-    } else if(is_co2_injector_on && result == 0) {
+        is_co2_control_on = true;
+    } else if(is_co2_control_on && result == 0) {
         stop_co2_adjustment();
-        is_co2_injector_on = false;
+        is_co2_control_on = false;
     }
 }
 
