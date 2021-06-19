@@ -76,7 +76,21 @@ void set_time() { // Set current time to some date
 }
 
 
+// Enable day time routine
+void day() {
+	is_day = true;
 
+	lights_on();
+	ESP_LOGI("", "Turning lights on");
+}
+
+// Enable night time routine
+void night() {
+	is_day = false;
+
+	lights_off();
+	ESP_LOGI("", "Turning lights off");
+}
 
 
 void manage_timers_alarms(void *parameter) {

@@ -8,7 +8,6 @@ idf_component_register(
 	"libs/bme680.c"
 	"libs/co2_sensor.c"
 	"libs/i2cdev.c" 
-	"libs/mcp23x17.c" 
 	"reading/bme_reading.c" 
 	"reading/co2_reading.c"
 	"reading/sensor.c"

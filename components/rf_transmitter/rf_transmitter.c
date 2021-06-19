@@ -93,3 +93,15 @@ void rf_transmitter(void *parameter) {
 		}
 	}
 }
+
+void lights_on() {
+	for(int i = 0; i < MAX_GROW_LIGHT_ZONES; ++i) {
+		control_power_outlet(GROW_LIGHTS + i, true);
+	}
+}
+
+void lights_off() {
+	for(int i = 0; i < MAX_GROW_LIGHT_ZONES; ++i) {
+		control_power_outlet(GROW_LIGHTS + i, false);
+	}
+}
