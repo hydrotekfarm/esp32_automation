@@ -55,7 +55,7 @@ void measure_bme(void *parameter) {     // bme Sensor Measurement Task
                 
                 float *humidity = sensor_get_address_value(&humidity_sensor);
                 *humidity = values.humidity; 
-                
+
             } else {
                 ESP_LOGE(TAG, "Unable to get valid readings for temperature and humidity");
             }
@@ -63,7 +63,7 @@ void measure_bme(void *parameter) {     // bme Sensor Measurement Task
 
         // Sync with other sensor tasks
         // Wait up to 10 seconds to let other tasks end
-        //xEventGroupSync(sensor_event_group, BME_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+        xEventGroupSync(sensor_event_group, BME_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
     }
 
 }
