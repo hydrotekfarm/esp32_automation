@@ -54,19 +54,18 @@ void boot_sequence() {
 	set_sensor_sync_bits();
 
 	// Init time rtc
-	init_sntp();
-	//init_rtc();
+	//init_sntp();
 
 	// Init sensor control
-	init_control();
+	//init_control();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
-	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
+	//xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
 	//xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-	xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
-	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
+	//xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+	//xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
 	//xTaskCreatePinnedToCore(measure_co2, "co2_task", 2500, NULL, CO2_TASK_PRIORITY, sensor_get_task_handle(get_co2_sensor()), 1);

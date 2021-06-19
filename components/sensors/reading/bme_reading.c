@@ -51,16 +51,11 @@ void measure_bme(void *parameter) {     // bme Sensor Measurement Task
                 ESP_LOGI(TAG, "Humidity: %.2f", values.humidity);
 
                 float *temp = sensor_get_address_value(&temperature_sensor);
-                *temp = values.temperature; 
-
-                //testing
-                printf("Temperature: %.2f\n", sensor_get_value(&temperature_sensor));
+                *temp = values.temperature;
                 
                 float *humidity = sensor_get_address_value(&humidity_sensor);
                 *humidity = values.humidity; 
-
-                //testing 
-                printf("Humidity: %.2f\n", sensor_get_value(&humidity_sensor));
+                
             } else {
                 ESP_LOGE(TAG, "Unable to get valid readings for temperature and humidity");
             }
