@@ -10,17 +10,20 @@
 struct sensor_control* get_temperature_control() { return &temperature_control; }
 
 void check_temperature() {
-    int result = control_check_sensor(&temperature_control, sensor_get_value(get_temperature_sensor()));
-    if(!is_temperature_control_on && result == -1) {
-        increase_temperature();
-        is_temperature_control_on = true;
-    } else if(!is_temperature_control_on && result == 1) {
-        decrease_temperature();
-        is_temperature_control_on = true;
-    } else if(is_temperature_control_on && result == 0) {
-        stop_temperature_adjustment();
-        is_temperature_control_on = false;
+    if (!control_get_active(get_humidity_sensor())) {
+            int result = control_check_sensor(&temperature_control, sensor_get_value(get_temperature_sensor()));
+            if(!is_temperature_control_on && result == -1) {
+                increase_temperature();
+                is_temperature_control_on = true;
+            } else if(!is_temperature_control_on && result == 1) {
+                decrease_temperature();
+                 is_temperature_control_on = true;
+             } else if(is_temperature_control_on && result == 0) {
+                 stop_temperature_adjustment();
+                 is_temperature_control_on = false;
+             }
     }
+
 }
 
 void increase_temperature() {

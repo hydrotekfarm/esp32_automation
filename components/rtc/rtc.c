@@ -36,6 +36,20 @@ void get_day_night_times(struct tm *day_time, struct tm *night_time) {
 	night_time->tm_sec = 0;
 }
 
+// Enable day time routine
+void day() {
+	is_day = true;
+
+	ESP_LOGI("", "Turning lights on");
+}
+
+// Enable night time routine
+void night() {
+	is_day = false;
+
+	ESP_LOGI("", "Turning lights off");
+}
+
 void do_nothing() {}
 
 void init_rtc() { // Init RTC
@@ -73,23 +87,6 @@ void set_time() { // Set current time to some date
 	ESP_LOGI("", "Current time: %li", now);
 	ESP_ERROR_CHECK(ds3231_set_time(&dev, &dateTime));
 
-}
-
-
-// Enable day time routine
-void day() {
-	is_day = true;
-
-	lights_on();
-	ESP_LOGI("", "Turning lights on");
-}
-
-// Enable night time routine
-void night() {
-	is_day = false;
-
-	lights_off();
-	ESP_LOGI("", "Turning lights off");
 }
 
 

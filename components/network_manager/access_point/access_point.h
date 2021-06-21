@@ -2,7 +2,7 @@
 #include <freertos/event_groups.h>
 #include <esp_http_server.h>
 
-#define EXAMPLE_ESP_WIFI_SSID      "Hydrotek Dosing System"      //CONFIG_ESP_WIFI_SSID
+#define EXAMPLE_ESP_WIFI_SSID      "Hydrotek Climate Controller"      //CONFIG_ESP_WIFI_SSID
 #define EXAMPLE_ESP_WIFI_PASS      "hydrotek"   //CONFIG_ESP_WIFI_PASSWORD
 #define EXAMPLE_ESP_WIFI_CHANNEL   1            //CONFIG_ESP_WIFI_CHANNEL
 #define EXAMPLE_MAX_STA_CONN       1            //CONFIG_ESP_MAX_STA_CONN

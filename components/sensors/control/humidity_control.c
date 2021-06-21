@@ -10,16 +10,18 @@
 struct sensor_control* get_humidity_control() { return &humidity_control; }
 
 void check_humidity() {
-    int result = control_check_sensor(&humidity_control, sensor_get_value(get_humidity_sensor()));
-    if(!is_humidity_control_on && result == -1) {
-        increase_humidity();
-        is_humidity_control_on = true;
-    } else if(!is_humidity_control_on && result == 1) {
-        decrease_humidity();
-        is_humidity_control_on = true;
-    } else if(is_humidity_control_on && result == 0) {
-        stop_humidity_adjustment();
-        is_humidity_control_on = false;
+    if (!control_get_active(get_humidity_sensor())) {
+            int result = control_check_sensor(&humidity_control, sensor_get_value(get_humidity_sensor()));
+            if(!is_humidity_control_on && result == -1) {
+                increase_humidity();
+                is_humidity_control_on = true;
+             } else if(!is_humidity_control_on && result == 1) {
+                 decrease_humidity();
+                is_humidity_control_on = true;
+            } else if(is_humidity_control_on && result == 0) {
+                stop_humidity_adjustment();
+                is_humidity_control_on = false;
+            }
     }
 }
 

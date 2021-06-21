@@ -33,8 +33,8 @@ void sensor_control (void *parameter) {
 	for(;;)  {
 		// Check sensors
 		check_co2();
-		check_humidity();
 		check_temperature();
+		check_humidity();
 
 		// Wait till next sensor readings
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

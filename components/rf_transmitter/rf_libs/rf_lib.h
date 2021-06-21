@@ -9,6 +9,7 @@
 #define COMPONENTS_RF_TRANSMISSION_RF_TRANSMISSION_H_
 
 #include <freertos/FreeRTOS.h>
+#include <driver/gpio.h>
 
 struct binary_bits{
 	uint32_t low_pulse_amount;
