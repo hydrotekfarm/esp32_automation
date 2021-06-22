@@ -3,21 +3,46 @@
 #include <freertos/FreeRTOS.h>
 #include <esp_log.h>
 #include <esp_err.h>
+#include "ports.h"
+
 
 #define NOP() asm volatile ("nop")
 
 
-void uart_config_driver () {
-    
+void uart_config_driver (int16_t transmit_pin, int16_t recieve_pin) {
+    const uart_port_t uart_num = UART_NUM_1;
+
+    uart_config_t uart_config = {
+    .baud_rate = 9600,
+    .data_bits = UART_DATA_8_BITS,
+    .parity = UART_PARITY_DISABLE,
+    .stop_bits = UART_STOP_BITS_1,
+    .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    .rx_flow_ctrl_thresh = 0,
+    };
+
+    // Configure UART parameters
+    ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+
+    // Set UART pins(TX: IO10, RX: IO9)
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_1,transmit_pin, recieve_pin, 0, 0));
+
+    // Install UART driver using an event queue here
+    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_1, UART_BUFFER_SIZE, UART_BUFFER_SIZE, 10, &uart_queue, 0));
 }
 
-void configure_protocol(int32_t pulse_width, int32_t repeat_transmission, int16_t transmit_pin, struct binary_bits low_bit, struct binary_bits high_bit, struct binary_bits sync_bit){
+void configure_protocol(int32_t pulse_width, int32_t repeat_transmission, int16_t transmit_pin, int16_t recieve_pin, struct binary_bits low_bit, struct binary_bits high_bit, struct binary_bits sync_bit){
+
 	power_outlet_protocol.pulse_width = pulse_width;
 	power_outlet_protocol.repeat_transmission = repeat_transmission;
 	power_outlet_protocol.low_bit = low_bit;
 	power_outlet_protocol.high_bit = high_bit;
 	power_outlet_protocol.sync_bit = sync_bit;
 	power_outlet_protocol.transmit_pin = transmit_pin;
+    power_outlet_protocol.recieve_pin = recieve_pin; 
+
+    //Setup UART driver configuration//
+    uart_config_driver(power_outlet_protocol.transmit_pin, power_outlet_protocol.recieve_pin);
 }
 
 unsigned long IRAM_ATTR micros(){
@@ -41,28 +66,30 @@ void IRAM_ATTR delayMicroseconds(uint32_t us)
 }
 
 void transmit_message(unsigned long code, int32_t length){
+    const char binary_one = 0x01; 
+    const char binary_zero = 0x00; 
 	// Repeat Transmission for better accuracy
 	for(int i = 0; i < power_outlet_protocol.repeat_transmission; i++){
 		for(int j = length - 1; j >= 0; j--){
 			if(code & (1L << j)){
 				// Transmit Binary 1
-				gpio_set_level(power_outlet_protocol.transmit_pin, 1);
+                uart_write_bytes(UART_NUM_1, &binary_one, sizeof(binary_one)); 
 				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.high_bit.high_pulse_amount);
-				gpio_set_level(power_outlet_protocol.transmit_pin, 0);
+				uart_write_bytes(UART_NUM_1, &binary_zero, sizeof(binary_zero));
 				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.high_bit.low_pulse_amount);
 			} else {
 				// Transmit Binary 0
-				gpio_set_level(power_outlet_protocol.transmit_pin, 1);
+				uart_write_bytes(UART_NUM_1, &binary_one, sizeof(binary_one)); 
 				delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.low_bit.high_pulse_amount);
-				gpio_set_level(power_outlet_protocol.transmit_pin, 0);
+				uart_write_bytes(UART_NUM_1, &binary_zero, sizeof(binary_zero));
 				delayMicroseconds(power_outlet_protocol.pulse_width *  power_outlet_protocol.low_bit.low_pulse_amount);
-			}
+			} 
 		}
-		gpio_set_level(power_outlet_protocol.transmit_pin, 1);
+		uart_write_bytes(UART_NUM_1, &binary_one, sizeof(binary_one)); 
 		delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.sync_bit.high_pulse_amount);
-		gpio_set_level(power_outlet_protocol.transmit_pin, 0);
+		uart_write_bytes(UART_NUM_1, &binary_zero, sizeof(binary_zero)); 
 		delayMicroseconds(power_outlet_protocol.pulse_width * power_outlet_protocol.sync_bit.low_pulse_amount);
-		gpio_set_level(power_outlet_protocol.transmit_pin, 0);
+		uart_write_bytes(UART_NUM_1, &binary_zero, sizeof(binary_zero)); 
 	}
 }
 

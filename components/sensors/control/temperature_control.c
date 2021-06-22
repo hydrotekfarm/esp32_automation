@@ -5,12 +5,13 @@
 #include "rf_transmitter.h"
 #include "nvs_namespace_keys.h"
 #include "sensor.h"
+#include "humidity_control.h"
 #include "bme_reading.h"
 
 struct sensor_control* get_temperature_control() { return &temperature_control; }
 
 void check_temperature() {
-    if (!control_get_active(get_humidity_sensor())) {
+    if (!control_get_active(get_humidity_control())) {
             int result = control_check_sensor(&temperature_control, sensor_get_value(get_temperature_sensor()));
             if(!is_temperature_control_on && result == -1) {
                 increase_temperature();
