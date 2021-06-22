@@ -33,16 +33,15 @@ struct rf_message {
 #endif
 
 uint32_t address_index;
-uint8_t grow_light_arr_current_length;
 
 
 char co2_injector_address[RF_ADDRESS_LENGTH + 1];
 
-char temp_inc_address[RF_ADDRESS_LENGTH + 1];
-char temp_dec_address[RF_ADDRESS_LENGTH + 1];
+char temp_heater_address[RF_ADDRESS_LENGTH + 1];
+char temp_cooler_address[RF_ADDRESS_LENGTH + 1];
 
-char humidifier_inc_address[RF_ADDRESS_LENGTH + 1];
-char humidifier_dec_address[RF_ADDRESS_LENGTH + 1];
+char humidifier_address[RF_ADDRESS_LENGTH + 1];
+char dehumidifier_address[RF_ADDRESS_LENGTH + 1];
 
 TaskHandle_t rf_transmitter_task_handle;
 QueueHandle_t rf_transmitter_queue;

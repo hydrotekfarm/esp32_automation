@@ -33,10 +33,10 @@ void generate_rf_address(char *rf_address, long int current_num) {
 void init_rf_addresses() {
 	address_index = DEFAULT_ADDRESS_INDEX;	// get from NVS
 	generate_rf_address(co2_injector_address, address_index + (int) CO2_INJECTION);
-	generate_rf_address(temp_inc_address, address_index + (int) TEMPERATURE_HEATER);
-	generate_rf_address(temp_dec_address, address_index + (int) TEMPERATURE_COOLER);
-	generate_rf_address(humidifier_inc_address, address_index + (int) HUMIDIFIER);
-	generate_rf_address(humidifier_dec_address, address_index + (int) DEHUMIDIFIER);
+	generate_rf_address(temp_heater_address, address_index + (int) TEMPERATURE_HEATER);
+	generate_rf_address(temp_cooler_address, address_index + (int) TEMPERATURE_COOLER);
+	generate_rf_address(humidifier_address, address_index + (int) HUMIDIFIER);
+	generate_rf_address(dehumidifier_address, address_index + (int) DEHUMIDIFIER);
 }
 
 esp_err_t control_power_outlet(int power_outlet_id, bool state) {
@@ -48,19 +48,19 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 	} 
 	
 	else if (power_outlet_id == (int) HUMIDIFIER) {
-		setup_rf_message.rf_address_ptr = humidifier_inc_address; 
+		setup_rf_message.rf_address_ptr = humidifier_address; 
 	}
 
 	else if (power_outlet_id == (int) DEHUMIDIFIER) {
-		setup_rf_message.rf_address_ptr = humidifier_dec_address; 
+		setup_rf_message.rf_address_ptr = dehumidifier_address; 
 	} 
 
 	else if (power_outlet_id == (int) TEMPERATURE_HEATER) {
-		setup_rf_message.rf_address_ptr = temp_inc_address; 
+		setup_rf_message.rf_address_ptr = temp_heater_address; 
 	}
 
 	else if (power_outlet_id == (int) TEMPERATURE_COOLER) {
-		setup_rf_message.rf_address_ptr = temp_dec_address; 
+		setup_rf_message.rf_address_ptr = temp_cooler_address; 
 	}
 
 	else {
