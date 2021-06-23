@@ -10,6 +10,8 @@
 #define SDA_GPIO 					21
 #define SCL_GPIO 					22
 #define FLOAT_SWITCH_TOP_GPIO 		32
+#define RF_TX_PIN                   17
+#define RF_RX_PIN                   16
 
 // MCP23017 GPIO Expansion Ports
 #define EC_NUTRIENT_1_PUMP_GPIO 	5

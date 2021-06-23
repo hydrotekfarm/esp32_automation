@@ -35,26 +35,6 @@ void night() {
 	ESP_LOGI("", "Turning lights off");
 }
 
-void get_day_night_times(struct tm *day_time, struct tm *night_time) {
-	// Get current date time
-	struct tm current_date_time;
-	ds3231_get_time(&dev, &current_date_time);
-
-	// Set alarm times
-	day_time->tm_year = current_date_time.tm_year;
-	day_time->tm_mon = current_date_time.tm_mon;
-	day_time->tm_mday = current_date_time.tm_mday;
-	day_time->tm_hour = day_time_hour;
-	day_time->tm_min  = day_time_min;
-	day_time->tm_sec = 0;
-
-	night_time->tm_year = current_date_time.tm_year;
-	night_time->tm_mon = current_date_time.tm_mon;
-	night_time->tm_mday = current_date_time.tm_mday;
-	night_time->tm_hour = night_time_hour;
-	night_time->tm_min  = night_time_min;
-	night_time->tm_sec = 0;
-}
 
 void do_nothing() {}
 
@@ -62,12 +42,6 @@ void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, SDA_GPIO, SCL_GPIO));
 	set_time();
-
-	// Lights
-	night_time_hour = 21;
-	night_time_min = 0;
-	day_time_hour  = 6;
-	day_time_min = 0;
 
 
 	// Initialize timers
@@ -153,18 +127,23 @@ void init_irrigation() {
 }
 
 void init_lights() {
+
 	uint8_t on_hr, on_min, off_hr, off_min;
 
 	if( !nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &on_hr) ||
 		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &on_min) ||
 		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &off_hr) ||
 		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &off_min)) {
-
+		ESP_LOGE("", "Failed to get Day Night Times from NVS");
+		is_day = true;
 		return;
 	}
 
+
 	struct tm time;
 	get_date_time(&time);
+
+	//TODO check timings//
 
 	time.tm_hour = on_hr;
 	time.tm_min = on_min;

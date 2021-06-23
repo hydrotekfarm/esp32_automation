@@ -33,7 +33,6 @@
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
-	
 	// Initialize deep sleep
 	init_power_button();
 
@@ -65,7 +64,7 @@ void boot_sequence() {
 	//Init irrigation
 	init_irrigation();
 
-	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
+	//vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
 	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
