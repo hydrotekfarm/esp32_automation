@@ -24,7 +24,7 @@ void uart_config_driver (int16_t transmit_pin, int16_t recieve_pin) {
     // Configure UART parameters
     ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
 
-    // Set UART pins(TX: IO10, RX: IO9)
+    // Set UART pins(TX: IO17, RX: IO16)
     ESP_ERROR_CHECK(uart_set_pin(UART_NUM_1,transmit_pin, recieve_pin, 0, 0));
 
     // Install UART driver using an event queue here
