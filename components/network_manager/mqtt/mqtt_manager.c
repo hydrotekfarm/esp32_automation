@@ -327,7 +327,7 @@ void update_settings(char *settings) {
 		if(strcmp("co2", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "co2 data received");
 			co2_update_settings(object_settings);
-		}else if(strcmp("temperature", data_topic) == 0) {
+		}else if(strcmp("air_temp", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "temperature data received");
 			temperature_update_settings(object_settings);
 		} else if(strcmp("humidity", data_topic) == 0) {

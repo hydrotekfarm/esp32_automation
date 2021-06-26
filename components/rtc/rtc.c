@@ -15,57 +15,11 @@ void get_date_time(struct tm *time) {
 	ds3231_get_time(&dev, time);
 }
 
-void get_day_night_times(struct tm *day_time, struct tm *night_time) {
-	// Get current date time
-	struct tm current_date_time;
-	ds3231_get_time(&dev, &current_date_time);
-
-	// Set alarm times
-	day_time->tm_year = current_date_time.tm_year;
-	day_time->tm_mon = current_date_time.tm_mon;
-	day_time->tm_mday = current_date_time.tm_mday;
-	day_time->tm_hour = day_time_hour;
-	day_time->tm_min  = day_time_min;
-	day_time->tm_sec = 0;
-
-	night_time->tm_year = current_date_time.tm_year;
-	night_time->tm_mon = current_date_time.tm_mon;
-	night_time->tm_mday = current_date_time.tm_mday;
-	night_time->tm_hour = night_time_hour;
-	night_time->tm_min  = night_time_min;
-	night_time->tm_sec = 0;
-}
-
-// Enable day time routine
-void day() {
-	is_day = true;
-
-	ESP_LOGI("", "Turning lights on");
-}
-
-// Enable night time routine
-void night() {
-	is_day = false;
-
-	ESP_LOGI("", "Turning lights off");
-}
-
-void do_nothing() {}
-
 void init_rtc() { // Init RTC
 	memset(&dev, 0, sizeof(i2c_dev_t));
 	ESP_ERROR_CHECK(ds3231_init_desc(&dev, 0, SDA_GPIO, SCL_GPIO));
 	set_time();
 
-	// Lights
-	night_time_hour = 21;
-	night_time_min = 0;
-	day_time_hour  = 6;
-	day_time_min = 0;
-
-	// Initialize alarms
-	init_alarm(&night_time_alarm, &night, true, false);
-	init_alarm(&day_time_alarm, &day, true, false);
 }
 
 void init_sntp() {
@@ -97,17 +51,7 @@ void manage_timers_alarms(void *parameter) {
 		// Get current unix time
 		time_t unix_time;
 		get_unix_time(&dev, &unix_time);
-
-		// Check if alarms are done
-		check_alarm(&dev, &night_time_alarm, unix_time);
-		check_alarm(&dev, &day_time_alarm, unix_time);
-
-		// Check if any timer or alarm is urgent
-		bool urgent = (night_time_alarm.alarm_timer.active && night_time_alarm.alarm_timer.high_priority) || (day_time_alarm.alarm_timer.active && day_time_alarm.alarm_timer.high_priority);
-
-		// Set priority and delay based on urgency of timers and alarms
-		vTaskPrioritySet(timer_alarm_task_handle, urgent ? (configMAX_PRIORITIES - 1) : TIMER_ALARM_TASK_PRIORITY);
-		vTaskDelay(pdMS_TO_TICKS(urgent ? TIMER_ALARM_URGENT_DELAY : TIMER_ALARM_REGULAR_DELAY));
+		vTaskDelay(TIMER_ALARM_REGULAR_DELAY);
 	}
 }
 

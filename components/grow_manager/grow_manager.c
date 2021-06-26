@@ -69,7 +69,7 @@ void suspend_tasks() {
 
 	// Core 1
 	vTaskSuspend(*sensor_get_task_handle(get_co2_sensor()));
-	vTaskSuspend(bme_task_handle);
+	vTaskSuspend(*sensor_get_task_handle(get_temperature_sensor()));
 	vTaskSuspend(sync_task_handle);
 }
 
@@ -82,7 +82,7 @@ void resume_tasks() {
 
 	// Core 1
 	vTaskResume(*sensor_get_task_handle(get_co2_sensor()));
-	vTaskResume(bme_task_handle);
+	vTaskResume(*sensor_get_task_handle(get_temperature_sensor()));
 	vTaskResume(sync_task_handle);
 }
 

@@ -25,7 +25,7 @@ bool control_add_check(struct sensor_control *control_in) {
 }
 
 float control_get_target_value(struct sensor_control *control_in) {
-	return !is_day && control_in->is_day_night_active ? control_in->night_target_value : control_in->target_value;
+	return control_in->target_value;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -131,18 +131,10 @@ void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs
 					control_in->wait_time = control_element->valuedouble;
 					nvs_add_float(handle, DOSING_INTERVAL, control_in->wait_time);
 					ESP_LOGI(control_in->name, "Updated wait time to: %f", control_element->valuedouble);
-				} else if(strcmp(control_key, DAY_AND_NIGHT) == 0) {
-					control_in->is_day_night_active = control_element->valueint;
-					nvs_add_uint8(handle, DAY_AND_NIGHT, control_element->valueint);
-					ESP_LOGI(control_in->name,"Updated day night control status to: %s", control_element->valueint == 0 ? "false" : "true");
-				} else if(strcmp(control_key, DAY_TARGET_VALUE) == 0 || strcmp(control_key, TARGET_VALUE) == 0) {
+				} else if(strcmp(control_key, TARGET_VALUE) == 0) {
 					control_in->target_value = control_element->valuedouble;
 					nvs_add_float(handle, TARGET_VALUE, control_in->target_value);
 					ESP_LOGI(control_in->name, "Updated target value to: %f", control_element->valuedouble);
-				} else if(strcmp(control_key, NIGHT_TARGET_VALUE) == 0) {
-					control_in->night_target_value = control_element->valuedouble;
-					nvs_add_float(handle, NIGHT_TARGET_VALUE, (control_in->night_target_value));
-					ESP_LOGI(control_in->name, "Updated night target value to: %f", control_element->valuedouble);
 				} else if(strcmp(control_key, UP_CONTROL) == 0) {
 					control_in->is_up_control = control_element->valueint;
 					nvs_add_uint8(handle, UP_CONTROL, control_element->valueint);
@@ -175,8 +167,6 @@ void control_get_nvs_settings(struct sensor_control *control_in, char *namespace
 	enable_status ? control_enable(control_in) : control_disable(control_in);
 
 	nvs_get_float(namespace, TARGET_VALUE, &control_in->target_value);
-	nvs_get_uint8(namespace, DAY_AND_NIGHT, (uint8_t*)(&control_in->is_day_night_active));
-	nvs_get_float(namespace, NIGHT_TARGET_VALUE, &control_in->night_target_value);
 	nvs_get_uint8(namespace, UP_CONTROL, (uint8_t*)(&control_in->is_up_control));
 	nvs_get_uint8(namespace, DOWN_CONTROL, (uint8_t*)(&control_in->is_down_control));
 	nvs_get_float(namespace, DOSING_TIME, &control_in->dose_time);

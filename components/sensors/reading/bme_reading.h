@@ -3,8 +3,6 @@
 #include <Freertos/task.h>
 #include "sensor.h"
 
-TaskHandle_t bme_task_handle;
-
 struct sensor temperature_sensor;
 
 struct sensor humidity_sensor; 

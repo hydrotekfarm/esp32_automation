@@ -31,6 +31,8 @@
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
+
+	nvs_clear();
 	// Initialize deep sleep
 	init_power_button();
 
@@ -45,8 +47,6 @@ void boot_sequence() {
 
 	// Init i2cdev
 	ESP_ERROR_CHECK(i2cdev_init());
-
-	is_day = true;
 
 	// Set all sync bits var
 	set_sensor_sync_bits();
