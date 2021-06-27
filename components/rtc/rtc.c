@@ -139,11 +139,27 @@ void init_lights() {
 		return;
 	}
 
+	is_day = true; 
 
 	struct tm time;
 	get_date_time(&time);
 
-	//TODO check timings//
+	//Get off time, on time, and current time in minutes //
+	int off_time_in_minutes = off_hr * 60 + off_min; 
+	int on_time_in_minutes = on_hr * 60 + on_min;
+	int current_time_in_miniutes = time.tm_hour * 60 + time.tm_min; 
+
+	if (current_time_in_miniutes == on_time_in_minutes) {
+		is_day = true; 
+	} else if (current_time_in_miniutes == off_time_in_minutes) {
+		is_day = false; 
+	} else {
+		if ((current_time_in_miniutes > off_time_in_minutes && current_time_in_miniutes < on_time_in_minutes) || (current_time_in_miniutes < off_time_in_minutes && current_time_in_miniutes > on_time_in_minutes)) {
+			is_day = on_time_in_minutes < off_time_in_minutes ? true: false; 
+		} else {
+			is_day = on_time_in_minutes > off_time_in_minutes ? true: false;
+		}
+	}
 
 	time.tm_hour = on_hr;
 	time.tm_min = on_min;
