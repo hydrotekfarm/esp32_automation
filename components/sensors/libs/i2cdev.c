@@ -236,6 +236,7 @@ esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg, size_t out_re
     return res;
 }
 
+
 esp_err_t i2c_read_ezo_sensor(const i2c_dev_t *dev, uint8_t *response_code, void *in_data, size_t in_size){
 	i2c_cmd_handle_t handle;
 	esp_err_t res;
