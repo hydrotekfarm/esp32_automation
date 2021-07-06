@@ -16,6 +16,7 @@
 #define EQUIPMENT_STATUS_HEADING "equipment_status"
 #define GROW_CYCLE_HEADING "device_status"
 #define RF_CONTROL_HEADING "manual_rf_control"
+#define CALIBRATION_HEADING "calibration"
 
 #define TIME_STRING_LENGTH 21
 
@@ -37,6 +38,7 @@ char *sensor_settings_topic;
 char *equipment_status_topic;
 char *grow_cycle_topic;
 char *rf_control_topic;
+char *calibration_topic; 
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 

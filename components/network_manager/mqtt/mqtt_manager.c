@@ -141,6 +141,12 @@ void make_topics() {
 	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
 	add_id(rf_control_topic);
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
+
+	//Topic for Calibration//
+    init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
+    add_id(calibration_topic);
+    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+
 }
 
 void subscribe_topics() {
@@ -148,6 +154,7 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
