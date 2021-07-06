@@ -49,7 +49,6 @@ void boot_sequence() {
 	ESP_ERROR_CHECK(i2cdev_init());
 
 	init_ports();
-	is_day = true;
 
 	// Set all sync bits var
 	set_sensor_sync_bits();
