@@ -22,6 +22,7 @@
 #include "network_settings.h"
 #include "grow_manager.h"
 #include "wifi_connect.h"
+#include "ports.h"
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
@@ -141,6 +142,11 @@ void make_topics() {
 	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
 	add_id(rf_control_topic);
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
+
+	//Topic for Calibration//
+	init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
+	add_id(calibration_topic);
+	ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 }
 
 void subscribe_topics() {
@@ -148,6 +154,7 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -172,6 +179,7 @@ void mqtt_connect() {
 	// First check if wifi is connected
 	if(!is_wifi_connected) {
 		is_mqtt_connected = false;
+		gpio_set_level(MQTT_LED, 0);
 		return;
 	}
 
@@ -190,6 +198,8 @@ void mqtt_connect() {
 	publish_equipment_status();
 
 	is_mqtt_connected = true;
+
+	gpio_set_level(MQTT_LED, 1);
 }
 
 
@@ -311,29 +321,37 @@ void publish_equipment_status() {
 
 void update_settings(char *settings) {
 	cJSON *root = cJSON_Parse(settings);
-	cJSON *arr = root->child;
+	char* string = cJSON_Print(root);
+	ESP_LOGI(MQTT_TAG, "datavalue: %s\n", string);
+	cJSON *object_settings = root->child;
+	string = cJSON_Print(object_settings);
+	ESP_LOGI(MQTT_TAG, "object: %s\n", string);
+	//	string = cJSON_Print(arr->child);
+//	ESP_LOGI(MQTT_TAG, "child: %s\n", string);
+//	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
+	//	cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
+		char *data_topic = object_settings->string;
+		string = cJSON_Print(object_settings->child);
+		ESP_LOGI(MQTT_TAG, "subitem: %s\n", string);
 
-	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-		cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
-		char *data_topic = subitem->string;
+		ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 
 		if(strcmp("ph", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "pH data received");
-			ph_update_settings(subitem);
+			ph_update_settings(object_settings);
 		} else if(strcmp("ec", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "ec data received");
-			ec_update_settings(subitem);
+			ec_update_settings(object_settings);
 		} else if(strcmp("water_temp", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "water temp data received");
-			water_temp_update_settings(subitem);
+			water_temp_update_settings(object_settings);
 		} else if(strcmp("irrigation", data_topic) == 0) {
-			update_irrigation_timings(subitem);
+			update_irrigation_timings(object_settings);
 		} else if(strcmp("grow_lights", data_topic) == 0) {
-			update_grow_light_timings(subitem);
+			update_grow_light_timings(object_settings);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}
-	}
 	cJSON_Delete(root);
 
 	ESP_LOGI(MQTT_TAG, "Settings updated");
@@ -378,6 +396,9 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 		obj = obj->child;
 		ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
 		control_power_outlet(atoi(obj->string), obj->valueint);
+	} else if(strcmp(topic, calibration_topic) == 0) {
+		cJSON *obj = cJSON_Parse(data);
+		update_calibration(obj); 
 	} else {
 		// Topic doesn't match any known topics
 		ESP_LOGE(TAG, "Topic unknown");
@@ -386,3 +407,40 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 	free(topic);
 	free(data);
 }
+
+void update_calibration(cJSON *data) {
+	cJSON *obj = data->child; 
+	char *data_string = cJSON_Print(data);
+	ESP_LOGI(MQTT_TAG, "%s", data_string);
+	if (strcmp(obj->string, "type") == 0) {
+		if (strcmp(obj->valuestring, "ph") == 0) {
+			sensor_set_calib_status(&ph_sensor, true);
+			ESP_LOGI(MQTT_TAG, "pH calibration received");
+			if (!is_grow_active) {
+				vTaskResume(*sensor_get_task_handle(&ph_sensor));
+				ESP_LOGI(MQTT_TAG, "pH task resumed");
+			}
+		} else if (strcmp(obj->valuestring, "ec_wet") == 0) {
+			sensor_set_calib_status(&ec_sensor, true);
+			ESP_LOGI(MQTT_TAG, "ec wet calibration received");
+			if (!is_grow_active) {
+				vTaskResume(*sensor_get_task_handle(&ec_sensor));
+				ESP_LOGI(MQTT_TAG, "ec task resumed");
+			}
+		} else if (strcmp(obj->valuestring, "ec_dry") == 0) {
+			dry_calib = true; 
+			ESP_LOGI(MQTT_TAG, "ec dry calibration received");
+			if (!is_grow_active) {
+				vTaskResume(*sensor_get_task_handle(&ec_sensor));
+				ESP_LOGI(MQTT_TAG, "ec task resumed");
+			}
+		} else {
+			ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
+		}
+	} else {
+		ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
+	}
+	cJSON_Delete(data);
+}
+
+

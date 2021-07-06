@@ -18,6 +18,8 @@
 #include "control_task.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
+#include "ports.h"
+#include <driver/gpio.h> 
 
 void init_grow_manager() {
 	uint8_t status; // Holds vars coming from NVS
@@ -102,6 +104,7 @@ void start_grow_cycle() {
 
 	resume_tasks();
 	ESP_LOGI(GROW_MANAGER_TAG, "Started Grow Cycle");
+	gpio_set_level(GROWCYCLE_LED, 1);
 }
 
 void stop_grow_cycle() {
@@ -111,6 +114,7 @@ void stop_grow_cycle() {
 
 	ESP_LOGI(GROW_MANAGER_TAG, "Stopped Grow Cycle");
 	suspend_tasks();
+	gpio_set_level(GROWCYCLE_LED, 0);
 }
 
 void settings_received() {

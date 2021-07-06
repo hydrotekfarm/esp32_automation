@@ -5,6 +5,7 @@
 #include <esp_event.h>
 #include <esp_wifi.h>
 #include <string.h>
+#include "ports.h"
 
 #include "network_settings.h"
 

@@ -73,6 +73,7 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 			if(count == 0) {	// If first reading, then calculate stabilization range
 				ph_min = ph * (1 - STABILIZATION_ACCURACY);
 				ph_max = ph * (1 + STABILIZATION_ACCURACY);
+				ESP_LOGI(MQTT_TAG, "min ph: %f, max ph: %f", ph_min, ph_max);
 				ESP_LOGI(TAG, "min ph: %f, max ph: %f", ph_min, ph_max);
 				count++;
 			} else {
@@ -83,6 +84,7 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 				}
 			}
 		} else {
+			ESP_LOGI(MQTT_TAG, "response code: %d", err);
 			ESP_LOGI(TAG, "response code: %d", err);
 		}
 	}
@@ -97,18 +99,22 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 		low_byte = 0x0F; 
 		lsb = 0xA0;
 		calib_point = 2; 
+		ESP_LOGI(MQTT_TAG, "4.0 solution identified");
 		ESP_LOGI(TAG, "4.0 solution identified");
 	} else if (ph >= 5.5 && ph <= 8.5) {
 		low_byte = 0x1B; 
 		lsb = 0x58;  
 		calib_point = 3; 
+		ESP_LOGI(MQTT_TAG, "7.0 solution identified");
 		ESP_LOGI(TAG, "7.0 solution identified");
 	} else if (ph > 8.5 && ph <= 11.5) {
 		low_byte = 0x27; 
 		lsb = 0x10; 
 		calib_point = 4; 
+		ESP_LOGI(MQTT_TAG, "10.0 solution identified");
 		ESP_LOGI(TAG, "10.0 solution identified");
 	} else {
+		ESP_LOGE(MQTT_TAG, "calibration solution not identified, ph is lower than 2.5 or greater than 11.5");
 		ESP_LOGE(TAG, "calibration solution not identified, ph is lower than 2.5 or greater than 11.5");
 		return ESP_FAIL;
 	}
@@ -144,8 +150,10 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 		//if 4.0 solution //
 		case 2: 
 			if (output == 1 || output == 3 || output == 5 || output == 7) {
+				ESP_LOGI(MQTT_TAG, "4.0 ph calibration set");
 				ESP_LOGI(TAG, "4.0 ph calibration set");
 			} else {
+				ESP_LOGE(MQTT_TAG, "4.0 ph calibration unable to be set");
 				ESP_LOGE(TAG, "4.0 ph calibration unable to be set");
 				return ESP_FAIL; 
 			}
@@ -153,8 +161,10 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 		//if 7.0 solution //
 		case 3: 
 			if (output == 2 || output == 3 || output == 6 || output == 7) {
+				ESP_LOGI(MQTT_TAG, "7.0 ph calibration set");
 				ESP_LOGI(TAG, "7.0 ph calibration set");
 			} else {
+				ESP_LOGE(MQTT_TAG, "7.0 ph calibration unable to be set");
 				ESP_LOGE(TAG, "7.0 ph calibration unable to be set");
 				return ESP_FAIL; 
 			}
@@ -162,13 +172,16 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 		//if 10.0 solution//
 		case 4: 
 			if (output == 4 || output == 5 || output == 6 || output == 7) {
+				ESP_LOGI(MQTT_TAG, "10.0 ph calibration set");
 				ESP_LOGI(TAG, "10.0 ph calibration set");
 			} else {
+				ESP_LOGE(MQTT_TAG, "10.0 ph calibration unable to be set");
 				ESP_LOGE(TAG, "10.0 ph calibration unable to be set");
 				return ESP_FAIL; 
 			}
 			break;
 		default: 
+			ESP_LOGE(MQTT_TAG, "Unable to confirm calibration.");
 			ESP_LOGE(TAG, "Unable to confirm calibration.");
 			return ESP_FAIL; 
 	}
@@ -192,8 +205,10 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
     I2C_DEV_GIVE_MUTEX(dev);
 
 	if (output == 0) {
+		ESP_LOGI(MQTT_TAG, "Calibration data cleared");
 		ESP_LOGI(TAG, "Calibration data cleared");
 	} else {
+		ESP_LOGE(MQTT_TAG, "Calibration data not cleared");
 		ESP_LOGE(TAG, "Calibration data not cleared");
 		return ESP_FAIL; 
 	}
@@ -204,8 +219,8 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 
 	// Create Read with temperature command
 	unsigned int temp_compensation = temperature * 100; 
-	unsigned char msb = 0x00; 
-	unsigned char high_byte = 0x00; 
+	unsigned char msb = (temp_compensation>>24) & 0xFF;  
+	unsigned char high_byte = (temp_compensation>>16) & 0xFF; 
 	unsigned char low_byte = (temp_compensation>>8) & 0xFF; 
 	unsigned char lsb = temp_compensation & 0xFF; 
 	char msb_reg = 0x0E;
@@ -226,6 +241,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	float check_temp = 0.0f; 
 	while (check_temp != temperature) {
 		if (count == 3) {
+			ESP_LOGE(MQTT_TAG, "Unable to set temperature compensation point.");
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
 			return ESP_FAIL; 
 		} 
@@ -252,10 +268,11 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 
 	//Commands to recieve ph data//
 	char new_reading_reg = 0x07; 
-	int new_reading = 0; 
+	char new_reading = 0; 
 	count = 0; 
 	while (new_reading == 0) {
 		if (count == 3) {
+			ESP_LOGE(MQTT_TAG, "Unable to get new ph reading.");
 			ESP_LOGE(TAG, "Unable to get new ph reading.");
 			return ESP_FAIL; 
 		} 
@@ -298,10 +315,11 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	//Commands to recieve ph data//
 	char new_reading_reg = 0x07; 
-	int new_reading = 0; 
+	char new_reading = 0; 
 	int count = 0; 
 	while (new_reading == 0) {
 		if (count == 3) {
+			ESP_LOGE(MQTT_TAG, "Unable to get new reading.");
 			ESP_LOGE(TAG, "Unable to get new reading.");
 			return ESP_FAIL; 
 		} 

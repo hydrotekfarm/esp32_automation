@@ -10,6 +10,7 @@
 
 #include <esp_err.h>
 #include "i2cdev.h"
+#include "mqtt_manager.h"
 #define EC_ADDR_BASE 0x64
 
 #ifdef __cplusplus
