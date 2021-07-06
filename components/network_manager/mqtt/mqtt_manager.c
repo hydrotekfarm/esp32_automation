@@ -341,48 +341,88 @@ void update_settings(char *settings) {
 }
 
 void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
-	const char *TAG = "DATA_HANDLER";
+    const char *TAG = "DATA_HANDLER";
 
-	// Create dynamically allocated vars for topic and data
-	char *topic = malloc(sizeof(char) * (topic_len+1));
-	char *data = malloc(sizeof(char) * (data_len+1));
+    // Create dynamically allocated vars for topic and data
+    char *topic = malloc(sizeof(char) * (topic_len+1));
+    char *data = malloc(sizeof(char) * (data_len+1));
 
-	// Copy over topic
-	for(int i = 0; i < topic_len; i++) {
-		topic[i] = topic_in[i];
-	}
-	topic[topic_len] = 0;
+    // Copy over topic
+    for(int i = 0; i < topic_len; i++) {
+        topic[i] = topic_in[i];
+    }
+    topic[topic_len] = 0;
 
-	// Copy over data
-	for(int i = 0; i < data_len; i++) {
-		data[i] = data_in[i];
-	}
-	data[data_len] = 0;
+    // Copy over data
+    for(int i = 0; i < data_len; i++) {
+        data[i] = data_in[i];
+    }
+    data[data_len] = 0;
 
-	ESP_LOGI(TAG, "Incoming Topic: %s", topic);
+    ESP_LOGI(TAG, "Incoming Topic: %s", topic);
 
-	// Check topic against each subscribed topic possible
-	if(strcmp(topic, sensor_settings_topic) == 0) {
-		ESP_LOGI(TAG, "Sensor settings received");
+    // Check topic against each subscribed topic possible
+    if(strcmp(topic, sensor_settings_topic) == 0) {
+        ESP_LOGI(TAG, "Sensor settings received");
 
-		// Update sensor settings
-		update_settings(data);
-	} else if(strcmp(topic, grow_cycle_topic) == 0) {
-		ESP_LOGI(TAG, "Grow cycle status received");
+        // Update sensor settings
+        update_settings(data);
+    } else if(strcmp(topic, grow_cycle_topic) == 0) {
+        ESP_LOGI(TAG, "Grow cycle status received");
 
-		// Start/stop grow cycle according to message
-		if(data[0] == '0') stop_grow_cycle();
-		else start_grow_cycle();
-	} else if(strcmp(topic, rf_control_topic) == 0) {
-		cJSON *obj = cJSON_Parse(data);
-		obj = obj->child;
-		ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
-		control_power_outlet(atoi(obj->string), obj->valueint);
-	} else {
-		// Topic doesn't match any known topics
-		ESP_LOGE(TAG, "Topic unknown");
-	}
+        // Start/stop grow cycle according to message
+        if(data[0] == '0') stop_grow_cycle();
+        else start_grow_cycle();
+    } else if(strcmp(topic, rf_control_topic) == 0) {
+        cJSON *obj = cJSON_Parse(data);
+        obj = obj->child;
+        ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
+        control_power_outlet(atoi(obj->string), obj->valueint);
+    } else if(strcmp(topic, calibration_topic) == 0) {
+        cJSON *obj = cJSON_Parse(data);
+        update_calibration(obj); 
+    } else {
+        // Topic doesn't match any known topics
+        ESP_LOGE(TAG, "Topic unknown");
+    }
 
-	free(topic);
-	free(data);
+    free(topic);
+    free(data);
 }
+
+void update_calibration(cJSON *data) {
+    cJSON *obj = data->child; 
+    char *data_string = cJSON_Print(data);
+    ESP_LOGI(MQTT_TAG, "%s", data_string);
+    if (strcmp(obj->string, "type") == 0) {
+        if (strcmp(obj->valuestring, "ph") == 0) {
+            sensor_set_calib_status(&ph_sensor, true);
+            ESP_LOGI(MQTT_TAG, "pH calibration received");
+            if (!is_grow_active) {
+                vTaskResume(*sensor_get_task_handle(&ph_sensor));
+                ESP_LOGI(MQTT_TAG, "pH task resumed");
+            }
+        } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
+            sensor_set_calib_status(&ec_sensor, true);
+            ESP_LOGI(MQTT_TAG, "ec wet calibration received");
+            if (!is_grow_active) {
+                vTaskResume(*sensor_get_task_handle(&ec_sensor));
+                ESP_LOGI(MQTT_TAG, "ec task resumed");
+            }
+        } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
+            dry_calib = true; 
+            ESP_LOGI(MQTT_TAG, "ec dry calibration received");
+            if (!is_grow_active) {
+                vTaskResume(*sensor_get_task_handle(&ec_sensor));
+                ESP_LOGI(MQTT_TAG, "ec task resumed");
+            }
+        } else {
+            ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
+        }
+    } else {
+        ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
+    }
+    cJSON_Delete(data);
+}
+
+

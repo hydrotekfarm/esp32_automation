@@ -82,3 +82,7 @@ void create_sensor_data_topic();
 
 // Create settings data topic
 void create_settings_data_topic();
+
+//Update calibration settings
+void update_calibration(cJSON *obj);
+
