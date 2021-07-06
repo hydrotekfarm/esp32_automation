@@ -74,7 +74,6 @@ esp_err_t calibrate_ec(ec_sensor_t *dev){
 			if(count == 0) {	// If first reading, then calculate stabilization range
 				ec_min = ec * (1 - STABILIZATION_ACCURACY);
 				ec_max = ec * (1 + STABILIZATION_ACCURACY);
-				ESP_LOGI(MQTT_TAG, "min ec: %f, max ec: %f", ec_min, ec_max);
 				ESP_LOGI(TAG, "min ec: %f, max ec: %f", ec_min, ec_max);
 				count++;
 			} else {
@@ -85,7 +84,6 @@ esp_err_t calibrate_ec(ec_sensor_t *dev){
 				}
 			}
 		} else {
-			ESP_LOGI(MQTT_TAG, "response code: %d", err);
 			ESP_LOGI(TAG, "response code: %d", err);
 		}
 	}
@@ -99,10 +97,8 @@ esp_err_t calibrate_ec(ec_sensor_t *dev){
 	if(ec >= 5 && ec < 20) {
 		low_byte = 0x05; 
 		lsb = 0x08;
-		ESP_LOGI(MQTT_TAG, "12.88 millisiemens soluction identified");
 		ESP_LOGI(TAG, "12.88 millisiemens solution identified");
 	} else {
-		ESP_LOGE(MQTT_TAG, "calibration solution not identified, ec is lower than 7 millisiemens or greater than 90 millisiemens");
 		ESP_LOGE(TAG, "calibration solution not identified, ec is lower than 7 millisiemens or greater than 90 millisiemens");
 		return ESP_FAIL;
 	}
@@ -138,16 +134,13 @@ esp_err_t calibrate_ec(ec_sensor_t *dev){
 		//if 12.88 solution //
 		case 3: 
 			if (output == 2 || output == 3) {
-				ESP_LOGI(MQTT_TAG, "Single Point 12.88 millisiemen calibration set");
 				ESP_LOGI(TAG, "Single Point 12.88 millisiemen calibration set");
 			} else {
-				ESP_LOGE(MQTT_TAG, "Single Point 12.88 millisiemen calibration uanble to be set");
 				ESP_LOGE(TAG, "Single Point 12.88 millisiemen calibration uanble to be set");
 				return ESP_FAIL; 
 			}
 			break;
 		default: 
-			ESP_LOGE(MQTT_TAG, "Unable to confirm calibration.");
 			ESP_LOGE(TAG, "Unable to confirm calibration.");
 			return ESP_FAIL; 
 	}
@@ -175,10 +168,8 @@ esp_err_t calibrate_ec_dry(ec_sensor_t *dev) {
     I2C_DEV_GIVE_MUTEX(dev);
 
 	if (output == 1 || output == 3) {
-		ESP_LOGI(MQTT_TAG, "Dry calibration set");
 		ESP_LOGI(TAG, "Dry calibration set");
 	} else {
-		ESP_LOGE(MQTT_TAG, "Dry calibration uanble to be set");
 		ESP_LOGE(TAG, "Dry calibration uanble to be set");
 		return ESP_FAIL; 
 	}
@@ -202,10 +193,8 @@ esp_err_t clear_calibration_ec(ec_sensor_t *dev) {
     I2C_DEV_GIVE_MUTEX(dev);
 
 	if (output == 0) {
-		ESP_LOGI(MQTT_TAG, "Calibration data cleared");
 		ESP_LOGI(TAG, "Calibration data cleared");
 	} else {
-		ESP_LOGE(MQTT_TAG, "Calibration data not cleared");
 		ESP_LOGE(TAG, "Calibration data not cleared");
 		return ESP_FAIL; 
 	}
@@ -237,7 +226,6 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 	float check_temp = 0.0f; 
 	while (check_temp != temperature) {
 		if (count == 3) {
-			ESP_LOGE(MQTT_TAG, "Unable to set temperature compensation point.");
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
 			return ESP_FAIL; 
 		} 
@@ -268,7 +256,6 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 	count = 0; 
 	while (new_reading == 0) {
 		if (count == 3) {
-			ESP_LOGE(MQTT_TAG, "Unable to get new ec reading.");
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 
@@ -315,7 +302,6 @@ esp_err_t read_ec(ec_sensor_t *dev, float *ec) {
 	int count = 0; 
 	while (new_reading == 0) {
 		if (count == 3) {
-			ESP_LOGE(MQTT_TAG, "Unable to get new ec reading.");
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 

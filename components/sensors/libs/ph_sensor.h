@@ -10,7 +10,6 @@
 
 #include <esp_err.h>
 #include "i2cdev.h"
-#include "mqtt_manager.h"
 #define PH_ADDR_BASE 0x65
 
 #ifdef __cplusplus

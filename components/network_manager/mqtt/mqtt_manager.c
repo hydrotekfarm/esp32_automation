@@ -179,7 +179,6 @@ void mqtt_connect() {
 	// First check if wifi is connected
 	if(!is_wifi_connected) {
 		is_mqtt_connected = false;
-		gpio_set_level(MQTT_LED, 0);
 		return;
 	}
 
@@ -199,7 +198,6 @@ void mqtt_connect() {
 
 	is_mqtt_connected = true;
 
-	gpio_set_level(MQTT_LED, 1);
 }
 
 

@@ -2,8 +2,6 @@
 #include <Freertos/freertos.h>
 #include <Freertos/task.h>
 #include "sensor.h"
-#include "grow_manager.h"
-#include "mqtt_manager.h"
 
 struct sensor ph_sensor;
 
