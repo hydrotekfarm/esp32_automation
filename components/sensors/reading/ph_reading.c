@@ -1,4 +1,5 @@
 #include "ph_reading.h"
+#include "grow_manager.h"
 #include <esp_log.h>
 #include <string.h>
 #include "ph_sensor.h"
@@ -20,8 +21,14 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 	for (;;) {
 		if(sensor_calib_status(&ph_sensor)) {
-			calibrate_sensor(&ph_sensor, &calibrate_ph, &dev);
-			sensor_set_calib_status(&ph_sensor, false); // Disable calibration mode, activate pH sensor and revert task back to regular priority
+			ESP_LOGE(TAG, "PH Calibration Started");
+            calibrate_sensor(&ph_sensor, &calibrate_ph, &dev);
+            sensor_set_calib_status(&ph_sensor, false); // Disable calibration mode, activate pH sensor and revert task back to regular priority
+            if (!is_grow_active) {
+                vTaskSuspend(*sensor_get_task_handle(&ph_sensor));
+                ESP_LOGE(TAG, "PH task suspended");
+            }
+            ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
 			read_ph_with_temperature(&dev, 25, sensor_get_address_value(&ph_sensor));
 			ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
