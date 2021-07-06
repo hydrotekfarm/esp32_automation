@@ -3,6 +3,7 @@
 
 // GPIO Ports
 #define POWER_BUTTON_GPIO			2
+#define HARD_RESET_GPIO             35
 #define RF_TRANSMITTER_GPIO 		4
 #define FLOAT_SWITCH_BOTTOM_GPIO	13
 #define TEMPERATURE_SENSOR_GPIO 	17
@@ -10,6 +11,9 @@
 #define SDA_GPIO 					21
 #define SCL_GPIO 					22
 #define FLOAT_SWITCH_TOP_GPIO 		32
+#define BLUE_LED                    25 
+#define GREEN_LED                   26
+
 
 // MCP23017 GPIO Expansion Ports
 #define EC_NUTRIENT_1_PUMP_GPIO 	5
