@@ -6,8 +6,7 @@
 #include <freertos/task.h>
 
 #include "nvs_manager.h"
-#include "co2_reading.h"
-#include "bme_reading.h"
+#include "scd30_reading.h"
 #include "nvs_namespace_keys.h"
 #include "sync_sensors.h"
 #include "mqtt_manager.h"

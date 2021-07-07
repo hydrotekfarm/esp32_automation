@@ -5,6 +5,5 @@
 #define RF_TRANSMITTER_TASK_PRIORITY 3 // RF Transmitter should be higher than other priorities
 
 // Core 1 Task Priorities
-#define CO2_TASK_PRIORITY 1
-#define BME_TASK_PRIORITY 2
+#define SCD30_TASK_PRIORITY 1
 #define SYNC_TASK_PRIORITY 4

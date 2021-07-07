@@ -5,7 +5,7 @@
 #include "rf_transmitter.h"
 #include "nvs_namespace_keys.h"
 #include "sensor.h"
-#include "co2_reading.h"
+#include "scd30_reading.h"
 
 struct sensor_control* get_co2_control() { return &co2_control; }
 

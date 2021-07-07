@@ -13,8 +13,7 @@
 
 #include "task_priorities.h"
 #include "ports.h"
-#include "co2_reading.h"
-#include "bme_reading.h"
+#include "scd30_reading.h"
 #include "sync_sensors.h"
 #include "control_task.h"
 #include "co2_control.h"
@@ -66,8 +65,7 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
-	xTaskCreatePinnedToCore(measure_co2, "co2_task", 2500, NULL, CO2_TASK_PRIORITY, sensor_get_task_handle(get_co2_sensor()), 1);
-	xTaskCreatePinnedToCore(measure_bme, "bme_task", 2500, NULL, BME_TASK_PRIORITY, sensor_get_task_handle(get_temperature_sensor()), 1); //temperature sensor is used for task handle //
+	xTaskCreatePinnedToCore(measure_scd30, "scd30_task", 2500, NULL, SCD30_TASK_PRIORITY, sensor_get_task_handle(get_temperature_sensor()), 1); //temperature sensor is used for scd 30 task handle //
 	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 

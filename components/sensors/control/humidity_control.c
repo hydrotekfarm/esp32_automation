@@ -6,7 +6,7 @@
 #include "nvs_namespace_keys.h"
 #include "temperature_control.h"
 #include "sensor.h"
-#include "bme_reading.h"
+#include "scd30_reading.h"
 
 struct sensor_control* get_humidity_control() { return &humidity_control; }
 

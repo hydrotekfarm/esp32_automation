@@ -10,8 +10,7 @@ TaskHandle_t sync_task_handle;
 // Sensor Task Coordination with Event Group
 EventGroupHandle_t sensor_event_group;
 #define DELAY_BIT		    (1<<0)
-#define CO2_BIT         (1<<1)
-#define BME_BIT         (1<<2)
+#define SCD_BIT         (1<<1)
 
 // Sensor sync bits
 uint32_t sensor_sync_bits;

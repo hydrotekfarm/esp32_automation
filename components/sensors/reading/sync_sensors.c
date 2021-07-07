@@ -6,12 +6,11 @@
 #include <esp_log.h>
 #include <esp_system.h>
 
-#include "co2_reading.h"
-#include "bme_reading.h"
+#include "scd30_reading.h"
 #include "sensor.h"
 
 void set_sensor_sync_bits() {
-	sensor_sync_bits = DELAY_BIT | CO2_BIT | BME_BIT;
+	sensor_sync_bits = DELAY_BIT | SCD_BIT;
 }
 
 void sync_task(void *parameter) {				// Sensor Synchronization Task
