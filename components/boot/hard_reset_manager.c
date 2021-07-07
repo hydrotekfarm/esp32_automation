@@ -18,15 +18,23 @@
 #include "ports.h"
 
 unsigned long get_current_time() {
-    /* Initialize timer struct */
-    gettimeofday(&current_time, NULL);
-    return current_time.tv_sec; 
+    /* Get time */
+    if (gettimeofday(&current_time, NULL) == 0) {
+        return current_time.tv_sec;
+    }
+    return 0UL; 
 }
 
 static void IRAM_ATTR reset_button_isr_handler (void* arg) {
    unsigned long start = get_current_time();
+   //Make sure we get valid start time // 
+   while (start == 0) {
+       start = get_current_time();
+   }
+   //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
    while (gpio_get_level(HARD_RESET_GPIO) == 1) {
-        if (get_current_time() - start >= 10) {
+        int curr_time = get_current_time();
+        if (curr_time != 0 && (curr_time - start >= 10)) {
             ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
             nvs_clear();
             esp_restart();
