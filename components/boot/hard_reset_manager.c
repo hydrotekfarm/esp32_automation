@@ -26,6 +26,7 @@ unsigned long get_current_time() {
 }
 
 static void IRAM_ATTR reset_button_isr_handler (void* arg) {
+    ESP_LOGI(HARD_RESET_TAG, "Entered Interupt Handler.");
    unsigned long start = get_current_time();
    //Make sure we get valid start time // 
    while (start == 0) {
@@ -33,7 +34,8 @@ static void IRAM_ATTR reset_button_isr_handler (void* arg) {
    }
    //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
    while (gpio_get_level(HARD_RESET_GPIO) == 1) {
-        int curr_time = get_current_time();
+        unsigned long curr_time = get_current_time();
+        ESP_LOGI(HARD_RESET_TAG, "Start Time: %li... Curr Time: %li", start, curr_time);
         if (curr_time != 0 && (curr_time - start >= 10)) {
             ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
             nvs_clear();
