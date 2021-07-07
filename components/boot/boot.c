@@ -29,13 +29,14 @@
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
 #include "grow_manager.h"
+#include "hard_reset_manager.h"
 
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
 	// Initialize deep sleep
 	init_power_button();
-
+	init_hard_reset_button();
 	// Init connections
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
