@@ -223,7 +223,7 @@ esp_err_t scd30_get_data_ready_status(i2c_dev_t *dev, bool *data_ready)
     CHECK_ARG(data_ready);
 
     uint16_t status;
-    CHECK(execute_cmd(dev, CMD_GET_DATA_READY_STATUS, 1, NULL, 0, &status, 1));
+    CHECK(execute_cmd(dev, CMD_GET_DATA_READY_STATUS, 2, NULL, 0, &status, 1));
     *data_ready = status != 0;
 
     return ESP_OK;

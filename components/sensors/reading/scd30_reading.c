@@ -27,36 +27,39 @@ void measure_scd30(void *parameter) {     // SCD30 Sensor Measurement Task
     vTaskDelay(pdMS_TO_TICKS(10000));
 
     ESP_ERROR_CHECK(scd30_trigger_continuous_measurement(&dev, 0));
+
     for(;;) {
         // trigger the sensor to start one TPHG measurement cycle
         bool check = false; 
-        unsigned int tick = xTaskGetTickCount();
-        while (!check && (xTaskGetTickCount() - tick < 500)) {
-            ESP_ERROR_CHECK(scd30_get_data_ready_status(&dev, &check)); 
-        }
-        if (check) {
+        vTaskDelay(pdMS_TO_TICKS(20000));
+        if (scd30_get_data_ready_status(&dev, &check) == ESP_OK) {
             // get the results and do something with them
-            float temp = 0.0f, co2 = 0.0f, humidity = 0.0f; 
-            scd30_read_measurement(&dev, &co2, &temp, &humidity);
-            ESP_LOGI(TAG, "CO2: %.2f", co2);
-            ESP_LOGI(TAG, "Temperature: %.2f", temp);
-            ESP_LOGI(TAG, "Humidity: %.2f", humidity);
+            if (check == true) {
+                float temp = 0.0f, co2 = 0.0f, humidity = 0.0f; 
+                scd30_read_measurement(&dev, &co2, &temp, &humidity);
+                ESP_LOGI(TAG, "CO2: %.2f", co2);
+                ESP_LOGI(TAG, "Temperature: %.2f", temp);
+                ESP_LOGI(TAG, "Humidity: %.2f", humidity);
 
-            float *co2_val = sensor_get_address_value(&co2_sensor);
-            *co2_val = temp;
+                float *co2_val = sensor_get_address_value(&co2_sensor);
+                *co2_val = temp;
 
-            float *temp_val = sensor_get_address_value(&temperature_sensor);
-            *temp_val = temp;
+                float *temp_val = sensor_get_address_value(&temperature_sensor);
+                *temp_val = temp;
                 
-            float *humidity_val = sensor_get_address_value(&humidity_sensor);
-            *humidity_val = humidity; 
+                 float *humidity_val = sensor_get_address_value(&humidity_sensor);
+                *humidity_val = humidity; 
+
+            } else {
+                ESP_LOGI(TAG, "Data not ready yet");
+            }
         } else {
-                ESP_LOGE(TAG, "Unable to get readings for co2, temperature, humidity in time for this cycle.");
+                ESP_LOGE(TAG, "Not OK!!");
         }
 
         // Sync with other sensor tasks
         // Wait up to 10 seconds to let other tasks end
-        xEventGroupSync(sensor_event_group, SCD_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+        //xEventGroupSync(sensor_event_group, SCD_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
     }
 
 }
