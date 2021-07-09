@@ -37,7 +37,7 @@ void boot_sequence() {
 	//init_power_button();
 
 	// Init connections
-	tcpip_adapter_init();
+	//tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	// Init network properties
@@ -64,7 +64,7 @@ void boot_sequence() {
 	//Init irrigation
 	//init_irrigation();
 
-	//vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
+	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
 	//xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
@@ -76,7 +76,7 @@ void boot_sequence() {
 	//xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, sensor_get_task_handle(get_water_temp_sensor()), 1);
 	//xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, sensor_get_task_handle(get_ec_sensor()), 1);
 	xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, sensor_get_task_handle(get_ph_sensor()), 1);
-	//xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
+	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 	// Init grow manager
 	//init_grow_manager();
