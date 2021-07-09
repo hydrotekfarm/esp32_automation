@@ -213,10 +213,14 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	char low_reg = 0x10; 
 	char lsb_reg = 0x11; 
 	I2C_DEV_TAKE_MUTEX(dev);
+	printf("Enter");
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
+	vTaskDelay(pdMS_TO_TICKS(200));
+	printf("First\n");
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &high_reg, sizeof(high_reg), &high_byte, sizeof(high_byte)));
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &low_reg, sizeof(low_reg), &low_byte, sizeof(low_byte)));
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
+	printf("Closed\n");
     I2C_DEV_GIVE_MUTEX(dev);
     vTaskDelay(pdMS_TO_TICKS(1000));	// Processing Delay
 
