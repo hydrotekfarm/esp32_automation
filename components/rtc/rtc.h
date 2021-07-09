@@ -60,6 +60,9 @@ void get_date_time(struct tm *time);
 // Timer and alarm task
 void manage_timers_alarms();
 
+// Parse ISO Timestamps and return TM (Time) object
+void parse_iso_timestamp(const char* source_time_stamp, struct tm* time);
+
 // Initialize irrigation control
 void init_irrigation();
 

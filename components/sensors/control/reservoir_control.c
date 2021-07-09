@@ -5,17 +5,24 @@
 #include "ph_control.h"
 #include "ec_control.h"
 #include "ports.h"
-#include "rtc.h"
 #include "ec_reading.h"
 #include "sync_sensors.h"
 #include "control_settings_keys.h"
 #include "control_task.h"
 #include "sensor_control.h"
+#include "nvs_namespace_keys.h"
+#include "time.h"
+#include <string.h>
+#include <inttypes.h>
+#include <stdint.h>
+
 
 char *TAG = "RESERVOIR_CONTROL";
 
 SemaphoreHandle_t float_switch_top_semaphore = NULL;
 SemaphoreHandle_t float_switch_bottom_semaphore = NULL;
+
+struct alarm* get_reservoir_alarm() { return &reservoir_replacement_alarm; }
 
 // ISR handler for top float switch
 void IRAM_ATTR top_float_switch_isr_handler(void* arg) {
@@ -31,6 +38,7 @@ void IRAM_ATTR bottom_float_switch_isr_handler(void* arg) {
 
 // Setter for reservoir change flag
 void set_reservoir_change_flag(bool active) {
+	ESP_LOGI(TAG, "Reservoir Active Flag Set");
 	reservoir_change_flag = active;
 }
 
@@ -133,4 +141,73 @@ void check_water_level() {
 			top_float_switch_trigger = false;
 		}
 	}
+}
+
+// Callback function for Reservoir Replacement Alarm
+void replace_reservoir() {
+	time_t current_time;
+	time_t replacement_time;
+	
+	set_reservoir_change_flag(true);
+	
+	// Calculate Next Replacement Date
+	time(&current_time);
+	replacement_time = current_time + reservoir_replacement_interval * 24 * 60 * 60;
+	memcpy(&next_replacement_date, gmtime(&replacement_time), sizeof(struct tm));
+
+	enable_alarm(&reservoir_replacement_alarm, next_replacement_date);
+}
+
+void init_reservoir() {
+	uint64_t next_replacement_in_seconds;
+	init_alarm(&reservoir_replacement_alarm, &replace_reservoir, false, false);
+
+	if( !nvs_get_uint16(WATER_RESERVOIR_NVS_NAMESPACE, RESERVOIR_REPLACEMENT_INTERVAL_KEY, &reservoir_replacement_interval) ||
+		!nvs_get_uint8(WATER_RESERVOIR_NVS_NAMESPACE, RESERVOIR_ENABLED_KEY, (uint8_t*) (&reservoir_control_active)) ||
+		!nvs_get_uint64(WATER_RESERVOIR_NVS_NAMESPACE, RESERVOIR_NEXT_REPLACEMENT_DATE_KEY, &next_replacement_in_seconds) ) {
+		ESP_LOGI("RESERVOIR", "Unable to get Reservoir settings from NVS");
+		return;
+	}
+
+	memcpy(&next_replacement_date, gmtime((time_t *)(&next_replacement_in_seconds)), sizeof(struct tm));
+	ESP_LOGI(TAG, "Date: %d, %d, %d, %d, %d", next_replacement_date.tm_year, next_replacement_date.tm_mon, next_replacement_date.tm_mday, next_replacement_date.tm_hour, next_replacement_date.tm_min);
+	if(reservoir_control_active) {
+		enable_alarm(&reservoir_replacement_alarm, next_replacement_date);
+	}
+}
+
+void update_reservoir_settings(cJSON* obj) {
+	char* TAG = "Update Reservoir Settings";
+	cJSON *element = obj->child;
+	nvs_handle_t *handle = nvs_get_handle(WATER_RESERVOIR_NVS_NAMESPACE);
+
+	while(element != NULL) {
+		if(strcmp(element->string, RESERVOIR_REPLACEMENT_INTERVAL_KEY) == 0) {
+			reservoir_replacement_interval = element->valueint;
+			nvs_add_uint16(handle, RESERVOIR_REPLACEMENT_INTERVAL_KEY, reservoir_replacement_interval);
+			ESP_LOGI(TAG, "Updated Reservoir Replacement Interval to: %d", reservoir_replacement_interval);
+		} else if(strcmp(element->string, RESERVOIR_ENABLED_KEY) == 0) {
+			reservoir_control_active = element->valueint;
+			if(reservoir_control_active) {
+				enable_alarm(&reservoir_replacement_alarm, next_replacement_date);
+			} else {
+				disable_alarm(&reservoir_replacement_alarm);
+			}
+			nvs_add_uint8(handle, RESERVOIR_ENABLED_KEY, (uint8_t)(reservoir_control_active));
+			ESP_LOGI(TAG, "Updated Reservoir Enabled to: %s", element->valueint == 0 ? "false" : "true");
+		} else if(strcmp(element->string, RESERVOIR_NEXT_REPLACEMENT_DATE_KEY) == 0) {
+			parse_iso_timestamp(element->valuestring, &next_replacement_date);
+			ESP_LOGI(TAG, "Date: %d, %d, %d, %d, %d", next_replacement_date.tm_year, next_replacement_date.tm_mon, next_replacement_date.tm_mday, next_replacement_date.tm_hour, next_replacement_date.tm_min);
+			uint64_t next_replacement_in_seconds = (uint64_t)(mktime(&next_replacement_date));
+			enable_alarm(&reservoir_replacement_alarm, next_replacement_date);
+			nvs_add_uint64(handle, RESERVOIR_NEXT_REPLACEMENT_DATE_KEY, next_replacement_in_seconds);
+			ESP_LOGI(TAG, "Updated Next Reservoir Replacement Date to : %" PRIu64 "", next_replacement_in_seconds);
+		} else {
+			ESP_LOGE(TAG, "Error: Invalid Key");
+		}
+		
+		element = element->next;
+	}
+
+	nvs_commit_data(handle);
 }
