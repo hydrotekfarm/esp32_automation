@@ -37,7 +37,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 			ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
 
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end
-			//xEventGroupSync(sensor_event_group, PH_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			xEventGroupSync(sensor_event_group, PH_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
 		}
 	}
 }

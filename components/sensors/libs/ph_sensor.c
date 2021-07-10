@@ -68,7 +68,8 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 
 	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
 	while(count < STABILIZATION_COUNT_MAX){
-		esp_err_t err = read_ph_with_temperature(dev, temperature, &ph);	// read ph with temperature
+		esp_err_t err = read_ph(dev, &ph);
+		//esp_err_t err = read_ph_with_temperature(dev, temperature, &ph);	// read ph with temperature
 		ESP_LOGI(TAG, "ph: %f", ph);
 		if (err == ESP_OK) {	// Proceed if ph sensor responds with success code
 			if(count == 0) {	// If first reading, then calculate stabilization range
