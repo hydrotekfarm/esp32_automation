@@ -347,6 +347,12 @@ void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat,
 void enable_alarm(struct alarm *alarm, struct tm alarm_time);
 
 /**
+ * @brief disable alarm
+ * @param alarm struct
+ */
+void disable_alarm(struct alarm *alarm);
+
+/**
  * @brief check if alarm is done
  * @param dev Device descriptor
  * @param alarm struct
