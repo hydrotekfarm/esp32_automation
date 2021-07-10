@@ -33,7 +33,6 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 			}
 			ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
-			//device_ph(&dev);
 			read_ph_with_temperature(&dev, 25, sensor_get_address_value(&ph_sensor));
 			ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
 
