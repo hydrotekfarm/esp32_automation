@@ -85,12 +85,13 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 }
 
 void rf_transmitter(void *parameter) {
+	ESP_LOGI(RF_TAG, "Started RF Transmitter Task");
 	init_rf_protocol();
 	init_rf_addresses();
 
 	struct rf_message message;
 	rf_transmitter_queue = xQueueCreate(20, sizeof(message));
-
+	ESP_LOGI(RF_TAG, "Created Queue");
 	for(;;) {
 		if(xQueueReceive(rf_transmitter_queue, &message, portMAX_DELAY)) {
 			if(message.state == POWER_OUTLET_ON) {

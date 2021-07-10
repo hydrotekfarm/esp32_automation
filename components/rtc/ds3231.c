@@ -14,6 +14,7 @@
 #include <esp_err.h>
 #include <esp_idf_lib_helpers.h>
 #include "ds3231.h"
+#include <esp_log.h>
 
 #define I2C_FREQ_HZ 400000
 
@@ -449,6 +450,10 @@ void enable_alarm(struct alarm *alarm, struct tm alarm_time) {
 	// Set end time based on unix time for alarm time
 	alarm->alarm_timer.end_time = mktime(&alarm_time);
 	alarm->alarm_timer.active = true;
+}
+
+void disable_alarm(struct alarm* alarm) {
+    alarm->alarm_timer.active = false;
 }
 
 void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {

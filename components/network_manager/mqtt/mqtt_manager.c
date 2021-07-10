@@ -22,6 +22,7 @@
 #include "network_settings.h"
 #include "grow_manager.h"
 #include "wifi_connect.h"
+#include "reservoir_control.h"
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
@@ -178,7 +179,7 @@ void mqtt_connect() {
 	// Connect mqtt
 	mqtt_connect_semaphore = xSemaphoreCreateBinary();
 	esp_mqtt_client_start(mqtt_client);
-	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); // TODO add approximate time to connect to mqtt
+	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); //  add approximate time to connect to mqtt
 
 	// Subscribe to topics
 	subscribe_topics();
@@ -329,15 +330,20 @@ void update_settings(char *settings) {
 			ESP_LOGI(MQTT_TAG, "pH data received");
 			ph_update_settings(object_settings);
 		} else if(strcmp("ec", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "ec data received");
+			ESP_LOGI(MQTT_TAG, "EC data received");
 			ec_update_settings(object_settings);
 		} else if(strcmp("water_temp", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "water temp data received");
+			ESP_LOGI(MQTT_TAG, "Water Temperature data received");
 			water_temp_update_settings(object_settings);
 		} else if(strcmp("irrigation", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "Irrigation data received");
 			update_irrigation_timings(object_settings);
 		} else if(strcmp("grow_lights", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "Grow Lights data received");
 			update_grow_light_timings(object_settings);
+		} else if(strcmp("reservoir", data_topic) == 0) {
+			ESP_LOGI(MQTT_TAG, "Reservoir data received");
+			update_reservoir_settings(object_settings);
 		} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 		}

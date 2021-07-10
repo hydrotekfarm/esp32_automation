@@ -38,6 +38,8 @@ void init_control() {
 	init_sensor_control(get_water_temp_control(), "WATER_TEMP_CONTROL", get_water_temp_control_status(), WATER_TEMP_MARGIN_ERROR);
 	is_water_cooler_on = false;
 
+	init_reservoir();
+
 	water_in_rf_message.rf_address_ptr = water_in_address;
 	water_out_rf_message.rf_address_ptr = water_out_address;
 }
