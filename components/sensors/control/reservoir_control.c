@@ -170,7 +170,6 @@ void init_reservoir() {
 	}
 
 	memcpy(&next_replacement_date, gmtime((time_t *)(&next_replacement_in_seconds)), sizeof(struct tm));
-	ESP_LOGI(TAG, "Date: %d, %d, %d, %d, %d", next_replacement_date.tm_year, next_replacement_date.tm_mon, next_replacement_date.tm_mday, next_replacement_date.tm_hour, next_replacement_date.tm_min);
 	if(reservoir_control_active) {
 		enable_alarm(&reservoir_replacement_alarm, next_replacement_date);
 	}

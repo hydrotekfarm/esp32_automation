@@ -288,26 +288,14 @@ void update_grow_light_timings(cJSON *obj) {
 
 	while(element != NULL) {
 		if(strcmp(element->string, LIGHTS_ON_KEY) == 0) {
-			// char *min_str = element->valuestring + 3;
-			// uint8_t min = atoi(min_str);
-
-			// element->valuestring[2] = '\0';
-			// uint8_t hr = atoi(element->valuestring);
-
 			struct tm time;
 			parse_iso_timestamp(element->valuestring, &time);
-			// get_date_time(&time);
-
-			// time.tm_hour = hr;
-			// time.tm_min = min;
-			// time.tm_sec = 0;
-
+			
 			nvs_add_uint8(handle, LIGHTS_ON_HR_KEY, time.tm_hour);
 			nvs_add_uint8(handle, LIGHTS_ON_MIN_KEY, time.tm_min);
 
 			enable_alarm(&day_time_alarm, time);
 			ESP_LOGI("", "Lights on time: %d hr and %d min", time.tm_hour, time.tm_min);
-			ESP_LOGI("asd", "Date: %d, %d, %d, %d, %d", time.tm_year, time.tm_mon, time.tm_mday, time.tm_hour, time.tm_min);
 		} else if(strcmp(element->string, LIGHTS_OFF_KEY) == 0) {
 			struct tm time;
 			parse_iso_timestamp(element->valuestring, &time);
@@ -317,7 +305,6 @@ void update_grow_light_timings(cJSON *obj) {
 
 			enable_alarm(&night_time_alarm, time);
 			ESP_LOGI("", "Lights off time: %d hr and %d min", time.tm_hour, time.tm_min);
-			ESP_LOGI("asd", "Date: %d, %d, %d, %d, %d", time.tm_year, time.tm_mon, time.tm_mday, time.tm_hour, time.tm_min);
 		} else {
 			ESP_LOGE(UPDATE_GROW_LIGHTS_KEY, "Error: Invalid Key");
 		}
