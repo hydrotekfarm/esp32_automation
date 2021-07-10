@@ -19,6 +19,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 	ESP_ERROR_CHECK(ph_init(&dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication
 
+	ESP_ERROR_CHECK(activate_ph(&dev));
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
 	for (;;) {
@@ -32,9 +33,9 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 			}
 			ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
-			activate_ph(&dev);
-			//read_ph_with_temperature(&dev, 25, sensor_get_address_value(&ph_sensor));
-			//ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
+			//device_ph(&dev);
+			read_ph_with_temperature(&dev, 25, sensor_get_address_value(&ph_sensor));
+			ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
 
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end
 			//xEventGroupSync(sensor_event_group, PH_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));

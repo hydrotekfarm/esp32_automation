@@ -15,7 +15,7 @@
 
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
 
-#define I2C_FREQ_HZ 400000
+#define I2C_FREQ_HZ 10000
 #define STABILIZATION_ACCURACY 0.002
 #define STABILIZATION_COUNT_MAX 10
 
@@ -46,6 +46,7 @@ esp_err_t activate_ph(ph_sensor_t *dev) {
     I2C_DEV_TAKE_MUTEX(dev);
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &reg, sizeof(reg), &data, sizeof(data)));
     I2C_DEV_GIVE_MUTEX(dev);
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	return ESP_OK; 
 }
 
@@ -137,7 +138,8 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	char calib_confirm_reg = 0x0D; 
 	char output = -1; 
 	I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_dev_read(dev, &calib_confirm_reg, sizeof(calib_confirm_reg), &output, sizeof(output)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &calib_confirm_reg, sizeof(calib_confirm_reg)));
+    I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &output, sizeof(output)));
     I2C_DEV_GIVE_MUTEX(dev);
 
 	switch (calib_point) {
@@ -188,7 +190,8 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 	char calib_confirm_reg = 0x0D; 
 	char output = -1; 
 	I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_dev_read(dev, &calib_confirm_reg, sizeof(calib_confirm_reg), &output, sizeof(output)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &calib_confirm_reg, sizeof(calib_confirm_reg)));
+    I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &output, sizeof(output)));
     I2C_DEV_GIVE_MUTEX(dev);
 
 	if (output == 0) {
@@ -203,7 +206,7 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
 
 	// Create Read with temperature command
-	unsigned int temp_compensation = temperature * 100; 
+	unsigned int temp_compensation = (unsigned int) temperature * 100; 
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
 	unsigned char high_byte = (temp_compensation>>16) & 0xFF; 
 	unsigned char low_byte = (temp_compensation>>8) & 0xFF; 
@@ -213,14 +216,10 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	char low_reg = 0x10; 
 	char lsb_reg = 0x11; 
 	I2C_DEV_TAKE_MUTEX(dev);
-	printf("Enter");
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
-	vTaskDelay(pdMS_TO_TICKS(200));
-	printf("First\n");
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &high_reg, sizeof(high_reg), &high_byte, sizeof(high_byte)));
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &low_reg, sizeof(low_reg), &low_byte, sizeof(low_byte)));
 	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
-	printf("Closed\n");
     I2C_DEV_GIVE_MUTEX(dev);
     vTaskDelay(pdMS_TO_TICKS(1000));	// Processing Delay
 
@@ -238,21 +237,26 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 		low_reg = 0x14;
 		lsb_reg = 0x15; 
 		I2C_DEV_TAKE_MUTEX(dev);
-    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &msb_reg, sizeof(msb_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &msb, sizeof(msb)));
 		bytes[0] = msb; 
-		I2C_DEV_CHECK(dev, i2c_dev_read(dev, &high_reg, sizeof(high_reg), &high_byte, sizeof(high_byte)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &high_reg, sizeof(high_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &high_byte, sizeof(high_byte)));
 		bytes[1] = high_byte; 
-		I2C_DEV_CHECK(dev, i2c_dev_read(dev, &low_reg, sizeof(low_reg), &low_byte, sizeof(low_byte)));
-		bytes[2] = low_byte;  
-		I2C_DEV_CHECK(dev, i2c_dev_read(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &low_reg, sizeof(low_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &low_byte, sizeof(low_byte)));
+		bytes[2] = low_byte; 
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb, sizeof(lsb)));
 		bytes[3] = lsb; 
     	I2C_DEV_GIVE_MUTEX(dev);
-		int check = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3]);
+		unsigned int check = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3]);
 		check_temp = ((float) check) / 100; 
 		count++;
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
+	ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
 
 	//Commands to recieve ph data//
 	char new_reading_reg = 0x07; 
@@ -264,7 +268,8 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 			return ESP_FAIL; 
 		} 
 		I2C_DEV_TAKE_MUTEX(dev);
-    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &new_reading_reg, sizeof(new_reading_reg), &new_reading, sizeof(new_reading)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &new_reading_reg, sizeof(new_reading_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &new_reading, sizeof(new_reading)));
 		I2C_DEV_GIVE_MUTEX(dev);
 		vTaskDelay(pdMS_TO_TICKS(1000));
 		if (new_reading == 1) {
@@ -284,18 +289,22 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	low_reg = 0x18;
 	lsb_reg = 0x19; 
 	I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_dev_read(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &msb_reg, sizeof(msb_reg)));
+    I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &msb, sizeof(msb)));
 	bytes[0] = msb; 
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &high_reg, sizeof(high_reg), &high_byte, sizeof(high_byte)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &high_reg, sizeof(high_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &high_byte, sizeof(high_byte)));
 	bytes[1] = high_byte; 
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &low_reg, sizeof(low_reg), &low_byte, sizeof(low_byte)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &low_reg, sizeof(low_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &low_byte, sizeof(low_byte)));
 	bytes[2] = low_byte;  
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb, sizeof(lsb)));
 	bytes[3] = lsb; 
     I2C_DEV_GIVE_MUTEX(dev);
 	int val = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3]);
 	*ph = ((float) val) / 1000; 
-
+	vTaskDelay(pdMS_TO_TICKS(1000));
     return ESP_OK;
 }
 
@@ -310,7 +319,8 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 			return ESP_FAIL; 
 		} 
 		I2C_DEV_TAKE_MUTEX(dev);
-    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &new_reading_reg, sizeof(new_reading_reg), &new_reading, sizeof(new_reading)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &new_reading_reg, sizeof(new_reading_reg)));
+    	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &new_reading, sizeof(new_reading)));
 		I2C_DEV_GIVE_MUTEX(dev);
 		vTaskDelay(pdMS_TO_TICKS(1000));
 		if (new_reading == 1) {
@@ -335,13 +345,17 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	unsigned char low_byte = 0x00; 
 	unsigned char lsb = 0x00; 
 	I2C_DEV_TAKE_MUTEX(dev);
-    I2C_DEV_CHECK(dev, i2c_dev_read(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &msb_reg, sizeof(msb_reg)));
+    I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &msb, sizeof(msb)));
 	bytes[0] = msb; 
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &high_reg, sizeof(high_reg), &high_byte, sizeof(high_byte)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &high_reg, sizeof(high_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &high_byte, sizeof(high_byte)));
 	bytes[1] = high_byte; 
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &low_reg, sizeof(low_reg), &low_byte, sizeof(low_byte)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &low_reg, sizeof(low_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &low_byte, sizeof(low_byte)));
 	bytes[2] = low_byte;  
-	I2C_DEV_CHECK(dev, i2c_dev_read(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
+	I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb, sizeof(lsb)));
 	bytes[3] = lsb; 
     I2C_DEV_GIVE_MUTEX(dev);
 	int val = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3]);
