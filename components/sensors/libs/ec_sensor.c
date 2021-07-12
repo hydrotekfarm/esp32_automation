@@ -64,6 +64,24 @@ esp_err_t hibernate_ec(ec_sensor_t *dev) {
 	return ESP_OK; 
 }
 
+esp_err_t probe_type(ec_sensor_t *dev, float probe_val) {
+	//Write the probe value to register //
+	unsigned int probe = (unsigned int) probe_val * 100; 
+	// Get each byte using bitwise operations for temperature value //
+	unsigned char msb = (probe>>8) & 0xFF; 
+	unsigned char lsb = probe & 0xFF; 
+	char msb_reg = 0x08;
+	char lsb_reg = 0x09; 
+	I2C_DEV_TAKE_MUTEX(dev);
+    I2C_DEV_CHECK(dev, i2c_dev_write(dev, &msb_reg, sizeof(msb_reg), &msb, sizeof(msb)));
+	I2C_DEV_CHECK(dev, i2c_dev_write(dev, &lsb_reg, sizeof(lsb_reg), &lsb, sizeof(lsb)));
+    I2C_DEV_GIVE_MUTEX(dev);
+    vTaskDelay(pdMS_TO_TICKS(1000));	// Processing Delay
+
+	return ESP_OK; 
+
+}
+
 esp_err_t calibrate_ec(ec_sensor_t *dev){
 	uint8_t count = 0;
 

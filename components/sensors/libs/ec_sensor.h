@@ -44,6 +44,14 @@ esp_err_t activate_ec(ec_sensor_t *dev);
 esp_err_t hibernate_ec(ec_sensor_t *dev);
 
 /**
+ * @brief Set ec probe type (default 1.0)
+ * @param dev I2C device descriptor
+ * @param the new probe value to set
+ * @return ESP_OK to indicate success
+ */
+esp_err_t probe_type(ec_sensor_t *dev, float probe_val);
+
+/**
  * @brief Calibrate EC sensor
  * @param dev I2C device descriptor
  * @param temperature This value is required for temperature compensation
