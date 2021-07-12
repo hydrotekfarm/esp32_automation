@@ -1,8 +1,8 @@
 /*
- * ec_sensor.h
+ * ph_sensor.h
  *
- *  Created on: May 1, 2020
- *      Author: ajayv, Karthick Siva. 
+ *  Created on: July 1, 2021
+ *      Author: Karthick Siva. 
  */
 
 #ifndef PH_SENSOR_H

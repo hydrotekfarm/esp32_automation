@@ -1,8 +1,8 @@
 /*
  * ec_sensor.h
  *
- *  Created on: May 1, 2020
- *      Author: ajayv, Karthick Siva. 
+ *  Created on: July 1, 2020
+ *      Author: Karthick Siva. 
  */
 
 #ifndef EC_SENSOR_H
