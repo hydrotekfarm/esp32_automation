@@ -26,29 +26,52 @@ unsigned long get_current_time() {
 }
 
 static void IRAM_ATTR reset_button_isr_handler (void* arg) {
-    //ESP_LOGI(HARD_RESET_TAG, "Entered Interupt Handler.");
-   unsigned long start = get_current_time();
-   //Make sure we get valid start time // 
-   //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
-    while (gpio_get_level(HARD_RESET_GPIO) == 0) {
-        unsigned long curr_time = get_current_time();
+   BaseType_t xHigherPriorityTaskWoken;
 
-        //ESP_LOGI(HARD_RESET_TAG, "Start Time: %li... Curr Time: %li", start, curr_time);
-        if (curr_time != 0 && (curr_time - start >= 2)) {
-            //ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
-            ets_printf("YEAH");
-            nvs_clear();
-            //esp_restart();
-            //ESP_LOGI(HARD_RESET_TAG, "Hard Rest Completed.");
-            break; 
+   xHigherPriorityTaskWoken = false;
+   xSemaphoreGiveFromISR(xBinarySemph, &xHigherPriorityTaskWoken);
+
+   portYIELD_FROM_ISR();
+}
+
+esp_err_t init_reset_semaphore() {
+    xBinarySemph = xSemaphoreCreateBinary();
+    if (xBinarySemph != NULL) {
+        return ESP_OK;
+    } else {
+        printf("Could not allocate memory for semaphore\n");
+        return ESP_FAIL;
+    }
+}
+
+void hard_reset_task(void *args) {
+    for (;;) {
+        xSemaphoreTake(xBinarySemph, portMAX_DELAY);
+        ESP_LOGI(HARD_RESET_TAG, "Taken");
+        unsigned long start = get_current_time();
+        //Make sure we get start time // 
+        //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
+        while (gpio_get_level(HARD_RESET_GPIO) == 0) {
+            unsigned long curr_time = get_current_time();
+
+            ESP_LOGI(HARD_RESET_TAG, "Start Time: %li... Curr Time: %li", start, curr_time);
+            if ((curr_time - start >= 4)) {
+                ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
+                nvs_clear();
+                ESP_LOGI(HARD_RESET_TAG, "Going to Restart.");
+                esp_restart();
+                ESP_LOGI(HARD_RESET_TAG, "Hard Rest Completed.");
+                break; 
         }
-   }
+     }
+
+    }
 }
 
 void init_hard_reset_button() {
 	// Create Rising Edge Interrupt on Hard Reset Button GPIO
 	gpio_config_t gpio_conf;
-	gpio_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
+	gpio_conf.intr_type = 2;
 	gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL_RESET;
 	gpio_conf.mode = GPIO_MODE_INPUT;
 	gpio_conf.pull_up_en = 1;
@@ -60,6 +83,4 @@ void init_hard_reset_button() {
 
 	// ISR handler for specific GPIO pin
 	gpio_isr_handler_add(HARD_RESET_GPIO, reset_button_isr_handler, (void*) HARD_RESET_GPIO);
-
-    printf("initialized");
 }

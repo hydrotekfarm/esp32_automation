@@ -29,6 +29,7 @@
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
 #include "grow_manager.h"
+#include "hard_reset_manager.h"
 #include "hard_reset_manager.c"
 
 void boot_sequence() {
@@ -36,7 +37,9 @@ void boot_sequence() {
 	init_nvs();
 	// Initialize deep sleep
 	//init_power_button();
+	init_reset_semaphore();
 	init_hard_reset_button();
+	xTaskCreatePinnedToCore(hard_reset_task, "hard_reset_task", 2500, NULL, 1, &hard_reset_task_handle, 0);
 	// Init connections
 	//tcpip_adapter_init();
 	//ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -79,7 +82,7 @@ void boot_sequence() {
 	//xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
 
 	// Init grow manager
-	//init_grow_manager();
+	init_grow_manager();
 }
 
 void restart_esp32() { // Restart ESP32
