@@ -44,23 +44,20 @@ esp_err_t init_reset_semaphore() {
     }
 }
 
-void hard_reset_task(void *args) {
+void hard_reset(void *args) {
     for (;;) {
         xSemaphoreTake(xBinarySemph, portMAX_DELAY);
-        ESP_LOGI(HARD_RESET_TAG, "Taken");
+         //Make sure we get start time // 
         unsigned long start = get_current_time();
-        //Make sure we get start time // 
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
-        while (gpio_get_level(HARD_RESET_GPIO) == 0) {
+        while (gpio_get_level(HARD_RESET_GPIO) == 1) {
             unsigned long curr_time = get_current_time();
-
-            ESP_LOGI(HARD_RESET_TAG, "Start Time: %li... Curr Time: %li", start, curr_time);
-            if ((curr_time - start >= 4)) {
+            if ((curr_time - start >= 10)) {
                 ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
                 nvs_clear();
                 ESP_LOGI(HARD_RESET_TAG, "Going to Restart.");
                 esp_restart();
-                ESP_LOGI(HARD_RESET_TAG, "Hard Rest Completed.");
+                //esp_restart will not return back // 
                 break; 
         }
      }
@@ -71,7 +68,7 @@ void hard_reset_task(void *args) {
 void init_hard_reset_button() {
 	// Create Rising Edge Interrupt on Hard Reset Button GPIO
 	gpio_config_t gpio_conf;
-	gpio_conf.intr_type = 2;
+	gpio_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
 	gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL_RESET;
 	gpio_conf.mode = GPIO_MODE_INPUT;
 	gpio_conf.pull_up_en = 1;
