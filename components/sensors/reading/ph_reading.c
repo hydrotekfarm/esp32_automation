@@ -33,7 +33,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 			}
 			ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
-			read_ph_with_temperature(&dev, 25, sensor_get_address_value(&ph_sensor));
+			read_ph_with_temperature(&dev, 25.00, sensor_get_address_value(&ph_sensor));
 			ESP_LOGI(TAG, "ph: %f", sensor_get_value(&ph_sensor));
 
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end

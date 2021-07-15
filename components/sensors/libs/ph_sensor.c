@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+
 /* MACRO for checkng argument paramters */
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
 /* I2C Protocol Speed Paramter (10-100 kHz for OEM Device) */
@@ -216,7 +218,9 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
 
 	// Create Read with temperature command //
-	unsigned int temp_compensation = (unsigned int) temperature * 100; 
+	//Round float temp to 2 decimal places first//
+	float nearest = roundf(temperature * 100) / 100;
+	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
 	unsigned char high_byte = (temp_compensation>>16) & 0xFF; 
@@ -240,7 +244,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	unsigned char bytes [4]; 
 	float check_temp = 0.0f; 
 	// Make sure temperature compensation is set //
-	while (check_temp != temperature) {
+	while (check_temp != nearest) {
 		// if temp is not updated after 3 readings then return //
 		if (count == 3) {
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
