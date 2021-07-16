@@ -92,6 +92,7 @@ int control_check_sensor(struct sensor_control *control_in, float current_value)
 	bool under_target = control_in->is_up_control && control_is_under_target(control_in, current_value);
 	bool over_target = control_in->is_down_control && control_is_over_target(control_in, current_value);
 
+	printf("%d\n", control_in->is_up_control);
 	if(under_target || over_target) {
 		if(control_add_check(control_in)) {
 			control_in->is_control_active = true;

@@ -63,6 +63,15 @@ void ec_dose() {
 void ec_update_settings(cJSON *item) {
 	nvs_handle_t *handle = nvs_get_handle(EC_NAMESPACE);
 	control_update_settings(&ec_control, item, handle);
+	if (get_ec_control()->is_control_enabled) {
+		get_ec_control()->is_up_control = true;
+		nvs_add_uint8(handle, UP_CONTROL, 1);
+		ESP_LOGI(get_ec_control()->name, "Updated up control status to: %s", 1 ? "true" : "false");
+	} else {
+		get_ec_control()->is_up_control = false;
+		nvs_add_uint8(handle, UP_CONTROL, 0);
+		ESP_LOGI(get_ec_control()->name, "Updated up control status to: %s", 0 ? "true" : "false");
+	}
 
 	cJSON *element = item->child;
 	while(element != NULL) {
