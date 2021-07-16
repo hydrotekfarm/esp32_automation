@@ -236,7 +236,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 	// Create Read with temperature command //
 	//Round float temp to 2 decimal places first//
 	float nearest = roundf(temperature * 100) / 100;
-	unsigned int temp_compensation = nearest * 100; 
+	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
 	unsigned char high_byte = (temp_compensation>>16) & 0xFF; 
