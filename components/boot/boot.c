@@ -34,7 +34,6 @@
 void boot_sequence() {
 	// Init nvs
 	init_nvs();
-	// nvs_clear();
 	// Initialize deep sleep
 	init_power_button();
 
