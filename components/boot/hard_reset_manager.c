@@ -50,7 +50,7 @@ void hard_reset(void *args) {
          //Make sure we get start time // 
         unsigned long start = get_current_time();
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
-        while (gpio_get_level(HARD_RESET_GPIO) == 1) {
+        while (gpio_get_level(HARD_RESET_GPIO) == 0) {
             unsigned long curr_time = get_current_time();
             if ((curr_time - start >= 10)) {
                 ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
@@ -66,13 +66,12 @@ void hard_reset(void *args) {
 }
 
 void init_hard_reset_button() {
-	// Create Rising Edge Interrupt on Hard Reset Button GPIO
+	// Create Falling Edge Interrupt on Hard Reset Button GPIO
 	gpio_config_t gpio_conf;
-	gpio_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
+	gpio_conf.intr_type = GPIO_INTR_NEGEDGE;
 	gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL_RESET;
 	gpio_conf.mode = GPIO_MODE_INPUT;
 	gpio_conf.pull_up_en = 1;
-    //gpio_conf.pull_down_en = 1;
 	gpio_config(&gpio_conf);
 
 	// Install GPIO ISR Service

@@ -5,14 +5,15 @@
 #define GPIO_INPUT_PIN_SEL_RESET (1ULL << HARD_RESET_GPIO);
 
 #define HARD_RESET_TAG "HARD_RESET_MANAGER"
-
+//Task Handle for hard reset when interrupt occurs// 
 TaskHandle_t hard_reset_task_handle;
+//Semaphore to indicate when to defer work to hard reset task // 
 SemaphoreHandle_t xBinarySemph;
-
+//struct to keep track of time interval of pressed button// 
 struct timeval current_time; 
-
+//function to create semaphore// 
 esp_err_t init_reset_semaphore();
-
+//deferred task to complete hard reset//
 void hard_reset_task(void *args);
-
+//init hard reset GPIO// 
 void init_hard_reset_button();
