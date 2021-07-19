@@ -18,7 +18,7 @@
 
 void IRAM_ATTR timer_group0_isr(void *param) {
    // configure GPIO for wakeup device from sleep mode
-   esp_sleep_enable_ext0_wakeup(POWER_BUTTON_GPIO, 1);
+   esp_sleep_enable_ext0_wakeup(POWER_BUTTON_GPIO, 0);
    // start sleep mode
    esp_deep_sleep_start();
 }
@@ -56,9 +56,9 @@ static void tg0_timer_init(int timer_idx, double timer_interval_sec)
 }
 
 void init_power_button() {
-	// Create Rising Edge Interrupt on Power Button GPIO
+	// Create Falling Edge Interrupt on Power Button GPIO
 	gpio_config_t gpio_conf;
-	gpio_conf.intr_type = GPIO_PIN_INTR_POSEDGE;
+	gpio_conf.intr_type = GPIO_INTR_NEGEDGE;
 	gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
 	gpio_conf.mode = GPIO_MODE_INPUT;
 	gpio_conf.pull_up_en = 1;

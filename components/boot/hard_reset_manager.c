@@ -47,6 +47,7 @@ esp_err_t init_reset_semaphore() {
 void hard_reset(void *args) {
     for (;;) {
         xSemaphoreTake(xBinarySemph, portMAX_DELAY);
+        ESP_LOGI(HARD_RESET_TAG, "Inside.");
          //Make sure we get start time // 
         unsigned long start = get_current_time();
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
