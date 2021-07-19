@@ -259,6 +259,7 @@ void irrigation_control() {
 
 void update_irrigation_timings(cJSON *obj) {
 	const char* UPDATE_IRRIGATION_KEY = "UPDATE_IRRIGATION";
+	bool updatedIrrigationTimings = false;
 
 	cJSON *element = obj->child;
 	nvs_handle_t *handle = nvs_get_handle(IRRIGATION_NVS_NAMESPACE);
@@ -267,16 +268,20 @@ void update_irrigation_timings(cJSON *obj) {
 		if(strcmp(element->string, IRRIGATION_ON_KEY) == 0) {
 			irrigation_on_time = element->valueint;
 			nvs_add_uint32(handle, IRRIGATION_ON_KEY, irrigation_on_time);
+			updatedIrrigationTimings = true;
 			ESP_LOGI(UPDATE_IRRIGATION_KEY, "Updated irrigation on time to: %d", irrigation_on_time);
 		} else if(strcmp(element->string, IRRIGATION_OFF_KEY) == 0) {
 			irrigation_off_time = element->valueint;
 			nvs_add_uint32(handle, IRRIGATION_OFF_KEY, irrigation_off_time);
+			updatedIrrigationTimings = true;
 			ESP_LOGI(UPDATE_IRRIGATION_KEY, "Updated irrigation off time to: %d", irrigation_off_time);
 		} else {
 			ESP_LOGE(UPDATE_IRRIGATION_KEY, "Error: Invalid Key");
 		}
 		element = element->next;
 	}
+	
+	if(updatedIrrigationTimings) enable_timer(&dev, &irrigation_timer, irrigation_on_time);
 	nvs_commit_data(handle);
 }
 

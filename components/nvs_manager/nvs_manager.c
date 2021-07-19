@@ -180,7 +180,7 @@ bool nvs_get_uint8(char *namespace, char *key, uint8_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -200,7 +200,7 @@ bool nvs_get_int8(char *namespace, char *key, int8_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -220,7 +220,7 @@ bool nvs_get_uint16(char *namespace, char *key, uint16_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -240,7 +240,7 @@ bool nvs_get_int16(char *namespace, char *key, int16_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -260,7 +260,7 @@ bool nvs_get_uint32(char *namespace, char *key, uint32_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -280,7 +280,7 @@ bool nvs_get_int32(char *namespace, char *key, int32_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -300,7 +300,7 @@ bool nvs_get_uint64(char *namespace, char *key, uint64_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -320,7 +320,7 @@ bool nvs_get_int64(char *namespace, char *key, int64_t *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
@@ -338,7 +338,7 @@ bool nvs_get_float(char *namespace, char *key, float *data) {
 	size_t str_size;
 	err = nvs_get_str(handle, key, NULL, &str_size);
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		nvs_close(handle);
 		return false;
 	}
@@ -348,7 +348,7 @@ bool nvs_get_float(char *namespace, char *key, float *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		free(fl_str);
 		return false;
 	}
@@ -369,7 +369,7 @@ bool nvs_get_string(char *namespace, char *key, char *data) {
 	size_t str_size;
 	err = nvs_get_str(handle, key, NULL, &str_size);
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		nvs_close(handle);
 		return false;
 	}
@@ -378,7 +378,7 @@ bool nvs_get_string(char *namespace, char *key, char *data) {
 	nvs_close(handle);
 
 	if(err != ESP_OK) {
-		ESP_LOGI(NVS_TAG, "Failed getting data from NVS. Error: %d", err);
+		ESP_LOGI(NVS_TAG, "failed getting data from NVS. Error: %d, namespace: %s, key: %s", err, namespace, key);
 		return false;
 	}
 
