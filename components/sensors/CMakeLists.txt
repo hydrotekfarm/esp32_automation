@@ -18,6 +18,6 @@ idf_component_register(
 	"reading/sync_sensors.c" 
 	"reading/water_temp_reading.c"
 	INCLUDE_DIRS "control/" "libs/" "reading/" 	
-	REQUIRES boot rtc rf_transmitter nvs_flash json log nvs_manager nvs_flash network_manager grow_manager mqtt
+	REQUIRES boot rtc rf_transmitter nvs_flash json log nvs_manager nvs_flash network_manager grow_manager
 	PRIV_REQUIRES 
 )

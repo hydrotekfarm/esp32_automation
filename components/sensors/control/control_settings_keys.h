@@ -6,7 +6,7 @@
 #define CONTROL "control"
 #define DOSING_TIME "dose_time"
 #define DOSING_INTERVAL "dose_interv"
-#define DAY_AND_NIGHT "d/n_enabled"
+#define DAY_AND_NIGHT "d_n_enabled"
 #define DAY_TARGET_VALUE "day_tgt"
 #define NIGHT_TARGET_VALUE "night_tgt"
 #define TARGET_VALUE "tgt"

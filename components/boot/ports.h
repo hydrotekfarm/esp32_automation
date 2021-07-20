@@ -11,9 +11,8 @@
 #define SDA_GPIO 					21
 #define SCL_GPIO 					22
 #define FLOAT_SWITCH_TOP_GPIO 		32
-#define BLUE_LED                    25 //wifi//
+#define BLUE_LED                    25 
 #define GREEN_LED                   26
-
 
 
 // MCP23017 GPIO Expansion Ports
