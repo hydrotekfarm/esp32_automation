@@ -47,7 +47,6 @@ esp_err_t init_reset_semaphore() {
 void hard_reset(void *args) {
     for (;;) {
         xSemaphoreTake(xBinarySemph, portMAX_DELAY);
-        ESP_LOGI(HARD_RESET_TAG, "Inside.");
         int task_priority = uxTaskPriorityGet(NULL);
 	    vTaskPrioritySet(NULL, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that hard reset can take place without interruption
          //Make sure we get start time // 
@@ -55,6 +54,7 @@ void hard_reset(void *args) {
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
         while (gpio_get_level(HARD_RESET_GPIO) == 0) {
             unsigned long curr_time = get_current_time();
+            ESP_LOGI(HARD_RESET_TAG, "%ld", curr_time);
             if ((curr_time - start >= 10)) {
                 ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
                 nvs_clear();
@@ -78,9 +78,6 @@ void init_hard_reset_button() {
 	gpio_conf.mode = GPIO_MODE_INPUT;
 	gpio_conf.pull_up_en = 1;
 	gpio_config(&gpio_conf);
-
-	// Install GPIO ISR Service
-	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
 
 	// ISR handler for specific GPIO pin
 	gpio_isr_handler_add(HARD_RESET_GPIO, reset_button_isr_handler, (void*) HARD_RESET_GPIO);
