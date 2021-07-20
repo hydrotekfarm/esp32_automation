@@ -32,6 +32,9 @@
 #include "co2_reading.h"
 
 void boot_sequence() {
+	// Start as grow cycle inactive by default
+	is_grow_active = false;
+
 	// Init nvs
 	init_nvs();
 	// Initialize deep sleep
@@ -61,9 +64,6 @@ void boot_sequence() {
 
 	// Init sensor control
 	init_control();
-
-	//Init irrigation
-	init_irrigation();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 

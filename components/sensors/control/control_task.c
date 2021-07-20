@@ -40,6 +40,12 @@ void init_control() {
 
 	init_reservoir();
 
+	// Start Irrigation control
+	init_irrigation();
+	
+	// Start Grow Light Control
+	init_lights();
+
 	water_in_rf_message.rf_address_ptr = water_in_address;
 	water_out_rf_message.rf_address_ptr = water_out_address;
 }

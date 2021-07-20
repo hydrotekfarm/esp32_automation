@@ -15,6 +15,8 @@
 #include <esp_idf_lib_helpers.h>
 #include "ds3231.h"
 #include <esp_log.h>
+#include "string.h"
+#include <time.h>
 
 #define I2C_FREQ_HZ 400000
 
@@ -461,10 +463,27 @@ void check_alarm(i2c_dev_t *dev, struct alarm *alarm, time_t unix_time) {
 	if(alarm->alarm_timer.active) {
 		// Check if alarm is done
 		if(unix_time >= alarm->alarm_timer.end_time) {
-			// Reset alarm to next day if it is repeated
+			//  If alarm is repeated, reset alarm to next day from the time the alarm was identified as completed
 			if(alarm->alarm_timer.repeat) {
-				alarm->alarm_timer.end_time += SECONDS_PER_DAY;
-			
+                struct tm current_time_date, end_time_date;
+
+                memcpy(&current_time_date, gmtime(&unix_time), sizeof(struct tm));
+
+                // Check if alarm was identified as completed within 24 hours of the actual alarm end time
+                if(unix_time - alarm->alarm_timer.end_time <= SECONDS_PER_DAY) {
+                    alarm->alarm_timer.end_time += SECONDS_PER_DAY;
+                } else {
+                    // Alarm was identified as completed after 24 hours of completetion time (possibily because of Power Outage or Grow Cycle being Stopped)
+                    memcpy(&end_time_date, gmtime(&alarm->alarm_timer.end_time), sizeof(struct tm));
+
+                    current_time_date.tm_hour = end_time_date.tm_hour;
+                    current_time_date.tm_min = end_time_date.tm_min;
+                    time_t next_alarm_time = mktime(&current_time_date);
+
+                    // Add 24 hours to next alarm time if has been already completed during the same day
+                    if(next_alarm_time < unix_time) next_alarm_time += SECONDS_PER_DAY;
+                    alarm->alarm_timer.end_time = next_alarm_time;
+                }
             // Otherwise  disable alarm
 			} else {
                 alarm->alarm_timer.active = false;

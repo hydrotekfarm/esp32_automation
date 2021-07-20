@@ -75,6 +75,9 @@ void update_irrigation_timings(cJSON *obj);
 // Initialize grow light control
 void init_lights();
 
+// Update Grow Light Alarms
+void update_grow_light_alarms(uint8_t on_hr, uint8_t on_min, uint8_t off_hr, uint8_t off_min);
+
 // Update growlight timings
 void update_grow_light_timings(cJSON *obj);
 
