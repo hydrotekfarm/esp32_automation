@@ -34,7 +34,7 @@
 void boot_sequence() {
 	// Start as grow cycle inactive by default
 	is_grow_active = false;
-
+	
 	// Init nvs
 	init_nvs();
 	// Initialize deep sleep
@@ -61,6 +61,12 @@ void boot_sequence() {
 	// Init time rtc
 	init_sntp();
 	init_rtc();
+
+	// Start Irrigation control
+	init_irrigation();
+	
+	// Start Grow Light Control
+	init_lights();
 
 	// Init sensor control
 	init_control();
