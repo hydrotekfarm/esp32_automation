@@ -17,3 +17,6 @@ esp_err_t init_reset_semaphore();
 void hard_reset_task(void *args);
 //init hard reset GPIO// 
 void init_hard_reset_button();
+//function to restart esp32
+void restart_esp_32();
+

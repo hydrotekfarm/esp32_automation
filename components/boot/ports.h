@@ -2,7 +2,7 @@
 #include "mcp23x17.h"
 
 // GPIO Ports
-#define POWER_BUTTON_GPIO			2
+#define POWER_BUTTON_GPIO			33
 #define HARD_RESET_GPIO             35
 #define RF_TRANSMITTER_GPIO 		4
 #define FLOAT_SWITCH_BOTTOM_GPIO	13

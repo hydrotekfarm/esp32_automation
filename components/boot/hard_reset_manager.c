@@ -47,39 +47,45 @@ esp_err_t init_reset_semaphore() {
 void hard_reset(void *args) {
     for (;;) {
         xSemaphoreTake(xBinarySemph, portMAX_DELAY);
-        ESP_LOGI(HARD_RESET_TAG, "started");
+        int task_priority = uxTaskPriorityGet(NULL);
+        vTaskPrioritySet(NULL, (configMAX_PRIORITIES - 1)); // Temporarily increase priority so that hard reset can take place without interruption
          //Make sure we get start time // 
         unsigned long start = get_current_time();
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
         while (gpio_get_level(HARD_RESET_GPIO) == 0) {
             unsigned long curr_time = get_current_time();
-            ESP_LOGI(HARD_RESET_TAG, "%ld\n", curr_time);
+            ESP_LOGI(HARD_RESET_TAG, "%ld", curr_time);
             if ((curr_time - start >= 10)) {
                 ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
                 nvs_clear();
-                ESP_LOGI(HARD_RESET_TAG, "Going to Restart.");
-                esp_restart();
+                restart_esp_32();
                 //esp_restart will not return back // 
                 break; 
         }
      }
-     ESP_LOGI(HARD_RESET_TAG, "End");
+     //If reset did not occur make sure to reset task priority back//
+     vTaskPrioritySet(NULL, task_priority);
 
     }
 }
 
 void init_hard_reset_button() {
-	// Create Falling Edge Interrupt on Hard Reset Button GPIO
-	gpio_config_t gpio_conf;
-	gpio_conf.intr_type = 2;
-	gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL_RESET;
-	gpio_conf.mode = GPIO_MODE_INPUT;
-	gpio_conf.pull_up_en = 1;
-	gpio_config(&gpio_conf);
+    // Create Falling Edge Interrupt on Hard Reset Button GPIO
+    gpio_config_t gpio_conf;
+    gpio_conf.intr_type = GPIO_INTR_NEGEDGE;
+    gpio_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL_RESET;
+    gpio_conf.mode = GPIO_MODE_INPUT;
+    gpio_conf.pull_up_en = 1;
+    gpio_config(&gpio_conf);
 
-	// Install GPIO ISR Service
-	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-
-	// ISR handler for specific GPIO pin
-	gpio_isr_handler_add(HARD_RESET_GPIO, reset_button_isr_handler, (void*) HARD_RESET_GPIO);
+    // ISR handler for specific GPIO pin
+    gpio_isr_handler_add(HARD_RESET_GPIO, reset_button_isr_handler, (void*) HARD_RESET_GPIO);
 }
+
+void restart_esp_32() { // Restart ESP32
+	fflush(stdout);
+	esp_restart();
+}
+
+
+
