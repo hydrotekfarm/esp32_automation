@@ -12,6 +12,7 @@
 #include "nvs_namespace_keys.h"
 #include "ports.h"
 #include "sensor_control.h"
+#include "grow_manager.h"
 
 void reservoir_change() {
 	set_reservoir_change_flag(true);
@@ -22,7 +23,6 @@ void reservoir_change() {
 // Enable day time routine
 void day() {
 	is_day = true;
-
 	lights_on();
 	ESP_LOGI("GROW LIGHTS", "Turning lights on");
 }
@@ -206,24 +206,112 @@ void init_lights() {
 	uint8_t on_hr, on_min, off_hr, off_min;
 
 	if( !nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &on_hr) ||
-		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &on_min) ||
-		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &off_hr) ||
-		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_HR_KEY, &off_min)) {
+		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_ON_MIN_KEY, &on_min) ||
+		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_OFF_HR_KEY, &off_hr) ||
+		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_OFF_MIN_KEY, &off_min)) {
 		ESP_LOGE("GROW_LIGHTS", "Unable to get Grow Lights settings from NVS");
+		day();
 		return;
 	}
 
+	update_grow_light_alarms(on_hr, on_min, off_hr, off_min);
+}
+
+void update_grow_light_alarms(uint8_t on_hr, uint8_t on_min, uint8_t off_hr, uint8_t off_min) {
+	// Current day and time
 	struct tm time;
-	get_date_time(&time);
+	get_date_time(&time); 
 
-	time.tm_hour = on_hr;
-	time.tm_min = on_min;
-	time.tm_sec = 0;
-	enable_alarm(&day_time_alarm, time);
+	// Get off time, on time, and current time in minutes 
+	// Since RTC hours start from 0 to 23 instead of 1 to 24, we add 60 minutes to the end of minute conversion
+	int off_time_in_minutes = off_hr * 60 + off_min + 60; 
+	int on_time_in_minutes = on_hr * 60 + on_min + 60;
+	int current_time_in_minutes = time.tm_hour * 60 + time.tm_min + 60; 
 
-	time.tm_hour = off_hr;
-	time.tm_min = off_min;
-	enable_alarm(&night_time_alarm, time);
+	int on_time_diff = current_time_in_minutes - on_time_in_minutes;
+	int off_time_diff = current_time_in_minutes - off_time_in_minutes;	
+
+	char buffer[30];
+
+	// Check if currently day or night and start appropriate alarms
+	if(on_time_diff * off_time_diff < 0) {
+		is_day = on_time_in_minutes < off_time_in_minutes ? true : false; 
+		if(is_day) {
+			// First Night Time alarm will be on the same day
+			time.tm_hour = off_hr;
+			time.tm_min = off_min;
+			time.tm_sec = 0;
+			enable_alarm(&night_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s", buffer);
+
+			// First Day Time alarm will be triggerred immediately
+			time.tm_hour = on_hr;
+			time.tm_min = on_min;
+			time.tm_sec = 0;
+			enable_alarm(&day_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started)", buffer);
+		} else {
+			// First Day Time alarm will be on the same day
+			time.tm_hour = on_hr;
+			time.tm_min = on_min;
+			time.tm_sec = 0;
+			enable_alarm(&day_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s", buffer);
+
+			// First Night Time alarm will be triggerred immediately
+			time.tm_hour = off_hr;
+			time.tm_min = off_min;
+			time.tm_sec = 0;
+			enable_alarm(&night_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s (Has Already Started)", buffer);
+		}
+	} else { 
+		is_day = on_time_in_minutes > off_time_in_minutes ? true : false;
+		if(is_day) {
+			time.tm_hour = on_hr;
+			time.tm_min = on_min;
+			time.tm_sec = 0;
+			enable_alarm(&day_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started", buffer);
+
+			if(current_time_in_minutes > off_time_in_minutes) {
+				time_t next_day = mktime(&time) + 60 * 60 * 24;
+				memcpy(&time, gmtime(&next_day), sizeof(struct tm));
+			}
+			time.tm_hour = off_hr;
+			time.tm_min = off_min;
+			time.tm_sec = 0;
+			enable_alarm(&night_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s", buffer);
+		} else {
+			time.tm_hour = off_hr;
+			time.tm_min = off_min;
+			time.tm_sec = 0;
+			enable_alarm(&night_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s (Has Already Started", buffer);
+
+			if(current_time_in_minutes > on_time_in_minutes) {
+				time_t next_day = mktime(&time) + 60 * 60 * 24;
+				memcpy(&time, gmtime(&next_day), sizeof(struct tm));
+			}
+			time.tm_hour = on_hr;
+			time.tm_min = on_min;
+			time.tm_sec = 0;
+			enable_alarm(&day_time_alarm, time);
+			strftime(buffer, 30, "%x %X", &time);
+			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started", buffer);
+		}
+	}
+
+	// If grow cycle has started then trigger day or night function depending on current time
+	ESP_LOGI("Grow Lights ALARMS", "Is Day set to: %s", is_day ? "true" : "false");
 }
 
 void init_irrigation() {
@@ -235,8 +323,8 @@ void init_irrigation() {
 		return;
 	}
 
-	ESP_LOGI("", "Irrigation on time: %d", irrigation_on_time);
-	ESP_LOGI("", "Irrigation off time: %d", irrigation_off_time);
+	ESP_LOGI("Irrigation NVS", "Irrigation on time: %d", irrigation_on_time);
+	ESP_LOGI("Irrigation NVS", "Irrigation off time: %d", irrigation_off_time);
 
 	enable_timer(&dev, &irrigation_timer, irrigation_off_time);
 }
@@ -266,12 +354,12 @@ void update_irrigation_timings(cJSON *obj) {
 
 	while(element != NULL) {
 		if(strcmp(element->string, IRRIGATION_ON_KEY) == 0) {
-			irrigation_on_time = element->valueint;
+			irrigation_on_time = element->valueint * 60;
 			nvs_add_uint32(handle, IRRIGATION_ON_KEY, irrigation_on_time);
 			updatedIrrigationTimings = true;
 			ESP_LOGI(UPDATE_IRRIGATION_KEY, "Updated irrigation on time to: %d", irrigation_on_time);
 		} else if(strcmp(element->string, IRRIGATION_OFF_KEY) == 0) {
-			irrigation_off_time = element->valueint;
+			irrigation_off_time = element->valueint * 60;
 			nvs_add_uint32(handle, IRRIGATION_OFF_KEY, irrigation_off_time);
 			updatedIrrigationTimings = true;
 			ESP_LOGI(UPDATE_IRRIGATION_KEY, "Updated irrigation off time to: %d", irrigation_off_time);
@@ -280,42 +368,39 @@ void update_irrigation_timings(cJSON *obj) {
 		}
 		element = element->next;
 	}
-	
+
 	if(updatedIrrigationTimings) enable_timer(&dev, &irrigation_timer, irrigation_on_time);
 	nvs_commit_data(handle);
 }
 
 void update_grow_light_timings(cJSON *obj) {
 	const char* UPDATE_GROW_LIGHTS_KEY = "UPDATE_GROW_LIGHTS";
+	struct tm lights_on, lights_off;
 
 	cJSON *element = obj->child;
 	nvs_handle_t *handle = nvs_get_handle(GROW_LIGHT_NVS_NAMESPACE);
 
 	while(element != NULL) {
 		if(strcmp(element->string, LIGHTS_ON_KEY) == 0) {
-			struct tm time;
-			parse_iso_timestamp(element->valuestring, &time);
+			parse_iso_timestamp(element->valuestring, &lights_on);
 			
-			nvs_add_uint8(handle, LIGHTS_ON_HR_KEY, time.tm_hour);
-			nvs_add_uint8(handle, LIGHTS_ON_MIN_KEY, time.tm_min);
-
-			enable_alarm(&day_time_alarm, time);
-			ESP_LOGI("", "Lights on time: %d hr and %d min", time.tm_hour, time.tm_min);
+			nvs_add_uint8(handle, LIGHTS_ON_HR_KEY, lights_on.tm_hour);
+			nvs_add_uint8(handle, LIGHTS_ON_MIN_KEY, lights_on.tm_min);
+			ESP_LOGI(UPDATE_GROW_LIGHTS_KEY, "Lights on time: %d hr and %d min", lights_on.tm_hour, lights_on.tm_min);
 		} else if(strcmp(element->string, LIGHTS_OFF_KEY) == 0) {
-			struct tm time;
-			parse_iso_timestamp(element->valuestring, &time);
+			parse_iso_timestamp(element->valuestring, &lights_off);
 
-			nvs_add_uint8(handle, LIGHTS_OFF_HR_KEY, time.tm_hour);
-			nvs_add_uint8(handle, LIGHTS_OFF_MIN_KEY, time.tm_min);
-
-			enable_alarm(&night_time_alarm, time);
-			ESP_LOGI("", "Lights off time: %d hr and %d min", time.tm_hour, time.tm_min);
+			nvs_add_uint8(handle, LIGHTS_OFF_HR_KEY, lights_off.tm_hour);
+			nvs_add_uint8(handle, LIGHTS_OFF_MIN_KEY, lights_off.tm_min);
+			ESP_LOGI(UPDATE_GROW_LIGHTS_KEY, "Lights off time: %d hr and %d min", lights_off.tm_hour, lights_off.tm_min);
 		} else {
-			ESP_LOGE(UPDATE_GROW_LIGHTS_KEY, "Error: Invalid Key");
+			ESP_LOGE(UPDATE_GROW_LIGHTS_KEY, "Error: Invalid Key: %s", element->string);
 		}
 		element = element->next;
 	}
 	nvs_commit_data(handle);
+
+	update_grow_light_alarms(lights_on.tm_hour, lights_on.tm_min, lights_off.tm_hour, lights_off.tm_min);
 }
 
 void irrigation_on() {

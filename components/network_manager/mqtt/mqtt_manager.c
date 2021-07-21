@@ -202,7 +202,7 @@ void create_time_json(cJSON **time_json) {
 
 	sprintf(time_str, "%.4d", time.tm_year + 1900);
 	strcat(time_str, "-");
-	sprintf(time_str + 5, "%.2d", time.tm_mon);
+	sprintf(time_str + 5, "%.2d", time.tm_mon + 1); // convert from (0 to 11) to (1 to 12)
 	strcat(time_str, "-");
 	sprintf(time_str + 8, "%.2d", time.tm_mday);
 	strcat(time_str, "T");
