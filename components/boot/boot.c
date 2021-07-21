@@ -33,6 +33,8 @@
 #include "hard_reset_manager.c"
 
 void boot_sequence() {
+	//Turn on Green led when esp32 boots up// 
+	gpio_set_level(GREEN_LED, 1);
 	// Init nvs
 	init_nvs();
 	// Initialize deep sleep
