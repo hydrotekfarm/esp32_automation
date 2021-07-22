@@ -29,7 +29,6 @@ void ph_up_pump() {
 	ESP_LOGI(PH_TAG, "pH up pump on");
 
 	// Enable dose timer
-	ESP_LOGI(PH_TAG, "%p", &dev);
 	control_start_dose_timer(&ph_control);
 }
 

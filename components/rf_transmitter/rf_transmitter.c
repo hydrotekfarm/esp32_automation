@@ -66,7 +66,7 @@ esp_err_t control_power_outlet(int power_outlet_id, bool state) {
 	}
 
 	else if(power_outlet_id >= (int) GROW_LIGHTS && power_outlet_id <= ((int) GROW_LIGHTS) + MAX_GROW_LIGHT_ZONES) {
-		ESP_LOGI("Turning on grow lights", "Index number %d", power_outlet_id - (int) GROW_LIGHTS);
+		ESP_LOGI("Toggle Grow Lights", "Index number: %d, state: %s", power_outlet_id - (int) GROW_LIGHTS, state ? "on" : "off");
 		setup_rf_message.rf_address_ptr = grow_lights_address[power_outlet_id - (int) GROW_LIGHTS];
 	}
 	else {

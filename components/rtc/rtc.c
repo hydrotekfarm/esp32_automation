@@ -247,41 +247,79 @@ void update_grow_light_alarms(uint8_t on_hr, uint8_t on_min, uint8_t off_hr, uin
 	} else { 
 		is_day = on_time_in_minutes > off_time_in_minutes ? true : false;
 		if(is_day) {
-			time.tm_hour = on_hr;
-			time.tm_min = on_min;
-			time.tm_sec = 0;
-			enable_alarm(&day_time_alarm, time);
-			strftime(buffer, 30, "%x %X", &time);
-			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started", buffer);
+			// Both alarms are in future
+			if(current_time_in_minutes < on_time_in_minutes) {
+				time.tm_hour = off_hr;
+				time.tm_min = off_min;
+				time.tm_sec = 0;
+				enable_alarm(&night_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s", buffer);
 
-			if(current_time_in_minutes > off_time_in_minutes) {
-				time_t next_day = mktime(&time) + 60 * 60 * 24;
+
+				time.tm_hour = on_hr;
+				time.tm_min = on_min;
+				time.tm_sec = 0;
+				time_t previous_day = mktime(&time) - SECONDS_PER_DAY;
+				memcpy(&time, gmtime(&previous_day), sizeof(struct tm));
+				enable_alarm(&day_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started)", buffer);
+			} else {
+				// Both alarms are in past
+				time.tm_hour = on_hr;
+				time.tm_min = on_min;
+				time.tm_sec = 0;
+				enable_alarm(&day_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started)", buffer);
+
+				time.tm_hour = off_hr;
+				time.tm_min = off_min;
+				time.tm_sec = 0;
+				time_t next_day = mktime(&time) + SECONDS_PER_DAY;
 				memcpy(&time, gmtime(&next_day), sizeof(struct tm));
+				enable_alarm(&night_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s", buffer);
 			}
-			time.tm_hour = off_hr;
-			time.tm_min = off_min;
-			time.tm_sec = 0;
-			enable_alarm(&night_time_alarm, time);
-			strftime(buffer, 30, "%x %X", &time);
-			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s", buffer);
 		} else {
-			time.tm_hour = off_hr;
-			time.tm_min = off_min;
-			time.tm_sec = 0;
-			enable_alarm(&night_time_alarm, time);
-			strftime(buffer, 30, "%x %X", &time);
-			ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s (Has Already Started", buffer);
+			// Both alarms are in future
+			if(current_time_in_minutes < on_time_in_minutes) {
+				time.tm_hour = on_hr;
+				time.tm_min = on_min;
+				time.tm_sec = 0;
+				enable_alarm(&day_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s", buffer);
 
-			if(current_time_in_minutes > on_time_in_minutes) {
-				time_t next_day = mktime(&time) + 60 * 60 * 24;
+
+				time.tm_hour = off_hr;
+				time.tm_min = off_min;
+				time.tm_sec = 0;
+				time_t previous_day = mktime(&time) - SECONDS_PER_DAY;
+				memcpy(&time, gmtime(&previous_day), sizeof(struct tm));
+				enable_alarm(&night_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s (Has Already Started)", buffer);
+			} else {
+				// Both alarms are in past
+				time.tm_hour = off_hr;
+				time.tm_min = off_min;
+				time.tm_sec = 0;
+				enable_alarm(&night_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Night Time Alarm Set To: %s (Has Already Started)", buffer);
+
+				time.tm_hour = on_hr;
+				time.tm_min = on_min;
+				time.tm_sec = 0;
+				time_t next_day = mktime(&time) + SECONDS_PER_DAY;
 				memcpy(&time, gmtime(&next_day), sizeof(struct tm));
+				enable_alarm(&day_time_alarm, time);
+				strftime(buffer, 30, "%x %X", &time);
+				ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s", buffer);
 			}
-			time.tm_hour = on_hr;
-			time.tm_min = on_min;
-			time.tm_sec = 0;
-			enable_alarm(&day_time_alarm, time);
-			strftime(buffer, 30, "%x %X", &time);
-			ESP_LOGI("GROW LIGHT ALARMS", "Day Time Alarm Set To: %s (Has Already Started", buffer);
 		}
 	}
 

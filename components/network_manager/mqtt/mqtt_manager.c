@@ -22,11 +22,8 @@
 #include "network_settings.h"
 #include "grow_manager.h"
 #include "wifi_connect.h"
-<<<<<<< HEAD
 #include "reservoir_control.h"
-=======
 #include "ports.h"
->>>>>>> origin/ph_ec_libupdate
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
@@ -148,16 +145,10 @@ void make_topics() {
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 
 	//Topic for Calibration//
-<<<<<<< HEAD
     init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
     add_id(calibration_topic);
     ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 
-=======
-	init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
-	add_id(calibration_topic);
-	ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
->>>>>>> origin/ph_ec_libupdate
 }
 
 void subscribe_topics() {
@@ -331,10 +322,8 @@ void publish_equipment_status() {
 void update_settings(char *settings) {
 	cJSON *root = cJSON_Parse(settings);
 	char* string = cJSON_Print(root);
-	ESP_LOGI(MQTT_TAG, "datavalue: %s\n", string);
+	ESP_LOGI(MQTT_TAG, "datavalue:\n %s\n", string);
 	cJSON *object_settings = root->child;
-	string = cJSON_Print(object_settings);
-	ESP_LOGI(MQTT_TAG, "object: %s\n", string);
 	
 	char *data_topic = object_settings->string;
 	ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
