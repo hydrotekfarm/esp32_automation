@@ -3,6 +3,7 @@
 #include <mqtt_client.h>
 #include <cjson.h>
 #include <string.h>
+#include <driver/gpio.h> 
 
 #include "rf_transmitter.h"
 
@@ -87,4 +88,3 @@ void create_settings_data_topic();
 
 //Update calibration settings
 void update_calibration(cJSON *obj);
-

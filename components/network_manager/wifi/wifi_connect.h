@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <driver/gpio.h>
 
 // WiFi bits
 #define WIFI_CONNECTED_BIT (1<<0)

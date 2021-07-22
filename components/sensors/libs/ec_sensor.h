@@ -1,8 +1,8 @@
 /*
  * ec_sensor.h
  *
- *  Created on: May 1, 2020
- *      Author: ajayv
+ *  Created on: July 1, 2020
+ *      Author: Karthick Siva. 
  */
 
 #ifndef EC_SENSOR_H
@@ -30,6 +30,28 @@ typedef i2c_dev_t ec_sensor_t;
 esp_err_t ec_init(ec_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gpio, int8_t scl_gpio);
 
 /**
+ * @brief Wake up ec sensor
+ * @param dev I2C device descriptor
+ * @return ESP_OK to indicate success
+ */
+esp_err_t activate_ec(ec_sensor_t *dev);
+
+/**
+ * @brief Hibernate ec sensor
+ * @param dev I2C device descriptor
+ * @return ESP_OK to indicate success
+ */
+esp_err_t hibernate_ec(ec_sensor_t *dev);
+
+/**
+ * @brief Set ec probe type (default 1.0)
+ * @param dev I2C device descriptor
+ * @param the new probe value to set
+ * @return ESP_OK to indicate success
+ */
+esp_err_t probe_type(ec_sensor_t *dev, float probe_val);
+
+/**
  * @brief Calibrate EC sensor
  * @param dev I2C device descriptor
  * @param temperature This value is required for temperature compensation
@@ -43,6 +65,13 @@ esp_err_t calibrate_ec(ec_sensor_t *dev);
  * @return any error message
  */
 esp_err_t calibrate_ec_dry(ec_sensor_t *dev);
+
+/**
+ * @brief Clear calibration settings ec sensor
+ * @param dev I2C device descriptor
+ * @return ESP_OK to indicate success
+ */
+esp_err_t clear_calibration_ec(ec_sensor_t *dev);
 
 /**
  * @brief Read EC with temperature compensation

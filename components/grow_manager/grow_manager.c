@@ -18,6 +18,8 @@
 #include "control_task.h"
 #include "rf_transmitter.h"
 #include "rtc.h"
+#include "ports.h"
+#include <driver/gpio.h> 
 
 void init_grow_manager() {
 	uint8_t status; // Holds vars coming from NVS

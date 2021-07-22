@@ -31,6 +31,14 @@ void calibrate_sensor(struct sensor *sensor_in, esp_err_t (*calib_func)(i2c_dev_
 	vTaskPrioritySet(sensor_in->task_handle, (configMAX_PRIORITIES - 1));	// Temporarily increase priority so that calibration can take place without interruption
 
 	esp_err_t error = (*calib_func)(dev); // Calibrate EC
+	/*
+	esp_err_t error = ESP_FAIL; 
+	if (strcmp(sensor_in->name, "ph") == 0) {
+		error = (*calib_func)(dev, 25);
+	} else if (strcmp(sensor_in->name, "ec") == 0) {
+		error = (*calib_func)(dev, 0);
+	} //TODO ADD if any other sensor needs calibration 
+	*/
 
 	if (error != ESP_OK) {
 		ESP_LOGE(sensor_in->name, "Calibration Failed: %d", error);

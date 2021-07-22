@@ -22,7 +22,11 @@
 #include "network_settings.h"
 #include "grow_manager.h"
 #include "wifi_connect.h"
+<<<<<<< HEAD
 #include "reservoir_control.h"
+=======
+#include "ports.h"
+>>>>>>> origin/ph_ec_libupdate
 
 void mqtt_event_handler(esp_mqtt_event_handle_t event) {
 	const char *TAG = "MQTT_Event_Handler";
@@ -144,10 +148,16 @@ void make_topics() {
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 
 	//Topic for Calibration//
+<<<<<<< HEAD
     init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
     add_id(calibration_topic);
     ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 
+=======
+	init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
+	add_id(calibration_topic);
+	ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+>>>>>>> origin/ph_ec_libupdate
 }
 
 void subscribe_topics() {
@@ -198,6 +208,7 @@ void mqtt_connect() {
 	publish_equipment_status();
 
 	is_mqtt_connected = true;
+
 }
 
 
@@ -324,37 +335,31 @@ void update_settings(char *settings) {
 	cJSON *object_settings = root->child;
 	string = cJSON_Print(object_settings);
 	ESP_LOGI(MQTT_TAG, "object: %s\n", string);
-//	string = cJSON_Print(arr->child);
-//	ESP_LOGI(MQTT_TAG, "child: %s\n", string);
-//	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-	//	cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
-		char *data_topic = object_settings->string;
-		string = cJSON_Print(object_settings->child);
-		ESP_LOGI(MQTT_TAG, "subitem: %s\n", string);
+	
+	char *data_topic = object_settings->string;
+	ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 
-		ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
-		if(strcmp("ph", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "pH data received");
-			ph_update_settings(object_settings);
-		} else if(strcmp("ec", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "EC data received");
-			ec_update_settings(object_settings);
-		} else if(strcmp("water_temp", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "Water Temperature data received");
-			water_temp_update_settings(object_settings);
-		} else if(strcmp("irrigation", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "Irrigation data received");
-			update_irrigation_timings(object_settings);
-		} else if(strcmp("grow_lights", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "Grow Lights data received");
-			update_grow_light_timings(object_settings);
-		} else if(strcmp("reservoir", data_topic) == 0) {
-			ESP_LOGI(MQTT_TAG, "Reservoir data received");
-			update_reservoir_settings(object_settings);
-		} else {
-			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
-		}
-	//}
+	if(strcmp("ph", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "pH data received");
+		ph_update_settings(object_settings);
+	} else if(strcmp("ec", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "EC data received");
+		ec_update_settings(object_settings);
+	} else if(strcmp("water_temp", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Water Temperature data received");
+		water_temp_update_settings(object_settings);
+	} else if(strcmp("irrigation", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Irrigation data received");
+		update_irrigation_timings(object_settings);
+	} else if(strcmp("grow_lights", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Grow Lights data received");
+		update_grow_light_timings(object_settings);
+	} else if(strcmp("reservoir", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Reservoir data received");
+		update_reservoir_settings(object_settings);
+	} else {
+		ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
+	}
 	cJSON_Delete(root);
 
 	ESP_LOGI(MQTT_TAG, "Settings updated");
@@ -445,5 +450,3 @@ void update_calibration(cJSON *data) {
     }
     cJSON_Delete(data);
 }
-
-

@@ -13,6 +13,7 @@
 #include <soc/rtc.h>
 #include <driver/timer.h>
 #include <driver/periph_ctrl.h>
+#include "nvs_manager.h"
 
 #include "ports.h"
 
@@ -81,4 +82,11 @@ void init_power_button() {
 	{
 		ESP_LOGI(DEEP_SLEEP_TAG, "Not a deep sleep reset");
 	}
+}
+
+void hard_reset_button() {
+   nvs_clear();
+   esp_restart();
+   //10 sec then restart// 
+
 }
