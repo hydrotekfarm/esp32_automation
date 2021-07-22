@@ -20,6 +20,8 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	memset(&dev, 0, sizeof(ec_sensor_t));
 	ESP_ERROR_CHECK(ec_init(&dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
 
+	ESP_ERROR_CHECK(activate_ec(&dev));
+
 	for (;;) {
 		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
 			ESP_LOGE(TAG, "EC Wet Calibration Started");
