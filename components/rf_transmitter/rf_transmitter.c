@@ -12,8 +12,6 @@
 
 void init_rf_protocol() {
 	// Setup Transmission Protocol
-	gpio_set_direction(RF_TRANSMITTER_GPIO, GPIO_MODE_OUTPUT);
-
 	struct binary_bits low_bit = {3, 1};
 	struct binary_bits sync_bit = {31, 1};
 	struct binary_bits high_bit = {1, 3};

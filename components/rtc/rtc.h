@@ -39,12 +39,6 @@ bool is_irrigation_on;
 // Day or night time
 bool is_day;
 
-// Day and night times
-uint32_t day_time_hour;
-uint32_t day_time_min;
-uint32_t night_time_hour;
-uint32_t night_time_min;
-
 // Initialize rtc
 void init_rtc();
 
