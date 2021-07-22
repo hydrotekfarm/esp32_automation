@@ -5,11 +5,8 @@
 #include <esp_event.h>
 #include <esp_wifi.h>
 #include <string.h>
-<<<<<<< HEAD
 #include <driver/gpio.h>
-=======
 #include "ports.h"
->>>>>>> origin/ph_ec_libupdate
 
 #include "ports.h"
 #include "network_settings.h"
