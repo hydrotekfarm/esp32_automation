@@ -24,24 +24,24 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 	for (;;) {
 		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
-			ESP_LOGE(TAG, "EC Wet Calibration Started");
+			ESP_LOGI(TAG, "EC Wet Calibration Started");
             calibrate_sensor(&ec_sensor, &calibrate_ec, &dev);
             sensor_set_calib_status(&ec_sensor, false);
-            if (!is_grow_active) {
-                ESP_LOGE(TAG, "EC task Suspended");
+            if (!get_is_grow_active()) {
+                ESP_LOGI(TAG, "EC task Suspended");
                 vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
             }
-            ESP_LOGE(TAG, "EC Wet Calibration Completed");
+            ESP_LOGI(TAG, "EC Wet Calibration Completed");
 
 		} if(dry_calib) {
-			ESP_LOGE(TAG, "EC Dry Calibration Started");
+			ESP_LOGI(TAG, "EC Dry Calibration Started");
             calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &dev);
             dry_calib = false;
-            if (!is_grow_active) {
-                ESP_LOGE(TAG, "EC task Suspended");
+            if (!get_is_grow_active()) {
+                ESP_LOGI(TAG, "EC task Suspended");
                 vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
             }
-            ESP_LOGE(TAG, "EC Dry Calibration Completed");
+            ESP_LOGI(TAG, "EC Dry Calibration Completed");
 
 		} else {		// EC sensor is Active
 			read_ec_with_temperature(&dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));

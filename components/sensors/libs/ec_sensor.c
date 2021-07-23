@@ -235,7 +235,7 @@ esp_err_t clear_calibration_ec(ec_sensor_t *dev) {
 esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *ec) {
 	//First check if temperature is in valid range// 
 	float temp = temperature;
-	if (temp < 10.0 || temp > 35) {
+	if (temp <= 10.0 || temp >= 35.0) {
 		//Set to Default value//
 		temp = 25.0;
 	}

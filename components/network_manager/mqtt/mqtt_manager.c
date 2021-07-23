@@ -413,21 +413,22 @@ void update_calibration(cJSON *data) {
         if (strcmp(obj->valuestring, "ph") == 0) {
             sensor_set_calib_status(&ph_sensor, true);
             ESP_LOGI(MQTT_TAG, "pH calibration received");
-            if (!is_grow_active) {
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(&water_temp_sensor));
                 vTaskResume(*sensor_get_task_handle(&ph_sensor));
-                ESP_LOGI(MQTT_TAG, "pH task resumed");
+                ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
             }
         } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
             sensor_set_calib_status(&ec_sensor, true);
             ESP_LOGI(MQTT_TAG, "ec wet calibration received");
-            if (!is_grow_active) {
+            if (!get_is_grow_active()) {
                 vTaskResume(*sensor_get_task_handle(&ec_sensor));
                 ESP_LOGI(MQTT_TAG, "ec task resumed");
             }
         } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
             dry_calib = true; 
             ESP_LOGI(MQTT_TAG, "ec dry calibration received");
-            if (!is_grow_active) {
+            if (!get_is_grow_active()) {
                 vTaskResume(*sensor_get_task_handle(&ec_sensor));
                 ESP_LOGI(MQTT_TAG, "ec task resumed");
             }

@@ -28,9 +28,10 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 			ESP_LOGE(TAG, "PH Calibration Started");
             calibrate_sensor(&ph_sensor, &calibrate_ph, &dev);
             sensor_set_calib_status(&ph_sensor, false); // Disable calibration mode, activate pH sensor and revert task back to regular priority
-            if (!is_grow_active) {
+            if (!get_is_grow_active()) {
+				vTaskSuspend(*sensor_get_task_handle(&water_temp_sensor));
                 vTaskSuspend(*sensor_get_task_handle(&ph_sensor));
-                ESP_LOGE(TAG, "PH task suspended");
+                ESP_LOGE(TAG, "PH and Water Temp task suspended");
             }
             ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {

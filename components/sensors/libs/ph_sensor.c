@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "water_temp_reading.h"
+#include "grow_manager.h"
 
 
 /* MACRO for checkng argument paramters */
@@ -68,11 +69,29 @@ esp_err_t hibernate_ph(ph_sensor_t *dev) {
 esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	uint8_t count = 0;
 
+	float water_temp = sensor_get_value(get_water_temp_sensor());
+    //Try to get a valid water temp reading for temp compensation//
+    while (water_temp <= 10.0 || water_temp >= 35.0) {
+        if (count == 5) {
+            ESP_LOGE(TAG, "Unable to get consistent water temp.");
+            return ESP_FAIL; 
+        }
+		//Wait to get more water temp readings//
+        vTaskDelay(pdMS_TO_TICKS(5000)); 
+        water_temp = sensor_get_value(get_water_temp_sensor());
+        count++; 
+    }
+	//No need for water temp task at this point if grow cycle is off // 
+    if (!get_is_grow_active()) {
+        vTaskSuspend(sensor_get_task_handle(&water_temp_sensor));
+    }
+
 	float ph = 0;
 	float ph_min = 0;
 	float ph_max = 0;
 
 	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
+	count = 0; 
 	while(count < STABILIZATION_COUNT_MAX){
 		esp_err_t err = read_ph_with_temperature(dev, sensor_get_value(get_water_temp_sensor()), &ph);	// read ph with temperature
 		ESP_LOGI(TAG, "ph: %f", ph);
@@ -219,7 +238,7 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
 	//Check if temperature is in valid range
 	float temp = temperature;
-	if (temp < 10.0 || temp > 35) {
+	if (temp <= 10.0 || temp >= 35.0) {
 		//Set to Default value//
 		temp = 25.0;
 	}
