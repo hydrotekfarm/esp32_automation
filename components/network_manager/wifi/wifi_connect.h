@@ -18,3 +18,6 @@ EventGroupHandle_t wifi_event_group;
 
 // Connect ESP32 to wifi
 bool connect_wifi();
+
+//Getter for is_wifi_connected//
+bool get_is_wifi_connected();

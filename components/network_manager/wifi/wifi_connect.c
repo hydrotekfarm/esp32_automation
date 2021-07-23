@@ -8,7 +8,6 @@
 #include <driver/gpio.h>
 #include "ports.h"
 
-#include "ports.h"
 #include "network_settings.h"
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -65,8 +64,6 @@ bool connect_wifi() {
 
 	// Return and log based on event bit
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
-		//Turn BLUE LED ON // 
-		gpio_set_level(BLUE_LED, 1);
 		ESP_LOGI(TAG,  "Connected");
 		is_wifi_connected = true;
 		return true;
@@ -76,7 +73,10 @@ bool connect_wifi() {
 	} else {
 		ESP_LOGE(TAG, "Unexpected Event");
 	}
-	gpio_set_level(BLUE_LED, 0);
 	is_wifi_connected = false;
 	return false;
+}
+
+bool get_is_wifi_connected() {
+	return is_wifi_connected; 
 }
