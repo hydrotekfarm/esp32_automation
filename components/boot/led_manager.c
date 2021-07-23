@@ -12,6 +12,7 @@ void wifi_led(void *args) {
             gpio_set_level(BLUE_LED, 1);
             vTaskDelay(pdMS_TO_TICKS(1000));
             gpio_set_level(BLUE_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
 }
