@@ -233,9 +233,14 @@ esp_err_t clear_calibration_ec(ec_sensor_t *dev) {
 }
 
 esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *ec) {
-	// Create Read with temperature command //
+	//First check if temperature is in valid range// 
+	float temp = temperature;
+	if (temp < 10.0 || temp > 35) {
+		//Set to Default value//
+		temp = 25.0;
+	}
 	//Round float temp to 2 decimal places first//
-	float nearest = roundf(temperature * 100) / 100;
+	float nearest = roundf(temp * 100) / 100;
 	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  

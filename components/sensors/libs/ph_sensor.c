@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "water_temp_reading.h"
 
 
 /* MACRO for checkng argument paramters */
@@ -73,7 +74,7 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 
 	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
 	while(count < STABILIZATION_COUNT_MAX){
-		esp_err_t err = read_ph_with_temperature(dev, temperature, &ph);	// read ph with temperature
+		esp_err_t err = read_ph_with_temperature(dev, sensor_get_value(get_water_temp_sensor()), &ph);	// read ph with temperature
 		ESP_LOGI(TAG, "ph: %f", ph);
 		if (err == ESP_OK) {	// Proceed if ph sensor responds with success code
 			if(count == 0) {	// If first reading, then calculate stabilization range
@@ -216,10 +217,14 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 }
 
 esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
-
-	// Create Read with temperature command //
+	//Check if temperature is in valid range
+	float temp = temperature;
+	if (temp < 10.0 || temp > 35) {
+		//Set to Default value//
+		temp = 25.0;
+	}
 	//Round float temp to 2 decimal places first//
-	float nearest = roundf(temperature * 100) / 100;
+	float nearest = roundf(temp * 100) / 100;
 	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
