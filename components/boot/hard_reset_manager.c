@@ -54,7 +54,6 @@ void hard_reset(void *args) {
         //Keep checking if button is pressed at lest 10 seconds then perform reset tasks//
         while (gpio_get_level(HARD_RESET_GPIO) == 0) {
             unsigned long curr_time = get_current_time();
-            ESP_LOGI(HARD_RESET_TAG, "%ld", curr_time);
             if ((curr_time - start >= 10)) {
                 ESP_LOGI(HARD_RESET_TAG, "Hard Rest Initiated.");
                 nvs_clear();
