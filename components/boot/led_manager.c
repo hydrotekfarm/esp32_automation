@@ -3,6 +3,7 @@
 #include "wifi_connect.h"
 
 void wifi_led(void *args) {
+    gpio_set_direction(BLUE_LED, GPIO_MODE_OUTPUT);
     for (;;) {
         if (get_is_wifi_connected()) {
             gpio_set_level(BLUE_LED, 1);

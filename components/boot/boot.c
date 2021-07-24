@@ -35,7 +35,11 @@
 
 void boot_sequence() {
 	//Turn on Green led when esp32 boots up
-	gpio_set_level(GREEN_LED, 1);
+	gpio_set_direction(GREEN_LED, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_NUM_26, 1);
+
+	//Start Wifi led task
+	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 
 	// Start as grow cycle inactive by default
 	is_grow_active = false;
@@ -46,9 +50,10 @@ void boot_sequence() {
 	// Initialize deep sleep
 	init_power_button();
 
-	// Initialize hard reset
+	// Initialize hard reset and start hard reset task
 	init_reset_semaphore();
 	init_hard_reset_button();
+	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
 
 	// Init connections
 	tcpip_adapter_init();
@@ -87,8 +92,6 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
 	xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
-	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
-	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 
 	// Create core 1 tasks
 	xTaskCreatePinnedToCore(measure_water_temperature, "temperature_task", 2500, NULL, WATER_TEMPERATURE_TASK_PRIORITY, sensor_get_task_handle(get_water_temp_sensor()), 1);
