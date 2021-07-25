@@ -2,7 +2,6 @@
 #include "grow_manager.h"
 #include <esp_log.h>
 #include "string.h"
-#include "ec_sensor.h"
 #include "sync_sensors.h"
 #include "task_priorities.h"
 #include "ports.h"
@@ -10,13 +9,14 @@
 
 struct sensor* get_ec_sensor() { return &ec_sensor; }
 
+ec_sensor_t* get_ec_dev() {return &dev; }
+
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
 	init_sensor(&ec_sensor, "ec", true, false);
 	dry_calib = false;
 
-	ec_sensor_t dev;
 	memset(&dev, 0, sizeof(ec_sensor_t));
 	ESP_ERROR_CHECK(ec_init(&dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
 

@@ -2,7 +2,6 @@
 #include "grow_manager.h"
 #include <esp_log.h>
 #include <string.h>
-#include "ph_sensor.h"
 #include "sync_sensors.h"
 #include "task_priorities.h"
 #include "ports.h"
@@ -10,12 +9,13 @@
 
 struct sensor* get_ph_sensor() { return &ph_sensor; }
 
+ph_sensor_t* get_ph_dev() { return &dev; }
+
 void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 	const char *TAG = "PH_Task";
 
 	init_sensor(&ph_sensor, "ph", true, false);
 
-	ph_sensor_t dev;
 	memset(&dev, 0, sizeof(ph_sensor_t));
 
 	ESP_ERROR_CHECK(ph_init(&dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication

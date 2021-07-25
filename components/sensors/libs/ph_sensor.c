@@ -300,7 +300,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
-	ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
+	//ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
 
 	//Commands to check for new ph data//
 	char new_reading_reg = 0x07; 

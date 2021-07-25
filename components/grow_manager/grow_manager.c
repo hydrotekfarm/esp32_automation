@@ -7,6 +7,8 @@
 
 #include "nvs_manager.h"
 #include "nvs_namespace_keys.h"
+#include "ph_sensor.h"
+#include "ec_sensor.h"
 #include "ec_reading.h"
 #include "ph_reading.h"
 #include "water_temp_reading.h"
@@ -110,6 +112,13 @@ void stop_grow_cycle() {
 	push_grow_status();
 
 	ESP_LOGI(GROW_MANAGER_TAG, "Stopped Grow Cycle");
+	//Put ph and ec sensor to hibernate mode if active before //
+	if (sensor_get_active_status(get_ph_sensor())) {
+		hibernate_ph(get_ph_dev());
+	}
+	if (sensor_get_active_status(get_ec_sensor())) {
+		hibernate_ec(get_ec_dev());
+	}
 	suspend_tasks();
 }
 
