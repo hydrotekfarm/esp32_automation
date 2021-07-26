@@ -11,6 +11,10 @@ struct sensor* get_ec_sensor() { return &ec_sensor; }
 
 ec_sensor_t* get_ec_dev() {return &dev; }
 
+bool get_is_ec_activated() {return is_ec_activated; }
+
+void set_is_ec_activated(bool is_active) {is_ec_activated = is_active;}
+
 void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
@@ -20,7 +24,11 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 	memset(&dev, 0, sizeof(ec_sensor_t));
 	ESP_ERROR_CHECK(ec_init(&dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
 
+	is_ec_activated = false;
+
 	ESP_ERROR_CHECK(activate_ec(&dev));
+
+	is_ec_activated = true; 
 
 	for (;;) {
 		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
@@ -44,6 +52,10 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
             ESP_LOGI(TAG, "EC Dry Calibration Completed");
 
 		} else {		// EC sensor is Active
+			if (!get_is_ec_activated()) {
+				ESP_ERROR_CHECK(activate_ec(&dev));
+				is_ec_activated = true;
+			}
 			read_ec_with_temperature(&dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));
 			ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));
 

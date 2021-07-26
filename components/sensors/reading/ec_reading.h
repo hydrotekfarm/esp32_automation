@@ -10,6 +10,15 @@ ec_sensor_t dev;
 
 bool dry_calib;
 
+//variable to check if ec sensor is activated
+bool is_ec_activated;
+
+//get status of is_activated
+bool get_is_ec_activated();
+
+//set is_activated variable
+void set_is_ec_activated(bool is_active);
+
 // Get sensor object
 struct sensor* get_ec_sensor();
 

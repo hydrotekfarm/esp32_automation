@@ -8,6 +8,15 @@ struct sensor ph_sensor;
 
 ph_sensor_t dev;
 
+//variable to check if ph sensor is activated
+bool is_ph_activated;
+
+//get status of is_activated
+bool get_is_ph_activated();
+
+//set is_activated variable
+void set_is_ph_activated(bool is_active);
+
 // Get ph sensor
 struct sensor* get_ph_sensor();
 
