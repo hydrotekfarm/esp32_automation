@@ -21,6 +21,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 		ip_event_got_ip_t *event = (ip_event_got_ip_t*) event_data;
 		ESP_LOGI(TAG, "got IP:%s", ip4addr_ntoa(&event->ip_info.ip));
 		retryNumber = 0;
+		is_wifi_connected = true; 
 		xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
 		ESP_ERROR_CHECK(esp_wifi_connect());
@@ -32,6 +33,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 			esp_wifi_connect();
 			retryNumber++;
 		} else {
+			is_wifi_connected = false;
 			xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
 		}
 		ESP_LOGI(TAG, "WIFI Connection Failed; Reconnecting....\n");
@@ -41,6 +43,8 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 bool connect_wifi() {
 	const char *TAG = "WIFI";
 	ESP_LOGI(TAG, "Starting connect");
+
+	is_wifi_connected = false; 
 
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	wifi_event_group = xEventGroupCreate();
