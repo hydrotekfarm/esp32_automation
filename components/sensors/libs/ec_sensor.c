@@ -269,7 +269,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		// if temp is not updated after 3 readings then return //
 		if (count == 3) {
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
-			return ESP_FAIL; 
+			break;  
 		} 
 		// Get each byte from temperature confirmation register and place in bytes array// 
 		msb_reg = 0x14; 
@@ -297,7 +297,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
-	ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
+	//ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
 
 	//Commands to check for new ec data//
 	char new_reading_reg = 0x07; 
@@ -306,7 +306,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 	// Keep checking unitl new ec data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 
@@ -361,7 +361,7 @@ esp_err_t read_ec(ec_sensor_t *dev, float *ec) {
 	// Keep checking unitl new ec data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 

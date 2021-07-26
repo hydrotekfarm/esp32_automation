@@ -73,8 +73,9 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
     //Try to get a valid water temp reading for temp compensation//
     while (water_temp <= 10.0 || water_temp >= 35.0) {
         if (count == 5) {
-            ESP_LOGE(TAG, "Unable to get consistent water temp.");
-            return ESP_FAIL; 
+            ESP_LOGE(TAG, "Unable to get consistent water temp using default 25.");
+            water_temp = 25.0;
+			break; 
         }
 		//Wait to get more water temp readings//
         vTaskDelay(pdMS_TO_TICKS(5000)); 
@@ -93,7 +94,7 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
 	count = 0; 
 	while(count < STABILIZATION_COUNT_MAX){
-		esp_err_t err = read_ph_with_temperature(dev, sensor_get_value(get_water_temp_sensor()), &ph);	// read ph with temperature
+		esp_err_t err = read_ph_with_temperature(dev, water_temp, &ph);	// read ph with temperature
 		ESP_LOGI(TAG, "ph: %f", ph);
 		if (err == ESP_OK) {	// Proceed if ph sensor responds with success code
 			if(count == 0) {	// If first reading, then calculate stabilization range
@@ -272,7 +273,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 		// if temp is not updated after 3 readings then return //
 		if (count == 3) {
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
-			return ESP_FAIL; 
+			break; 
 		} 
 		// Get each byte from temperature confirmation register and place in bytes array// 
 		msb_reg = 0x12; 
@@ -309,7 +310,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	// Keep checking unitl new ph data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ph reading.");
 			return ESP_FAIL; 
 		} 
@@ -364,7 +365,7 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	// Keep checking unitl new ph data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ph reading.");
 			return ESP_FAIL; 
 		} 
