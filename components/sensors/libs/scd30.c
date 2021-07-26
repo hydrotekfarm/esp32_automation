@@ -48,7 +48,7 @@
 
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
 
-#define I2C_FREQ_HZ 100000 // 100kHz
+#define I2C_FREQ_HZ 30000 // 100kHz
 
 static const char *TAG = "scd30 sensor";
 

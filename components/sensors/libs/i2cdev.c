@@ -228,7 +228,7 @@ esp_err_t i2c_dev_write(const i2c_dev_t *dev, const void *out_reg, size_t out_re
 
         res = i2c_master_cmd_begin(dev->port, cmd, CONFIG_I2CDEV_TIMEOUT / portTICK_RATE_MS);
         if (res != ESP_OK)
-            ESP_LOGE(TAG, "Could not write to device [0x%02x at %d]: %d", dev->addr, dev->port, res);
+            ESP_LOGE(TAG, "Could not (1) write to device [0x%02x at %d]: %d", dev->addr, dev->port, res);
         i2c_cmd_link_delete(cmd);
     }
 
