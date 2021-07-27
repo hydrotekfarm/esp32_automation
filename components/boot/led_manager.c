@@ -1,8 +1,13 @@
 #include "led_manager.h"
 #include "ports.h"
 #include "wifi_connect.h"
+#include <stdbool.h>
+#include <esp_log.h>
 
 void wifi_led(void *args) {
+    //Turn on Green led when esp32 boots up
+	gpio_set_direction(GREEN_LED, GPIO_MODE_OUTPUT);
+	gpio_set_level(GREEN_LED, 1);
     gpio_set_direction(BLUE_LED, GPIO_MODE_OUTPUT);
     for (;;) {
         if (get_is_wifi_connected()) {

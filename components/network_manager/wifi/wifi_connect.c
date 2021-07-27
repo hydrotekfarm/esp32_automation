@@ -15,7 +15,6 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 	const char *TAG = "Event_Handler";
 	ESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n",
 			event_base, event_id);
-
 	// Check Event Type
 	if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
 		ip_event_got_ip_t *event = (ip_event_got_ip_t*) event_data;
@@ -33,9 +32,9 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 			esp_wifi_connect();
 			retryNumber++;
 		} else {
-			is_wifi_connected = false;
 			xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
 		}
+		is_wifi_connected = false;
 		ESP_LOGI(TAG, "WIFI Connection Failed; Reconnecting....\n");
 	}
 }

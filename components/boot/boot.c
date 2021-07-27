@@ -34,9 +34,6 @@
 #include "led_manager.h"
 
 void boot_sequence() {
-	//Turn on Green led when esp32 boots up
-	gpio_set_direction(GREEN_LED, GPIO_MODE_OUTPUT);
-	gpio_set_level(GREEN_LED, 1);
 
 	//Start Wifi led task
 	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
