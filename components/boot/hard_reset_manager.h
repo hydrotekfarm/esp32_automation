@@ -14,7 +14,7 @@ struct timeval current_time;
 //function to create semaphore// 
 esp_err_t init_reset_semaphore();
 //deferred task to complete hard reset//
-void hard_reset_task(void *args);
+void hard_reset(void *args);
 //init hard reset GPIO// 
 void init_hard_reset_button();
 //function to restart esp32
