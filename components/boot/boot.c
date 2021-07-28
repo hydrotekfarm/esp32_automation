@@ -32,7 +32,7 @@
 
 void boot_sequence() {
 	//Start Wifi led task
-	//xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
+	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 
 	// Start as grow cycle inactive by default
 	is_grow_active = false;
@@ -46,14 +46,14 @@ void boot_sequence() {
 	// Initialize hard reset and start hard reset task
 	init_reset_semaphore();
 	init_hard_reset_button();
-	//xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
+	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
 
 	// Init WiFi Stack
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	// Init network properties
-	//init_network_connections();
+	init_network_connections();
 
 	sensor_event_group = xEventGroupCreate();
 
@@ -64,18 +64,18 @@ void boot_sequence() {
 	set_sensor_sync_bits();
 
 	// Init time rtc
-	//init_sntp();
-	//init_rtc();
+	init_sntp();
+	init_rtc();
 	// Init sensor control
-	//init_control();
+	init_control();
 
 	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
-	//xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
-	//xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-	//xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
-	//xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
+	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
+	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
+	xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
 	xTaskCreatePinnedToCore(measure_scd30, "scd30_task", 2500, NULL, SCD30_TASK_PRIORITY, sensor_get_task_handle(get_temperature_sensor()), 1); //temperature sensor is used for scd 30 task handle 
