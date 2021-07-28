@@ -18,10 +18,10 @@ void check_temperature() {
                 is_temperature_control_on = true;
             } else if(!is_temperature_control_on && result == 1) {
                 decrease_temperature();
-                 is_temperature_control_on = true;
+                is_temperature_control_on = true;
              } else if(is_temperature_control_on && result == 0) {
-                 stop_temperature_adjustment();
-                 is_temperature_control_on = false;
+                stop_temperature_adjustment();
+                is_temperature_control_on = false;
              }
     }
 

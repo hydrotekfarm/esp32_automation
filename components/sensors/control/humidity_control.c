@@ -17,7 +17,7 @@ void check_humidity() {
                 increase_humidity();
                 is_humidity_control_on = true;
              } else if(!is_humidity_control_on && result == 1) {
-                 decrease_humidity();
+                decrease_humidity();
                 is_humidity_control_on = true;
             } else if(is_humidity_control_on && result == 0) {
                 stop_humidity_adjustment();
