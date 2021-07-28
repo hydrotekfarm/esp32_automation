@@ -40,7 +40,7 @@ void measure_scd30(void *parameter) {     // SCD30 Sensor Measurement Task
                 scd30_read_measurement(&dev, &co2, &temp, &humidity);
                 ESP_LOGI(TAG, "CO2: %.2f", co2);
                 ESP_LOGI(TAG, "Temperature: %.2f", temp);
-                ESP_LOGI(TAG, "Humidity: %.2f", humidity);
+                ESP_LOGI(TAG, "Humidity: %.2f\n", humidity);
 
                 float *co2_val = sensor_get_address_value(&co2_sensor);
                 *co2_val = temp;

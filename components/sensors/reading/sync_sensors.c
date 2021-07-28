@@ -22,9 +22,9 @@ void sync_task(void *parameter) {				// Sensor Synchronization Task
 		returnBits = xEventGroupSync(sensor_event_group, DELAY_BIT, sensor_sync_bits, pdMS_TO_TICKS(MEASUREMENT_INTERVAL));
 		// Check Whether all tasks were completed on time
 		if ((returnBits & sensor_sync_bits) == sensor_sync_bits) {
-			ESP_LOGI(TAG, "Completed");
+			ESP_LOGI(TAG, "Completed\n");
 		} else {
-			ESP_LOGE(TAG, "Failed to Complete On Time");
+			ESP_LOGE(TAG, "Failed to Complete On Time\n");
 		}
 	}
 }
