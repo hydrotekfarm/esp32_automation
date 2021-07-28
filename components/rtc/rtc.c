@@ -185,7 +185,6 @@ void init_lights() {
 		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_OFF_HR_KEY, &off_hr) ||
 		!nvs_get_uint8(GROW_LIGHT_NVS_NAMESPACE, LIGHTS_OFF_MIN_KEY, &off_min)) {
 		ESP_LOGE("GROW_LIGHTS", "Unable to get Grow Lights settings from NVS");
-		day();
 		return;
 	}
 
