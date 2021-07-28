@@ -57,10 +57,8 @@ void measure_scd30(void *parameter) {     // SCD30 Sensor Measurement Task
         } else {
                // ESP_LOGE(TAG, "Not OK!!");
         }
-
-        // Sync with other sensor tasks
-        // Wait up to 10 seconds to let other tasks end
-        xEventGroupSync(sensor_event_group, SCD_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+        // Set SCD BIT
+        xEventGroupSetBits(sensor_event_group, SCD_BIT);
     }
 
 }

@@ -310,32 +310,24 @@ void publish_equipment_status() {
 void update_settings(char *settings) {
 	cJSON *root = cJSON_Parse(settings);
 	char* string = cJSON_Print(root);
-	ESP_LOGI(MQTT_TAG, "datavalue: %s\n", string);
+	ESP_LOGI(MQTT_TAG, "datavalue:\n %s\n", string);
 	cJSON *object_settings = root->child;
-	string = cJSON_Print(object_settings);
-	ESP_LOGI(MQTT_TAG, "object: %s\n", string);
-//	string = cJSON_Print(arr->child);
-//	ESP_LOGI(MQTT_TAG, "child: %s\n", string);
-//	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-	//	cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
-		char *data_topic = object_settings->string;
-		string = cJSON_Print(object_settings->child);
-		ESP_LOGI(MQTT_TAG, "subitem: %s\n", string);
+	
+	char *data_topic = object_settings->string;
+	ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 
-		ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
-		if(strcmp("co2", data_topic) == 0) {
+	if(strcmp("co2", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "co2 data received");
 			co2_update_settings(object_settings);
-		}else if(strcmp("air_temp", data_topic) == 0) {
+	} else if(strcmp("air_temp", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "temperature data received");
 			temperature_update_settings(object_settings);
-		} else if(strcmp("humidity", data_topic) == 0) {
+	} else if(strcmp("humidity", data_topic) == 0) {
 			ESP_LOGI(MQTT_TAG, "humidity data received");
 			humidity_update_settings(object_settings);
-		} else {
+	} else {
 			ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
-		}
-	//}
+	}
 	cJSON_Delete(root);
 
 	ESP_LOGI(MQTT_TAG, "Settings updated");

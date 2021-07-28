@@ -26,14 +26,27 @@
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
 #include "grow_manager.h"
+#include "hard_reset_manager.h"
+#include "hard_reset_manager.c"
+#include "led_manager.h"
 
 void boot_sequence() {
+	//Start Wifi led task
+	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
+
+	// Start as grow cycle inactive by default
+	is_grow_active = false;
+
 	// Init nvs
 	init_nvs();
 
-	//nvs_clear();
 	// Initialize deep sleep
 	init_power_button();
+
+	// Initialize hard reset and start hard reset task
+	init_reset_semaphore();
+	init_hard_reset_button();
+	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
 
 	// Init WiFi Stack
 	tcpip_adapter_init();
