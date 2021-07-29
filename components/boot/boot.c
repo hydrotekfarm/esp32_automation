@@ -74,10 +74,10 @@ void boot_sequence() {
 	init_rtc();
 
 	// Start Irrigation control
-	init_irrigation();
+	//init_irrigation();
 	
 	// Start Grow Light Control
-	init_lights();
+	//init_lights();
 
 	// Init sensor control
 	init_control();
