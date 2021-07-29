@@ -16,10 +16,10 @@
 
 /* MACRO for checkng argument paramters */
 #define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
-/* I2C Protocol Speed Paramter (10-100 kHz for OEM Device) */
+/* I2C Protocol Speed Parameter (10-100 kHz for OEM Device) */
 #define I2C_FREQ_HZ 10000
 /* MACRO for calibration function*/
-#define STABILIZATION_ACCURACY 0.002
+#define STABILIZATION_ACCURACY 0.4
 /* MACRO for calibration function */
 #define STABILIZATION_COUNT_MAX 10
 /* Debugging Tag for PH sensor */
@@ -41,6 +41,17 @@ esp_err_t ph_init(ph_sensor_t *dev, i2c_port_t port, uint8_t addr, int8_t sda_gp
     dev->cfg.master.clk_speed = I2C_FREQ_HZ;
 
     return i2c_dev_create_mutex(dev);
+}
+
+esp_err_t get_firmware_ph(ph_sensor_t *dev) { 
+    char data = 0x00; 
+    char reg = 0x01; 
+    I2C_DEV_TAKE_MUTEX(dev);
+    I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &reg, sizeof(reg)));
+    I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &data, sizeof(data)));
+    I2C_DEV_GIVE_MUTEX(dev);
+    printf("PH Firmware Version: %d\n", data);
+    return ESP_OK; 
 }
 
 esp_err_t activate_ph(ph_sensor_t *dev) {
@@ -99,13 +110,13 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	unsigned char high_byte = 0x00; 
 	unsigned char low_byte = 0x00; 
 	unsigned char lsb = 0x00; 
-	if(ph >= 2.5 && ph < 5.5) {
+	if(false) {
 		//4.0 solution // 
 		low_byte = 0x0F; 
 		lsb = 0xA0;
 		calib_point = 2; 
 		ESP_LOGI(TAG, "4.0 solution identified");
-	} else if (ph >= 5.5 && ph <= 8.5) {
+	} else if (true) {
 		//7.0 solution //
 		low_byte = 0x1B; 
 		lsb = 0x58;  
