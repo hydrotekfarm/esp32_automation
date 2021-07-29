@@ -112,6 +112,7 @@ void stop_grow_cycle() {
 	push_grow_status();
 
 	ESP_LOGI(GROW_MANAGER_TAG, "Stopped Grow Cycle");
+	suspend_tasks();
 	//Put ph and ec sensor to hibernate mode if active before to consume less power //
 	if (get_is_ph_activated()) {
 		hibernate_ph(get_ph_dev());
@@ -121,7 +122,6 @@ void stop_grow_cycle() {
 		hibernate_ec(get_ec_dev());
 		set_is_ec_activated(false);
 	}
-	suspend_tasks();
 }
 
 void settings_received() {

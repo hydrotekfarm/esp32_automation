@@ -6,7 +6,7 @@
 
 struct sensor ph_sensor;
 
-ph_sensor_t dev;
+ph_sensor_t ph_dev;
 
 //variable to check if ph sensor is activated
 bool is_ph_activated;

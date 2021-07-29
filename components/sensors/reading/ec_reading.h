@@ -6,7 +6,7 @@
 
 struct sensor ec_sensor;
 
-ec_sensor_t dev;
+ec_sensor_t ec_dev;
 
 bool dry_calib;
 
