@@ -63,6 +63,7 @@ esp_err_t hibernate_ph(ph_sensor_t *dev) {
     I2C_DEV_TAKE_MUTEX(dev);
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &reg, sizeof(reg), &data, sizeof(data)));
     I2C_DEV_GIVE_MUTEX(dev);
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	return ESP_OK; 
 }
 

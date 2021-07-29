@@ -61,6 +61,7 @@ esp_err_t hibernate_ec(ec_sensor_t *dev) {
     I2C_DEV_TAKE_MUTEX(dev);
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &reg, sizeof(reg), &data, sizeof(data)));
     I2C_DEV_GIVE_MUTEX(dev);
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	return ESP_OK; 
 }
 
@@ -286,7 +287,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &low_reg, sizeof(low_reg)));
 		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &low_byte, sizeof(low_byte)));
 		bytes[2] = low_byte;  
-		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
 		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb, sizeof(lsb)));
 		bytes[3] = lsb; 
     	I2C_DEV_GIVE_MUTEX(dev);
