@@ -85,7 +85,7 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
     }
 	//No need for water temp task at this point if grow cycle is off // 
     if (!get_is_grow_active()) {
-        vTaskSuspend(sensor_get_task_handle(&water_temp_sensor));
+        vTaskSuspend(*sensor_get_task_handle(get_water_temp_sensor()));
     }
 
 	float ph = 0;
