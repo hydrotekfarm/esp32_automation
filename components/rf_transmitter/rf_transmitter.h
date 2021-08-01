@@ -51,7 +51,7 @@ TaskHandle_t rf_transmitter_task_handle;
 QueueHandle_t rf_transmitter_queue;
 
 // Initialize rf bits
-void init_rf();
+void init_rf_protocol();
 
 // Send rf message
 esp_err_t control_power_outlet(int power_outlet_id, bool state);

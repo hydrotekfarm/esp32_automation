@@ -75,6 +75,8 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
  */
 esp_err_t read_ph(ph_sensor_t *dev, float *ph);
 
+esp_err_t get_firmware_ph(ph_sensor_t *dev);
+
 #ifdef __cplusplus
 }
 #endif

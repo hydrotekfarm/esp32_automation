@@ -6,7 +6,7 @@
 #define HARD_RESET_GPIO             33
 #define RF_TRANSMITTER_GPIO 		4
 #define FLOAT_SWITCH_BOTTOM_GPIO	13
-#define TEMPERATURE_SENSOR_GPIO 	17
+#define TEMPERATURE_SENSOR_GPIO 	14
 #define INTA_GPIO 					19
 #define SDA_GPIO 					21
 #define SCL_GPIO 					22
