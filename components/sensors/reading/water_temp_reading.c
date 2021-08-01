@@ -16,6 +16,9 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 
 	ds18x20_addr_t ds18b20_address[1];
 
+	gpio_config_t temperature_gpio_config = { (BIT(TEMPERATURE_SENSOR_GPIO)), GPIO_MODE_OUTPUT };
+    gpio_config(&temperature_gpio_config);
+
 	// Scan and setup sensor
 	uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO,
 			ds18b20_address, 1);
