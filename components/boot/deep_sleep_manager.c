@@ -83,10 +83,3 @@ void init_power_button() {
 		ESP_LOGI(DEEP_SLEEP_TAG, "Not a deep sleep reset");
 	}
 }
-
-void hard_reset_button() {
-   nvs_clear();
-   esp_restart();
-   //10 sec then restart// 
-
-}

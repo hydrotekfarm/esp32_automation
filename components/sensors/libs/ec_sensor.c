@@ -61,6 +61,7 @@ esp_err_t hibernate_ec(ec_sensor_t *dev) {
     I2C_DEV_TAKE_MUTEX(dev);
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &reg, sizeof(reg), &data, sizeof(data)));
     I2C_DEV_GIVE_MUTEX(dev);
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	return ESP_OK; 
 }
 
@@ -233,9 +234,14 @@ esp_err_t clear_calibration_ec(ec_sensor_t *dev) {
 }
 
 esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *ec) {
-	// Create Read with temperature command //
+	//First check if temperature is in valid range// 
+	float temp = temperature;
+	if (temp <= 10.0 || temp >= 35.0) {
+		//Set to Default value//
+		temp = 25.0;
+	}
 	//Round float temp to 2 decimal places first//
-	float nearest = roundf(temperature * 100) / 100;
+	float nearest = roundf(temp * 100) / 100;
 	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
@@ -264,7 +270,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		// if temp is not updated after 3 readings then return //
 		if (count == 3) {
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
-			return ESP_FAIL; 
+			break;  
 		} 
 		// Get each byte from temperature confirmation register and place in bytes array// 
 		msb_reg = 0x14; 
@@ -281,7 +287,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &low_reg, sizeof(low_reg)));
 		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &low_byte, sizeof(low_byte)));
 		bytes[2] = low_byte;  
-		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
+		I2C_DEV_CHECK(dev, i2c_dev_write(dev, NULL, 0, &lsb_reg, sizeof(lsb_reg)));
 		I2C_DEV_CHECK(dev, i2c_dev_read(dev, NULL, 0, &lsb, sizeof(lsb)));
 		bytes[3] = lsb; 
     	I2C_DEV_GIVE_MUTEX(dev);
@@ -292,7 +298,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
-	ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
+	//ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
 
 	//Commands to check for new ec data//
 	char new_reading_reg = 0x07; 
@@ -301,7 +307,7 @@ esp_err_t read_ec_with_temperature(ec_sensor_t *dev, float temperature, float *e
 	// Keep checking unitl new ec data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 
@@ -356,7 +362,7 @@ esp_err_t read_ec(ec_sensor_t *dev, float *ec) {
 	// Keep checking unitl new ec data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ec reading.");
 			return ESP_FAIL; 
 		} 

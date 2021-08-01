@@ -8,7 +8,6 @@
 #include <driver/gpio.h>
 #include "ports.h"
 
-#include "ports.h"
 #include "network_settings.h"
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi Event Handler
@@ -16,12 +15,12 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 	const char *TAG = "Event_Handler";
 	ESP_LOGI(TAG, "Event dispatched from event loop base=%s, event_id=%d\n",
 			event_base, event_id);
-
 	// Check Event Type
 	if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
 		ip_event_got_ip_t *event = (ip_event_got_ip_t*) event_data;
 		ESP_LOGI(TAG, "got IP:%s", ip4addr_ntoa(&event->ip_info.ip));
 		retryNumber = 0;
+		is_wifi_connected = true; 
 		xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
 		ESP_ERROR_CHECK(esp_wifi_connect());
@@ -35,6 +34,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 		} else {
 			xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
 		}
+		is_wifi_connected = false;
 		ESP_LOGI(TAG, "WIFI Connection Failed; Reconnecting....\n");
 	}
 }
@@ -42,6 +42,8 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 bool connect_wifi() {
 	const char *TAG = "WIFI";
 	ESP_LOGI(TAG, "Starting connect");
+
+	is_wifi_connected = false; 
 
 	const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	wifi_event_group = xEventGroupCreate();
@@ -65,8 +67,6 @@ bool connect_wifi() {
 
 	// Return and log based on event bit
 	if ((sta_event_bits & WIFI_CONNECTED_BIT) != 0) {
-		//Turn BLUE LED ON // 
-		gpio_set_level(BLUE_LED, 1);
 		ESP_LOGI(TAG,  "Connected");
 		is_wifi_connected = true;
 		return true;
@@ -76,7 +76,10 @@ bool connect_wifi() {
 	} else {
 		ESP_LOGE(TAG, "Unexpected Event");
 	}
-	gpio_set_level(BLUE_LED, 0);
 	is_wifi_connected = false;
 	return false;
+}
+
+bool get_is_wifi_connected() {
+	return is_wifi_connected; 
 }

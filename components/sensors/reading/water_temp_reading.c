@@ -6,6 +6,7 @@
 #include "ds18x20.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include "ph_reading.h"
 
 struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
 
@@ -46,6 +47,11 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 
 		// Sync with other sensor tasks
 		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, WATER_TEMPERATURE_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+		if (!sensor_calib_status(get_ph_sensor())) {
+                xEventGroupSync(sensor_event_group, WATER_TEMPERATURE_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+        } else {
+			//If ph calibration on, get frequent water temp readings// 
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
 	}
 }

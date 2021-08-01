@@ -411,24 +411,25 @@ void update_calibration(cJSON *data) {
     ESP_LOGI(MQTT_TAG, "%s", data_string);
     if (strcmp(obj->string, "type") == 0) {
         if (strcmp(obj->valuestring, "ph") == 0) {
-            sensor_set_calib_status(&ph_sensor, true);
+            sensor_set_calib_status(get_ph_sensor(), true);
             ESP_LOGI(MQTT_TAG, "pH calibration received");
-            if (!is_grow_active) {
-                vTaskResume(*sensor_get_task_handle(&ph_sensor));
-                ESP_LOGI(MQTT_TAG, "pH task resumed");
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
+                vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
+                ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
             }
         } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
-            sensor_set_calib_status(&ec_sensor, true);
+            sensor_set_calib_status(get_ec_sensor(), true);
             ESP_LOGI(MQTT_TAG, "ec wet calibration received");
-            if (!is_grow_active) {
-                vTaskResume(*sensor_get_task_handle(&ec_sensor));
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
                 ESP_LOGI(MQTT_TAG, "ec task resumed");
             }
         } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
             dry_calib = true; 
             ESP_LOGI(MQTT_TAG, "ec dry calibration received");
-            if (!is_grow_active) {
-                vTaskResume(*sensor_get_task_handle(&ec_sensor));
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
                 ESP_LOGI(MQTT_TAG, "ec task resumed");
             }
         } else {

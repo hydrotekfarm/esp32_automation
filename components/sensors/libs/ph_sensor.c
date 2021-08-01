@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "water_temp_reading.h"
+#include "grow_manager.h"
 
 
 /* MACRO for checkng argument paramters */
@@ -72,19 +74,39 @@ esp_err_t hibernate_ph(ph_sensor_t *dev) {
     I2C_DEV_TAKE_MUTEX(dev);
     I2C_DEV_CHECK(dev, i2c_dev_write(dev, &reg, sizeof(reg), &data, sizeof(data)));
     I2C_DEV_GIVE_MUTEX(dev);
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	return ESP_OK; 
 }
 
 esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	uint8_t count = 0;
 
+	float water_temp = sensor_get_value(get_water_temp_sensor());
+    //Try to get a valid water temp reading for temp compensation//
+    while (water_temp <= 10.0 || water_temp >= 35.0) {
+        if (count == 5) {
+            ESP_LOGE(TAG, "Unable to get consistent water temp using default 25.");
+            water_temp = 25.0;
+			break; 
+        }
+		//Wait to get more water temp readings//
+        vTaskDelay(pdMS_TO_TICKS(5000)); 
+        water_temp = sensor_get_value(get_water_temp_sensor());
+        count++; 
+    }
+	//No need for water temp task at this point if grow cycle is off // 
+    if (!get_is_grow_active()) {
+        vTaskSuspend(*sensor_get_task_handle(get_water_temp_sensor()));
+    }
+
 	float ph = 0;
 	float ph_min = 0;
 	float ph_max = 0;
 
 	// Keep restarting until 10 consecutive ph values are within stabilization accuracy range
+	count = 0; 
 	while(count < STABILIZATION_COUNT_MAX){
-		esp_err_t err = read_ph_with_temperature(dev, temperature, &ph);	// read ph with temperature
+		esp_err_t err = read_ph_with_temperature(dev, water_temp, &ph);	// read ph with temperature
 		ESP_LOGI(TAG, "ph: %f", ph);
 		if (err == ESP_OK) {	// Proceed if ph sensor responds with success code
 			if(count == 0) {	// If first reading, then calculate stabilization range
@@ -227,10 +249,14 @@ esp_err_t clear_calibration_ph(ph_sensor_t *dev) {
 }
 
 esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *ph) {
-
-	// Create Read with temperature command //
+	//Check if temperature is in valid range
+	float temp = temperature;
+	if (temp <= 10.0 || temp >= 35.0) {
+		//Set to Default value//
+		temp = 25.0;
+	}
 	//Round float temp to 2 decimal places first//
-	float nearest = roundf(temperature * 100) / 100;
+	float nearest = roundf(temp * 100) / 100;
 	unsigned int temp_compensation = (unsigned int) (nearest * 100); 
 	// Get each byte using bitwise operations for temperature value //
 	unsigned char msb = (temp_compensation>>24) & 0xFF;  
@@ -259,7 +285,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 		// if temp is not updated after 3 readings then return //
 		if (count == 3) {
 			ESP_LOGE(TAG, "Unable to set temperature compensation point.");
-			return ESP_FAIL; 
+			break; 
 		} 
 		// Get each byte from temperature confirmation register and place in bytes array// 
 		msb_reg = 0x12; 
@@ -287,7 +313,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 
-	ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
+	//ESP_LOGI(TAG, "Temp Point Set: %.2f", check_temp);
 
 	//Commands to check for new ph data//
 	char new_reading_reg = 0x07; 
@@ -296,7 +322,7 @@ esp_err_t read_ph_with_temperature(ph_sensor_t *dev, float temperature, float *p
 	// Keep checking unitl new ph data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ph reading.");
 			return ESP_FAIL; 
 		} 
@@ -351,7 +377,7 @@ esp_err_t read_ph(ph_sensor_t *dev, float *ph) {
 	// Keep checking unitl new ph data availible //
 	while (new_reading == 0) {
 		// If no data available after 3 checks then return // 
-		if (count == 3) {
+		if (count == 5) {
 			ESP_LOGE(TAG, "Unable to get new ph reading.");
 			return ESP_FAIL; 
 		} 
