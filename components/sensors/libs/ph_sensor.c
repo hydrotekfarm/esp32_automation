@@ -19,7 +19,7 @@
 /* I2C Protocol Speed Parameter (10-100 kHz for OEM Device) */
 #define I2C_FREQ_HZ 10000
 /* MACRO for calibration function*/
-#define STABILIZATION_ACCURACY 0.4
+#define STABILIZATION_ACCURACY 0.002
 /* MACRO for calibration function */
 #define STABILIZATION_COUNT_MAX 10
 /* Debugging Tag for PH sensor */
@@ -110,13 +110,13 @@ esp_err_t calibrate_ph(ph_sensor_t *dev, float temperature){
 	unsigned char high_byte = 0x00; 
 	unsigned char low_byte = 0x00; 
 	unsigned char lsb = 0x00; 
-	if(false) {
+	 if(ph >= 2.5 && ph < 5.5) {
 		//4.0 solution // 
 		low_byte = 0x0F; 
 		lsb = 0xA0;
 		calib_point = 2; 
 		ESP_LOGI(TAG, "4.0 solution identified");
-	} else if (true) {
+	} else if (ph >= 5.5 && ph <= 8.5) {
 		//7.0 solution //
 		low_byte = 0x1B; 
 		lsb = 0x58;  

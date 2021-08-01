@@ -83,7 +83,7 @@ void resume_tasks() {
 
 	// Core 1
 	vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
-	// vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+	vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
 	vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
 	vTaskResume(sync_task_handle);
 }

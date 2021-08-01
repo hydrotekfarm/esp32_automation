@@ -21,6 +21,7 @@ bool is_water_temperature = false;
 void test_hardware() {
     printf("\n\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware");
+    gpio_set_direction(GREEN_LED, GPIO_MODE_OUTPUT);
     gpio_set_level(GREEN_LED, 1);
     
 	ESP_ERROR_CHECK(i2cdev_init()); // Init i2cdev
@@ -81,6 +82,9 @@ void init_ec() {
 
 void init_water_temperature() {
 	// Scan and setup sensor
+    gpio_config_t temperature_gpio_config = { GPIO_SEL_14, GPIO_MODE_OUTPUT };
+    gpio_config(&temperature_gpio_config);
+    
 	uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
 
 	sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
@@ -109,12 +113,14 @@ void test_ph() {
     printf("\n");
     ESP_LOGI("PH_TEST", "Testing pH Sensor");
     printf("-------------------------------------------------\n");
+    clear_calibration_ph(&ph_dev);
     for(int i = 0; i < 10; i++) {
         float ph_reading = 0;
         read_ph(&ph_dev, &ph_reading);
         ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
+        vTaskDelay(pdMS_TO_TICKS(1500));
     }
-    calibrate_ph(&ph_dev, 25);
+//    calibrate_ph(&ph_dev, 24);
 
     for(;;) {
         float ph_reading = 0;
