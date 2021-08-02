@@ -14,8 +14,8 @@ ds18x20_addr_t ds18b20_address[1];
 
 bool is_mcp23017 = false;
 bool is_rf = false;
-bool is_ph = false;
-bool is_ec = true;
+bool is_ph = true;
+bool is_ec = false;
 bool is_water_temperature = false;
    
 void test_hardware() {
@@ -55,7 +55,7 @@ void test_mcp23017() {
     set_gpio_on(EC_NUTRIENT_5_PUMP_GPIO);
     set_gpio_on(EC_NUTRIENT_6_PUMP_GPIO);
 
-    vTaskDelay(pdMS_TO_TICKS(5000));
+    vTaskDelay(pdMS_TO_TICKS(portMAX_DELAY));
 
     ESP_LOGI("MCP_23017_TEST", "Turning Pumps Off");
     set_gpio_off(PH_DOWN_PUMP_GPIO);
@@ -116,7 +116,7 @@ void test_ph() {
     clear_calibration_ph(&ph_dev);
     for(int i = 0; i < 10; i++) {
         float ph_reading = 0;
-        read_ph(&ph_dev, &ph_reading);
+        read_ph_with_temperature(&ph_dev, 25.00, &ph_reading);
         ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
         vTaskDelay(pdMS_TO_TICKS(1500));
     }

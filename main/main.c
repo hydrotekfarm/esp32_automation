@@ -6,5 +6,5 @@ void app_main(void) {	// Main Method
 	boot_sequence();
 
 	// Test all Hardware 
-	// test_hardware();
+	//test_hardware();
 }

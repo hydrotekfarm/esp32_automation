@@ -66,9 +66,9 @@ void push_grow_settings_status() {
 
 void suspend_tasks() {
 	// Core 0 tasks
-	vTaskSuspend(timer_alarm_task_handle);
-	vTaskSuspend(publish_task_handle);
-	vTaskSuspend(sensor_control_task_handle);
+	//vTaskSuspend(timer_alarm_task_handle);
+	//vTaskSuspend(publish_task_handle);
+	//vTaskSuspend(sensor_control_task_handle);
 
 	// Core 1
 	vTaskSuspend(*sensor_get_task_handle(get_water_temp_sensor()));
@@ -114,7 +114,7 @@ void stop_grow_cycle() {
 	ESP_LOGI(GROW_MANAGER_TAG, "Stopped Grow Cycle");
 	suspend_tasks();
 	//Put ph and ec sensor to hibernate mode if active before to consume less power //
-	vTaskDelay(pdMS_TO_TICKS(2000));
+	vTaskDelay(pdMS_TO_TICKS(4000));
 	if (get_is_ph_activated()) {
 		hibernate_ph(get_ph_dev());
 		set_is_ph_activated(false);
