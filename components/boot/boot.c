@@ -32,7 +32,7 @@
 
 void boot_sequence() {
 	//Start Wifi led task
-	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
+	//xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 
 	// Start as grow cycle inactive by default
 	is_grow_active = false;
@@ -46,7 +46,7 @@ void boot_sequence() {
 	// Initialize hard reset and start hard reset task
 	init_reset_semaphore();
 	init_hard_reset_button();
-	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
+	//xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
 
 	// Init WiFi Stack
 	tcpip_adapter_init();
