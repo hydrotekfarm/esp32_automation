@@ -6,6 +6,7 @@
 #include "ec_sensor.h"
 #include "ds18x20.h"
 #include "esp_log.h"
+#include "reservoir_control.h"
 
 ph_sensor_t ph_dev;
 ec_sensor_t ec_dev;
@@ -14,9 +15,10 @@ ds18x20_addr_t ds18b20_address[1];
 
 bool is_mcp23017 = false;
 bool is_rf = false;
-bool is_ph = true;
+bool is_ph = false;
 bool is_ec = false;
 bool is_water_temperature = false;
+bool is_float_switch = true; 
    
 void test_hardware() {
     printf("\n\n");
@@ -30,12 +32,14 @@ void test_hardware() {
     if(is_ph) init_ph();
     if(is_ec) init_ec();
     if(is_water_temperature) init_water_temperature();
+    if (is_float_switch) init_float_switch();
 
     if(is_mcp23017) test_mcp23017();
     if(is_rf) test_rf();
     if(is_ph) test_ph();
     if(is_ec) test_ec();
     if(is_water_temperature) test_water_temperature();
+    if (is_float_switch) test_float_switch();
 
     printf("\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware Complete");
@@ -66,6 +70,20 @@ void test_mcp23017() {
     set_gpio_off(EC_NUTRIENT_4_PUMP_GPIO);
     set_gpio_off(EC_NUTRIENT_5_PUMP_GPIO);
     set_gpio_off(EC_NUTRIENT_6_PUMP_GPIO);
+}
+
+void init_float_switch() {
+    // Float Switch Port Setup
+    water_in_rf_message.rf_address_ptr = water_in_address;
+	water_out_rf_message.rf_address_ptr = water_out_address;
+    xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, 10, &rf_transmitter_task_handle, 0);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
+
+	gpio_pad_select_gpio(FLOAT_SWITCH_BOTTOM_GPIO);
+	gpio_set_direction(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_MODE_INPUT);
 }
 
 void init_ph() {
@@ -156,5 +174,13 @@ void test_water_temperature() {
 			ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
 		}
 	}
+}
+
+
+void test_float_switch() {
+    reservoir_change_flag = true; 
+    ESP_LOGI("FLOAT SWITCH TEST", "Testing Float Switch");
+    check_water_level();
+    ESP_LOGI("FLOAT SWITCH TEST", "Done");
 }
 
