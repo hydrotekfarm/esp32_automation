@@ -7,6 +7,7 @@
 #include "ds18x20.h"
 #include "esp_log.h"
 #include "reservoir_control.h"
+#include "reservoir_control.c"
 
 ph_sensor_t ph_dev;
 ec_sensor_t ec_dev;
@@ -74,10 +75,10 @@ void test_mcp23017() {
 
 void init_float_switch() {
     // Float Switch Port Setup
-    water_in_rf_message.rf_address_ptr = water_in_address;
-	water_out_rf_message.rf_address_ptr = water_out_address;
-    xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, 10, &rf_transmitter_task_handle, 0);
-    vTaskDelay(pdMS_TO_TICKS(3000));
+    //water_in_rf_message.rf_address_ptr = water_in_address;
+	//water_out_rf_message.rf_address_ptr = water_out_address;
+    //xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, 10, &rf_transmitter_task_handle, 0);
+    //vTaskDelay(pdMS_TO_TICKS(3000));
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
 	gpio_pad_select_gpio(FLOAT_SWITCH_TOP_GPIO);
 	gpio_set_direction(FLOAT_SWITCH_TOP_GPIO, GPIO_MODE_INPUT);
@@ -180,7 +181,25 @@ void test_water_temperature() {
 void test_float_switch() {
     reservoir_change_flag = true; 
     ESP_LOGI("FLOAT SWITCH TEST", "Testing Float Switch");
-    check_water_level();
+    //check_water_level();
+    while (true) {
+        bool logic_level = gpio_get_level(FLOAT_SWITCH_TOP_GPIO); // Tank is empty when float switch reads 0 and vice versa
+        printf("Top Logic Level: %d\n", logic_level);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        logic_level = gpio_get_level(FLOAT_SWITCH_BOTTOM_GPIO);
+        printf("Bottom Logic Level: %d\n", logic_level);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+    float_switch_bottom_semaphore = xSemaphoreCreateBinary();
+	gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);	// Create interrupt that gets triggered on falling edge (1 -> 0)
+	gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
+    bool is_complete = xSemaphoreTake(float_switch_bottom_semaphore, portMAX_DELAY); // Wait until interrupt gets triggered
+    printf("Complete: %d\n", is_complete);
+    //Fill Up
+    float_switch_top_semaphore = xSemaphoreCreateBinary();
+	gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE); // Create interrupt that gets triggered on rising edge (0 -> 1)
+	gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL);
+    is_complete = xSemaphoreTake(float_switch_top_semaphore, portMAX_DELAY); // Wait until interrupt gets triggered
     ESP_LOGI("FLOAT SWITCH TEST", "Done");
 }
 
