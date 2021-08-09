@@ -26,12 +26,14 @@ struct alarm* get_reservoir_alarm() { return &reservoir_replacement_alarm; }
 
 // ISR handler for top float switch
 void IRAM_ATTR top_float_switch_isr_handler(void* arg) {
+	ets_printf("Top Triggered!\n");
 	gpio_isr_handler_remove(FLOAT_SWITCH_TOP_GPIO); // Remove ISR handler of top float switch in order to prevent multiple interrupts due to switch bounce
 	xSemaphoreGiveFromISR(float_switch_top_semaphore, NULL); // Signal that interrupt occurred
 }
 
 // ISR handler for bottom float switch
 void IRAM_ATTR bottom_float_switch_isr_handler(void* arg) {
+	ets_printf("Bottom Triggered!\n");
 	gpio_isr_handler_remove(FLOAT_SWITCH_BOTTOM_GPIO); // Remove ISR handler of bottom float switch in order to prevent multiple interrupts due to switch bounce
 	xSemaphoreGiveFromISR(float_switch_bottom_semaphore, NULL); // Signal that interrupt occurred
 }
