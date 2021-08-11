@@ -182,7 +182,7 @@ void test_float_switch() {
     reservoir_change_flag = true; 
     ESP_LOGI("FLOAT SWITCH TEST", "Testing Float Switch");
     //check_water_level();
-    /*
+    //First Test
     while (true) {
         bool logic_level = gpio_get_level(FLOAT_SWITCH_TOP_GPIO); // Tank is empty when float switch reads 0 and vice versa
         printf("Top Logic Level: %d\n", logic_level);
@@ -191,12 +191,11 @@ void test_float_switch() {
         printf("Bottom Logic Level: %d\n", logic_level);
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
-    */
+    //Testing Interrupts
     float_switch_bottom_semaphore = xSemaphoreCreateBinary();
 	gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);	// Create interrupt that gets triggered on falling edge (1 -> 0)
 	gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
     bool is_complete = xSemaphoreTake(float_switch_bottom_semaphore, portMAX_DELAY); // Wait until interrupt gets triggered
-    printf("Complete: %d\n", is_complete);
     //Fill Up
     float_switch_top_semaphore = xSemaphoreCreateBinary();
 	gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE); // Create interrupt that gets triggered on rising edge (0 -> 1)
