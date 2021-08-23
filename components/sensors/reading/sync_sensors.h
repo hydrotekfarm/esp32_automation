@@ -2,7 +2,7 @@
 #include <Freertos/task.h>
 #include <freertos/event_groups.h>
 
-#define SENSOR_MEASUREMENT_PERIOD 10000 // Measuring increment time in ms
+#define SENSOR_MEASUREMENT_PERIOD 5000 // Measuring increment time in ms
 
 // Task handle
 TaskHandle_t sync_task_handle;

@@ -38,7 +38,7 @@ void boot_sequence() {
 	is_grow_active = false;
 
 	// Init nvs
-	nvs_clear();
+	//nvs_clear();
 	init_nvs();
 
 	// Initialize deep sleep
