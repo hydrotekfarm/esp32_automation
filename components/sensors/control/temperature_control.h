@@ -5,8 +5,8 @@
 
 #define TEMPERATURE_TAG "TEMPERATURE_CONTROL"
 
-// Margin of error
-static const float TEMPERATURE_MARGIN_ERROR = 1.5;
+// Margin of error (actual 1.5)
+static const float TEMPERATURE_MARGIN_ERROR = 0.1;
 
 // Control struct
 struct sensor_control temperature_control;
