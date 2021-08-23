@@ -41,7 +41,7 @@ void boot_sequence() {
 	init_nvs();
 
 	// Initialize deep sleep
-	init_power_button();
+	//init_power_button();
 
 	// Initialize hard reset and start hard reset task
 	init_reset_semaphore();
