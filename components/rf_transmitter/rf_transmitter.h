@@ -20,10 +20,10 @@ static const char off_binary_code[] = "1100";
 
 enum power_outlets {
 	CO2_INJECTION,
-	HUMIDIFIER,
-	DEHUMIDIFIER,
 	TEMPERATURE_HEATER,
-	TEMPERATURE_COOLER
+	TEMPERATURE_COOLER,
+	HUMIDIFIER,
+	DEHUMIDIFIER
 };
 
 struct rf_message {
