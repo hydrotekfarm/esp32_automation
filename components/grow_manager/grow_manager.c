@@ -61,7 +61,6 @@ void push_grow_settings_status() {
 
 void suspend_tasks() {
 	// Core 0 tasks
-	//vTaskSuspend(rf_transmitter_task_handle);
 	vTaskSuspend(timer_alarm_task_handle);
 	vTaskSuspend(publish_task_handle);
 	vTaskSuspend(sensor_control_task_handle);
