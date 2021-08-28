@@ -72,7 +72,6 @@ void suspend_tasks() {
 
 void resume_tasks() {
 	// Core 0 tasks
-	vTaskResume(rf_transmitter_task_handle);
 	vTaskResume(timer_alarm_task_handle);
 	vTaskResume(publish_task_handle);
 	vTaskResume(sensor_control_task_handle);
