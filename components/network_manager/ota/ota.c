@@ -1,7 +1,7 @@
 #include "ota.h"
 
 char *url_buf = {0};
-bool  is_ota_success_on_bootup;
+bool  is_ota_success_on_bootup = false;
 
 /*an ota data write buffer ready to write to the flash*/
 static char ota_write_data[BUFFSIZE + 1] = { 0 };
@@ -202,7 +202,6 @@ void ota_task(void *pvParameter)
    ESP_LOGI(TAG, "Prepare to restart system!");
 
    /* Publish OTA successful message over MQTT */
-   publish_ota_result(client_mqtt, OTA_SUCCESS, NO_FALIURE);
    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
    /* Restart ESP with latest firmware */
@@ -265,5 +264,23 @@ void init_ota()
    // get sha256 digest for running partition
    esp_partition_get_sha256(esp_ota_get_running_partition(), sha_256);
    print_sha256(sha_256, "SHA-256 for current firmware: ");
+
+   const esp_partition_t *running = esp_ota_get_running_partition();
+   esp_ota_img_states_t ota_state;
+   if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
+      if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+         // run diagnostic function ...
+         bool diagnostic_is_ok = diagnostic();
+         if (diagnostic_is_ok) {
+            ESP_LOGI(TAG, "Diagnostics completed successfully! Continuing execution ...");
+            is_ota_success_on_bootup = true;
+            esp_ota_mark_app_valid_cancel_rollback();
+         } else {
+            ESP_LOGE(TAG, "Diagnostics failed! Start rollback to the previous version ...");
+            is_ota_success_on_bootup = false;
+            esp_ota_mark_app_invalid_rollback_and_reboot();
+         }
+      }
+   }
 }
 

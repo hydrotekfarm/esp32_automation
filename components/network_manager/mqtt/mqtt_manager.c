@@ -26,7 +26,7 @@ static esp_err_t parse_ota_parameters(const char *buffer, char *device_id, char 
 static esp_err_t validate_ota_parameters(char *device_id, char *version, char *endpoint);
 
 extern char *url_buf;
-extern bool  is_ota_success_on_bootup;
+extern bool is_ota_success_on_bootup;
 
 esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
    const char *TAG = "MQTT_Event_Handler";
@@ -223,11 +223,10 @@ void mqtt_connect() {
 	is_mqtt_connected = true;
 
    if (is_ota_success_on_bootup == true) {
-      printf("Publishing OTA result ...");
+      printf("Publishing OTA Success result on boot up ...");
       publish_ota_result(mqtt_client, OTA_SUCCESS, NO_FALIURE);
    }
 }
-
 
 void create_time_json(cJSON **time_json) {
 	char time_str[TIME_STRING_LENGTH];
@@ -520,8 +519,7 @@ static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_r
    ESP_LOGI(TAG, "ota_failed message publish successful, Message: %s", data);
 }
 
-void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason)
-{
+void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason) {
    create_and_publish_ota_result(client, ota_result, ota_failure_reason);
 }
 
