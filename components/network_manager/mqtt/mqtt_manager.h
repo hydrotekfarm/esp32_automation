@@ -1,7 +1,12 @@
+#ifndef __MQTT_MANAGER_H
+#define __MQTT_MANAGER_H
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <mqtt_client.h>
 #include <string.h>
+
+#include "ota.h"
 
 // QOS settings
 #define PUBLISH_DATA_QOS 1
@@ -11,8 +16,32 @@
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "device_settings"
 
-#define FW_UPGRADE_SUBSCRIBE_TOPIC   "/fw_upgrade/cmd"
-#define FW_UPGRADE_PUBLISH_ACK_TOPIC "/fw_upgrade/ack"
+#define FW_UPGRADE_SUBSCRIBE_TOPIC   "fertigation_ota_push"
+#define FW_UPGRADE_PUBLISH_ACK_TOPIC "fertigation_ota_result"
+
+/**
+ * OTA Result
+ */
+typedef enum {
+    OTA_SUCCESS   = 0,//!< No alarms
+    OTA_FAIL          //!< First alarm
+} ota_result_t;
+
+/**
+ * OTA Failure Reason
+ */
+typedef enum {
+    VERSION_NOT_FOUND = 0,
+    INVALID_OTA_URL_RECEIVED,
+    HTTP_CONNECTION_FAILED,
+    OTA_UPDATE_FAILED,
+    IMAGE_FILE_LARGER_THAN_OTA_PARTITION,
+    OTA_WRTIE_OPERATION_FAILED,
+    IMAGE_VALIDATION_FAILED,
+    OTA_SET_BOOT_PARTITION_FAILED,
+    NO_FALIURE
+} ota_failure_reason_t;
+
 
 #define TIME_STRING_LENGTH 21
 
@@ -53,5 +82,7 @@ void create_sensor_data_topic();
 // Create settings data topic
 void create_settings_data_topic();
 
-// OTA reject publish message
-void publish_ota_reject(esp_mqtt_client_handle_t client);
+// OTA result publish message
+void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason);
+
+#endif

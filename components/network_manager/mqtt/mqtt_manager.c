@@ -22,15 +22,17 @@
 #include "network_settings.h"
 #include "wifi_connect.h"
 
-#include "ota.h"
+static esp_err_t parse_ota_parameters(const char *buffer, char *device_id, char *version, char *endpoint);
+static esp_err_t validate_ota_parameters(char *device_id, char *version, char *endpoint);
 
 extern char *url_buf;
+extern bool  is_ota_success_on_bootup;
 
 esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
    const char *TAG = "MQTT_Event_Handler";
    esp_mqtt_client_handle_t client = event->client;
    int msg_id;
-   
+
    switch (event->event_id) {
       case MQTT_EVENT_CONNECTED:
          ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
@@ -58,37 +60,37 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
          printf("DATA=%.*s\r\n", event->data_len, event->data);
 
          /* Get FW upgrade URL recevied via MQTT */
-         if (NULL != strstr(event->topic, FW_UPGRADE_SUBSCRIBE_TOPIC))
-         {
-            printf("FW upgrade command received over MQTT - checking for valid URL\n");
-            if (event->data_len > OTA_URL_SIZE)
-            {
-               printf("URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
-               publish_ota_reject(client);
-            }
-            else
-            {
-               /* Copy FW upgrade URL to local buffer */
-               printf("Received URL lenght is: %d\r\n", event->data_len);
-               url_buf = (char *)malloc(event->data_len + 1);
-               if (NULL == url_buf)
-               {
-                  printf("Unable to allocate memory to save received URL\r\n");
-                  publish_ota_reject(client);
-               }
-               else
-               {
-                  memset(url_buf, 0x00, event->data_len + 1);
-                  strncpy(url_buf, event->data, event->data_len);
-                  printf("Received URL is: %s\r\n", url_buf);
+         if (NULL != strstr(event->topic, FW_UPGRADE_SUBSCRIBE_TOPIC)) {
+            char device_id[6], version[6], endpoint[128];
+            if (ESP_OK == parse_ota_parameters(event->data, device_id, version, endpoint)) {
+               if (ESP_OK == validate_ota_parameters(device_id, version, endpoint)) {
+                  ESP_LOGI(TAG, "FW upgrade command received over MQTT - checking for valid URL\n");
+                  if (strlen(endpoint) > OTA_URL_SIZE) {
+                     ESP_LOGI(TAG, "URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
+                     publish_ota_result(client, OTA_FAIL, INVALID_OTA_URL_RECEIVED);
+                     return ESP_FAIL;
+                  }
+                  else {
+                     /* Copy FW upgrade URL to local buffer */
+                     printf("Received URL lenght is: %d\r\n", strlen(endpoint));
+                     url_buf = (char *)malloc(strlen(endpoint) + 1);
+                     if (NULL == url_buf) {
+                        printf("Unable to allocate memory to save received URL\r\n");
+                        publish_ota_result(client, OTA_FAIL, INVALID_OTA_URL_RECEIVED);
+                     }
+                     else {
+                        memset(url_buf, 0x00, strlen(endpoint) + 1);
+                        strncpy(url_buf, endpoint, strlen(endpoint));
+                        printf("Received URL is: %s\r\n", url_buf);
 
-                  /* Starting OTA thread */
-                  xTaskCreate(&ota_task, "ota_task", 8192, client, 5, NULL);
+                        /* Starting OTA thread */
+                        xTaskCreate(&ota_task, "ota_task", 8192, client, 5, NULL);
+                     }
+                  }
                }
             }
          }
-         else
-         {
+         else {
             printf("Received topic is not %s\n", FW_UPGRADE_SUBSCRIBE_TOPIC);
             data_handler(event->topic, event->topic_len, event->data, event->data_len);
          }
@@ -219,6 +221,11 @@ void mqtt_connect() {
 	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
 
 	is_mqtt_connected = true;
+
+   if (is_ota_success_on_bootup == true) {
+      printf("Publishing OTA result ...");
+      publish_ota_result(mqtt_client, OTA_SUCCESS, NO_FALIURE);
+   }
 }
 
 
@@ -368,19 +375,153 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 	free(data);
 }
 
-void publish_ota_reject(esp_mqtt_client_handle_t client)
+static esp_err_t validate_ota_parameters(char *device_id, char *version, char *endpoint)
 {
-   int msg_id;
-   uint8_t mac[6];//To save WiFi STA MAC address
-   char mac_str[18];
-   char msg[32];
-   const char *TAG = "PUBLISH_OTA_REJECT";
-   printf("Aborting OTA\r\n");
-   esp_read_mac(mac, ESP_MAC_WIFI_STA);
-   sprintf(mac_str, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-   snprintf(msg, sizeof(msg), "%s:ota_failed", mac_str);
-   ESP_LOGI(TAG, "msg=%s", msg);
-   msg_id = esp_mqtt_client_publish(client, FW_UPGRADE_PUBLISH_ACK_TOPIC, msg, 0, 1, 0);
-   ESP_LOGI(TAG, "ota_failed message publish successful, msg_id=%d", msg_id);
+   const char *TAG = "VALIDATE_OTA_PARAMETERS";
+
+   ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id);
+   ESP_LOGI(TAG, "version: \"%s\"\n", version);
+   ESP_LOGI(TAG, "endpoint: \"%s\"\n", endpoint);
+
+   if (device_id == NULL || version == NULL || endpoint == NULL) {
+      ESP_LOGI(TAG, "Invalid parameter received");
+      return ESP_FAIL;
+   }
+
+   int device_id_len = strlen(get_network_settings()->device_id);
+
+   if (!strncmp(get_network_settings()->device_id, device_id, device_id_len)) {
+      ESP_LOGI(TAG, "Valid Device ID found: %s %s", get_network_settings()->device_id, device_id);
+   } else {
+      ESP_LOGI(TAG, "Invalid Device ID found: %s %s", get_network_settings()->device_id, device_id);
+      return ESP_FAIL;
+   }
+
+   ESP_LOGI(TAG, "FW upgrade command received over MQTT - checking for valid URL\n");
+   if (strlen(endpoint) > OTA_URL_SIZE) {
+      ESP_LOGI(TAG, "URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
+      return ESP_FAIL;
+   }
+
+   return ESP_OK;
+}
+
+static esp_err_t parse_ota_parameters(const char *buffer, char *device_id_buf, char *version_buf, char *endpoint_buf)
+{
+   const char *TAG = "PARSE_OTA_PARAMETERS";
+
+   cJSON *device_id;
+   cJSON *version;
+   cJSON *endpoint;
+
+   if (buffer == NULL) {
+      ESP_LOGI(TAG, "Invalid parameter received");
+      return ESP_FAIL;
+   }
+
+   cJSON *root = cJSON_Parse(buffer);
+   if (root == NULL) {
+      ESP_LOGI(TAG, "Fail to deserialize Json");
+      return ESP_FAIL;
+   }
+
+   device_id = cJSON_GetObjectItemCaseSensitive(root, "device_id");
+   if (cJSON_IsString(device_id) && (device_id->valuestring != NULL)) {
+      strcpy(device_id_buf, device_id->valuestring);
+      ESP_LOGI(TAG, "device_id: \"%s\"\n", device_id_buf);
+   }
+
+   version = cJSON_GetObjectItemCaseSensitive(root, "version");
+   if (cJSON_IsString(version) && (version->valuestring != NULL)) {
+      strcpy(version_buf, version->valuestring);
+      ESP_LOGI(TAG, "version: \"%s\"\n", version_buf);
+   }
+
+   endpoint = cJSON_GetObjectItemCaseSensitive(root, "endpoint");
+   if (cJSON_IsString(endpoint) && (endpoint->valuestring != NULL)) {
+      strcpy(endpoint_buf, endpoint->valuestring);
+      ESP_LOGI(TAG, "endpoint: \"%s\"\n", endpoint_buf);
+   }
+   return ESP_OK;
+}
+
+static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason)
+{
+   const char *TAG = "CREATE_AND_PUBLISH_OTA_RESULT";
+   cJSON *root, *device_id, *version, *result, *error;
+
+   // Initializing json object and sensor array
+   root = cJSON_CreateObject();
+
+   // Adding Device ID
+   device_id = cJSON_CreateString(get_network_settings()->device_id);
+   cJSON_AddItemToObject(root, "device_id", device_id);
+
+   // Adding Device version
+   esp_app_desc_t running_app_info;
+   const esp_partition_t *running = esp_ota_get_running_partition();
+
+   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+      ESP_LOGI(TAG, "Running firmware version: %s", running_app_info.version);
+      version = cJSON_CreateString(running_app_info.version);
+      cJSON_AddItemToObject(root, "version", version);
+   }
+
+   if (ota_result == OTA_SUCCESS) {
+      result = cJSON_CreateString("success");
+      cJSON_AddItemToObject(root, "result", result);
+      error = cJSON_CreateString("");
+      cJSON_AddItemToObject(root, "error", error);
+   }
+   else {
+      result = cJSON_CreateString("failure");
+      cJSON_AddItemToObject(root, "result", result);
+      if (ota_failure_reason == VERSION_NOT_FOUND) {
+         error = cJSON_CreateString("version not found");
+      }
+      else if (ota_failure_reason == INVALID_OTA_URL_RECEIVED) {
+         error = cJSON_CreateString("Invalid OTA URL received");
+      }
+      else if (ota_failure_reason == HTTP_CONNECTION_FAILED) {
+         error = cJSON_CreateString("http connection failed");
+      }
+      else if (ota_failure_reason == OTA_UPDATE_FAILED) {
+         error = cJSON_CreateString("ota update failed");
+      }
+      else if (ota_failure_reason == IMAGE_FILE_LARGER_THAN_OTA_PARTITION) {
+         error = cJSON_CreateString("image file larger than ota partition");
+      }
+      else if (ota_failure_reason == OTA_WRTIE_OPERATION_FAILED) {
+         error = cJSON_CreateString("ota write operation failed");
+      }
+      else if (ota_failure_reason == IMAGE_VALIDATION_FAILED) {
+         error = cJSON_CreateString("version not found");
+      }
+      else if (ota_failure_reason == OTA_SET_BOOT_PARTITION_FAILED) {
+         error = cJSON_CreateString("version not found");
+      }
+      else{
+         error = cJSON_CreateString("version not found");
+      }
+
+      cJSON_AddItemToObject(root, "error", error);
+   }
+
+   // Creating string from JSON
+   char *data = cJSON_PrintUnformatted(root);
+
+   // Free memory
+   cJSON_Delete(root);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+
+   esp_mqtt_client_publish(client, FW_UPGRADE_PUBLISH_ACK_TOPIC, data, 0, 1, 0);
+
+   ESP_LOGI(TAG, "ota_failed message publish successful, Message: %s", data);
+}
+
+void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason)
+{
+   create_and_publish_ota_result(client, ota_result, ota_failure_reason);
 }
 
