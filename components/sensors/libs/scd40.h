@@ -53,6 +53,8 @@ extern "C" {
 
 #define SCD40_I2C_ADDR 0x61
 
+typedef i2c_dev_t scd40_sensor_t;
+
 /**
  * @brief Initialize device descriptor.
  *

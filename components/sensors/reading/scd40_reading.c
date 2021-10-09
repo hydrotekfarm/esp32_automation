@@ -27,7 +27,7 @@ void measure_scd40(void *parameter) {     // SCD40 Sensor Measurement Task
 
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    ESP_ERROR_CHECK(scd40_start_periodic_measurement(&dev); 
+    ESP_ERROR_CHECK(scd40_start_periodic_measurement(&dev)); 
 
     for(;;) {
         // trigger the sensor to start one TPHG measurement cycle
@@ -38,14 +38,15 @@ void measure_scd40(void *parameter) {     // SCD40 Sensor Measurement Task
         if (scd40_get_data_ready_status(&dev, &check) == ESP_OK) {
             // get the results and do something with them
             if (check) {
-                float temp = 0.0f, co2 = 0.0f, humidity = 0.0f; 
+                float temp = 0.0f, humidity = 0.0f; 
+                uint16_t co2 = 0;
                 scd40_read_measurement(&dev, &co2, &temp, &humidity);
-                ESP_LOGI(TAG, "CO2: %.2f", co2);
+                ESP_LOGI(TAG, "CO2: %.2f", (float)co2);
                 ESP_LOGI(TAG, "Temperature: %.2f", temp);
                 ESP_LOGI(TAG, "Humidity: %.2f\n", humidity);
 
                 float *co2_val = sensor_get_address_value(&co2_sensor);
-                *co2_val = temp;
+                *co2_val = (float)co2;
 
                 float *temp_val = sensor_get_address_value(&temperature_sensor);
                 *temp_val = temp;
