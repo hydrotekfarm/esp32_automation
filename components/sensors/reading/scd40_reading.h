@@ -19,4 +19,4 @@ struct sensor * get_humidity_sensor();
 struct sensor * get_co2_sensor();
 
 // Measures scd sensor (co2, temperature, and humidity)
-void measure_scd30();
+void measure_scd40();

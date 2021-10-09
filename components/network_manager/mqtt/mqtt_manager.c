@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "boot.h"
-#include "scd30_reading.h"
+#include "scd40_reading.h"
 #include "co2_control.h"
 #include "humidity_control.h"
 #include "temperature_control.h"

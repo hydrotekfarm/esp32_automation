@@ -6,7 +6,7 @@
 #include <esp_log.h>
 #include <esp_system.h>
 
-#include "scd30_reading.h"
+#include "scd40_reading.h"
 #include "sensor.h"
 
 void set_sensor_sync_bits() {

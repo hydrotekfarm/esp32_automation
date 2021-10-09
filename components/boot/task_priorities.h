@@ -7,5 +7,5 @@
 #define HARD_RESET_TASK_PRIORITY     1
 
 // Core 1 Task Priorities
-#define SCD30_TASK_PRIORITY 1
+#define SCD40_TASK_PRIORITY 1
 #define SYNC_TASK_PRIORITY 4
