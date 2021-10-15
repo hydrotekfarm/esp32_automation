@@ -1,4 +1,3 @@
-/.metadata/
-/build/
-.vscode/
+**/.metadata/
+**/build/
 sdkconfig
