@@ -282,5 +282,12 @@ void init_ota()
          }
       }
    }
+
+   esp_app_desc_t running_app_info;
+   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+      ESP_LOGI(TAG, "Firmware version: %s", running_app_info.version);
+   } else {
+      ESP_LOGI(TAG< "Could not get firmware version");
+   }
 }
 

@@ -30,14 +30,22 @@
 #include "ota.h"
 
 void boot_sequence() {
-        // Init OTA
-        init_ota();
+	// Init OTA
+	init_ota();
 
 	// Init nvs
 	init_nvs();
 
 	// Initialize deep sleep
 	init_power_button();
+
+	const esp_partition_t *running = esp_ota_get_running_partition();
+	esp_app_desc_t running_app_info;
+	if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+		ESP_LOGI("BOOT ASDF", "Running firmware version: %s", running_app_info.version);
+	} else {
+		ESP_LOGI("BOOT ASDF", "Couldn't get running firmware");
+	}
 
 	// Init connections
 	tcpip_adapter_init();
