@@ -12,12 +12,13 @@
 #define PUBLISH_DATA_QOS 1
 #define SUBSCRIBE_DATA_QOS 2
 
+#define DEVICE_TYPE "fertigation"
+
 #define WIFI_CONNECT_HEADING "wifi_connect_status"
 #define SENSOR_DATA_HEADING "live_data"
 #define SENSOR_SETTINGS_HEADING "device_settings"
-
-#define FW_UPGRADE_SUBSCRIBE_TOPIC   "fertigation_ota_push"
-#define FW_UPGRADE_PUBLISH_ACK_TOPIC "fertigation_ota_result"
+#define OTA_UPDATE_HEADING "ota_update"
+#define OTA_DONE_HEADING "ota_done"
 
 /**
  * OTA Result
@@ -58,6 +59,8 @@ bool is_mqtt_connected;
 char *wifi_connect_topic;
 char *sensor_data_topic;
 char *sensor_settings_topic;
+char *ota_update_topic;
+char *ota_done_topic;
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 

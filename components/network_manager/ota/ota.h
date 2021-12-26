@@ -26,11 +26,12 @@
 #include "lwip/netdb.h"
 #include "mqtt_client.h"
 
-#define BUFFSIZE           1024
-#define HASH_LEN           32 /* SHA-256 digest length */
-#define OTA_RECV_TIMEOUT   5000
-#define OTA_URL_SIZE       256
-#define GPIO_DIAGNOSTIC    4
+#define BUFFSIZE                1024
+#define HASH_LEN                32 /* SHA-256 digest length */
+#define OTA_RECV_TIMEOUT        5000
+#define OTA_URL_SIZE            256
+#define GPIO_DIAGNOSTIC         4
+#define FIRMWARE_VERSION_LEN    16
 
 void http_cleanup(esp_http_client_handle_t client);
 void __attribute__((noreturn)) task_fatal_error();
@@ -39,5 +40,6 @@ void infinite_loop(void);
 void ota_task(void *pvParameter);
 bool diagnostic(void);
 void init_ota();
+bool get_firmware_version(char *version);
 
 #endif//__OTA_H

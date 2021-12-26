@@ -39,14 +39,6 @@ void boot_sequence() {
 	// Initialize deep sleep
 	init_power_button();
 
-	const esp_partition_t *running = esp_ota_get_running_partition();
-	esp_app_desc_t running_app_info;
-	if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
-		ESP_LOGI("BOOT ASDF", "Running firmware version: %s", running_app_info.version);
-	} else {
-		ESP_LOGI("BOOT ASDF", "Couldn't get running firmware");
-	}
-
 	// Init connections
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());

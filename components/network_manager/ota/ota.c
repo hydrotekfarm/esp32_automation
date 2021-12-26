@@ -283,11 +283,21 @@ void init_ota()
       }
    }
 
-   esp_app_desc_t running_app_info;
-   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
-      ESP_LOGI(TAG, "Firmware version: %s", running_app_info.version);
+   char version[FIRMWARE_VERSION_LEN];
+   if(get_firmware_version(version)) {
+      ESP_LOGI(TAG, "Firmware version: %s", version);
    } else {
-      ESP_LOGI(TAG< "Could not get firmware version");
+      ESP_LOGI(TAG, "Could not get firmware version");
    }
 }
 
+bool get_firmware_version(char *version) {
+   const esp_partition_t *running = esp_ota_get_running_partition();
+   esp_app_desc_t running_app_info;
+   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+      strcpy(version, running_app_info.version);
+      return true;
+   } else {
+      return false;
+   }
+}
