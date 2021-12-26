@@ -270,7 +270,8 @@ void init_ota()
    if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
       if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
          // run diagnostic function ...
-         bool diagnostic_is_ok = diagnostic();
+         // bool diagnostic_is_ok = diagnostic(); TODO Talk to Neel and Vidit and add back in diagnostics at some point
+            bool diagnostic_is_ok = true; // TODO Remove this line when diagnostics is added back in
          if (diagnostic_is_ok) {
             ESP_LOGI(TAG, "Diagnostics completed successfully! Continuing execution ...");
             is_ota_success_on_bootup = true;
