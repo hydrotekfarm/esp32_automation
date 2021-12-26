@@ -1,7 +1,7 @@
 #include <stdbool.h>
-#include <Freertos/freertos.h>
-#include <Freertos/task.h>
-#include <cjson.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <cJSON.h>
 #include "i2cdev.h"
 
 #ifndef COMPONENTS_SENSORS_READING_SENSOR_H_

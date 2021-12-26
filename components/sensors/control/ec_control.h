@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <esp_system.h>
-#include <cjson.h>
+#include <cJSON.h>
 #include "sensor_control.h"
 
 #define EC_TAG "EC_CONTROL"

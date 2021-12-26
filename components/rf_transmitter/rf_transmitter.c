@@ -1,6 +1,6 @@
 #include "rf_transmitter.h"
 
-#include <Freertos/freertos.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <string.h>
 #include <esp_err.h>
