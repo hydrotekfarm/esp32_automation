@@ -18,6 +18,7 @@
 #include "water_temp_reading.h"
 #include "sync_sensors.h"
 #include "reservoir_control.h"
+#include "control_task.h"
 #include "ec_control.h"
 #include "ph_control.h"
 #include "control_task.h"
@@ -27,10 +28,19 @@
 #include "network_settings.h"
 #include "nvs_manager.h"
 #include "deep_sleep_manager.c"
-#include "ota.h"
+#include "grow_manager.h"
+#include "hard_reset_manager.h"
+#include "hard_reset_manager.c"
+#include "led_manager.h"
 
 void boot_sequence() {
-	// Init OTA
+	//Start Wifi led task
+	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
+
+	// Start as grow cycle inactive by default
+	is_grow_active = false;
+
+	// Init ota
 	init_ota();
 
 	// Init nvs
@@ -38,6 +48,11 @@ void boot_sequence() {
 
 	// Initialize deep sleep
 	init_power_button();
+
+	// Initialize hard reset and start hard reset task
+	init_reset_semaphore();
+	init_hard_reset_button();
+	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
 
 	// Init connections
 	tcpip_adapter_init();
@@ -52,19 +67,29 @@ void boot_sequence() {
 	ESP_ERROR_CHECK(i2cdev_init());
 
 	init_ports();
-	is_day = true;
 
 	// Set all sync bits var
 	set_sensor_sync_bits();
 
-	// Init rtc and check if time needs to be set
+	// Init time rtc
+	init_sntp();
 	init_rtc();
-	check_rtc_reset();
+
+	// Start Irrigation control
+	init_irrigation();
+	
+	// Start Grow Light Control
+	init_lights();
+
+	// Init sensor control
+	init_control();
+
+	vTaskPrioritySet(NULL, configMAX_PRIORITIES-1);
 
 	// Create core 0 tasks
 	xTaskCreatePinnedToCore(rf_transmitter, "rf_transmitter_task", 2500, NULL, RF_TRANSMITTER_TASK_PRIORITY, &rf_transmitter_task_handle, 0);
 	xTaskCreatePinnedToCore(manage_timers_alarms, "timer_alarm_task", 2500, NULL, TIMER_ALARM_TASK_PRIORITY, &timer_alarm_task_handle, 0);
-	xTaskCreatePinnedToCore(publish_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
+	xTaskCreatePinnedToCore(publish_sensor_data, "publish_task", 2500, NULL, MQTT_PUBLISH_TASK_PRIORITY, &publish_task_handle, 0);
 	xTaskCreatePinnedToCore(sensor_control, "sensor_control_task", 3000, NULL, SENSOR_CONTROL_TASK_PRIORITY, &sensor_control_task_handle, 0);
 
 	// Create core 1 tasks
@@ -72,6 +97,9 @@ void boot_sequence() {
 	xTaskCreatePinnedToCore(measure_ec, "ec_task", 2500, NULL, EC_TASK_PRIORITY, sensor_get_task_handle(get_ec_sensor()), 1);
 	xTaskCreatePinnedToCore(measure_ph, "ph_task", 2500, NULL, PH_TASK_PRIORITY, sensor_get_task_handle(get_ph_sensor()), 1);
 	xTaskCreatePinnedToCore(sync_task, "sync_task", 2500, NULL, SYNC_TASK_PRIORITY, &sync_task_handle, 1);
+	
+	// Init grow manager
+	init_grow_manager();
 }
 
 void restart_esp32() { // Restart ESP32

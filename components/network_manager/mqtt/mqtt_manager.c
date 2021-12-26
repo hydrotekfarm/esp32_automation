@@ -17,10 +17,15 @@
 #include "water_temp_reading.h"
 #include "ec_control.h"
 #include "ph_control.h"
+#include "water_temp_control.h"
 #include "sync_sensors.h"
+#include "rf_transmitter.h"
 #include "rtc.h"
 #include "network_settings.h"
+#include "grow_manager.h"
 #include "wifi_connect.h"
+#include "reservoir_control.h"
+#include "ports.h"
 
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
@@ -115,48 +120,71 @@ void add_entry(char** data, bool* first, char* name, float num) {
 	entry = NULL;
 }
 
-void init_topic(char **topic, int topic_len, bool use_id) {
+void init_topic(char **topic, int topic_len, char *heading) {
 	*topic = malloc(sizeof(char) * topic_len);
-	strcpy(*topic, use_id ? get_network_settings()->device_id : DEVICE_TYPE);
+	strcpy(*topic, heading);
 }
 
-void add_heading(char *topic, char *heading) {
+void add_id(char *topic) {
 	strcat(topic, "/");
-	strcat(topic, heading);
+	strcat(topic, get_network_settings()->device_id);
+}
+
+void add_device_type(char *topic) {
+   strcat(topic, "/");
+   strcat(topic, DEVICE_TYPE);
 }
 
 void make_topics() {
-   const char *TAG = "MQTT_MAKE_TOPICS";
-
-	ESP_LOGI(TAG, "Starting make topics");
+	ESP_LOGI(MQTT_TAG, "Starting make topics");
 
 	int device_id_len = strlen(get_network_settings()->device_id);
    int device_type_len = strlen(DEVICE_TYPE);
 
-	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, true);
-	add_heading(wifi_connect_topic, WIFI_CONNECT_HEADING);
-	ESP_LOGI(TAG, "Wifi Topic: %s", wifi_connect_topic);
+	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
+	add_id(wifi_connect_topic);
+	ESP_LOGI(MQTT_TAG, "Wifi Topic: %s", wifi_connect_topic);
 
-	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, true);
-	add_heading(sensor_data_topic, SENSOR_DATA_HEADING);
-	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
+	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
+	add_id(sensor_data_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
-	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, true);
-	add_heading(sensor_settings_topic, SENSOR_SETTINGS_HEADING);
-	ESP_LOGI(TAG, "Sensor settings topic: %s", sensor_settings_topic);
+	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
+	add_id(sensor_settings_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", sensor_settings_topic);
 
-   init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, false);
-   add_heading(ota_update_topic, OTA_UPDATE_HEADING);
-   ESP_LOGI(TAG, "OTA update topic: %s", ota_update_topic);
+	init_topic(&equipment_status_topic, device_id_len + 1 + strlen(EQUIPMENT_STATUS_HEADING) + 1, EQUIPMENT_STATUS_HEADING);
+	add_id(equipment_status_topic);
+	ESP_LOGI(MQTT_TAG, "Equipment settings topic: %s", equipment_status_topic);
 
-   init_topic(&ota_done_topic, device_type_len + 1 + strlen(OTA_DONE_HEADING) + 1, false);
-   add_heading(ota_done_topic, OTA_DONE_HEADING);
-   ESP_LOGI(TAG, "OTA done topic: %s", ota_done_topic);
+	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
+	add_id(grow_cycle_topic);
+	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", grow_cycle_topic);
+
+	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
+	add_id(rf_control_topic);
+	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
+
+	//Topic for Calibration//
+   init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
+   add_id(calibration_topic);
+   ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+
+   init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
+   add_device_type(ota_update_topic);
+   ESP_LOGI(MQTT_TAG, "OTA update topic: %s", ota_update_topic);
+
+   init_topic(&ota_done_topic, device_type_len + 1 + strlen(OTA_DONE_HEADING) + 1, OTA_DONE_HEADING);
+   add_device_type(ota_done_topic);
+   ESP_LOGI(MQTT_TAG, "OTA done topic: %s", ota_done_topic);
 }
 
 void subscribe_topics() {
 	// Subscribe to topics
 	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
+	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
 }
 
@@ -171,8 +199,11 @@ void init_mqtt() {
 	// Create MQTT client
 	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
+	// Dynamically create topics
 	make_topics();
-	// TOOD subscribe to topics here
+
+	// Create equipment status JSON
+	init_equipment_status();
 }
 
 void mqtt_connect() {
@@ -185,13 +216,16 @@ void mqtt_connect() {
 	// Connect mqtt
 	mqtt_connect_semaphore = xSemaphoreCreateBinary();
 	esp_mqtt_client_start(mqtt_client);
-	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); // TODO add approximate time to connect to mqtt
+	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); //  add approximate time to connect to mqtt
 
 	// Subscribe to topics
 	subscribe_topics();
 
 	// Send connect success message (must be retain message)
 	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
+
+	// Send equipment statuses
+	publish_equipment_status();
 
 	is_mqtt_connected = true;
 
@@ -209,28 +243,26 @@ void create_time_json(cJSON **time_json) {
 
 	sprintf(time_str, "%.4d", time.tm_year + 1900);
 	strcat(time_str, "-");
-	sprintf(time_str + 5, "%.2d", time.tm_mon);
+	sprintf(time_str + 5, "%.2d", time.tm_mon + 1); // convert from (0 to 11) to (1 to 12)
 	strcat(time_str, "-");
 	sprintf(time_str + 8, "%.2d", time.tm_mday);
 	strcat(time_str, "T");
 	sprintf(time_str + 11, "%.2d", time.tm_hour);
-	strcat(time_str, "-");
+	strcat(time_str, ":");
 	sprintf(time_str + 14, "%.2d", time.tm_min);
-	strcat(time_str, "-");
+	strcat(time_str, ":");
 	sprintf(time_str + 17, "%.2d", time.tm_sec);
 	strcat(time_str, "Z");
 
 	*time_json = cJSON_CreateString(time_str);
 }
 
-void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
-	const char *TAG = "Publisher";
-
-	ESP_LOGI(TAG, "Sensor data topic: %s", sensor_data_topic);
+void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing Task
+	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
 	for (;;) {
 		if(!is_mqtt_connected) {
-			ESP_LOGE(TAG, "Wifi not connected, cannot send MQTT data");
+			ESP_LOGE(MQTT_TAG, "Wifi not connected, cannot send MQTT data");
 
 			// Wait for delay period and try again
 			vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -271,8 +303,7 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
-		ESP_LOGI(TAG, "Message: %s", data);
-		ESP_LOGI(TAG, "Topic: %s", sensor_data_topic);
+		ESP_LOGI(MQTT_TAG, "Sensor data: %s", data);
 
 		// Publish data every sensor reading
 		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
@@ -283,73 +314,77 @@ void publish_data(void *parameter) {			// MQTT Setup and Data Publishing Task
 	free(sensor_settings_topic);
 }
 
-void update_settings(char *settings) {
-	const char *TAG = "UPDATE_SETTINGS";
-	ESP_LOGI(TAG, "Settings data");
+cJSON* get_ph_control_status() { return ph_control_status; }
+cJSON* get_ec_control_status() { return ec_control_status; }
+cJSON* get_water_temp_control_status() { return water_temp_control_status; }
+cJSON **get_rf_statuses() { return rf_statuses; }
 
-	cJSON *root = cJSON_Parse(settings);
-	cJSON *arr = root->child;
+void init_equipment_status() {
+	equipment_status_root = cJSON_CreateObject();
+	control_status_root = cJSON_CreateObject();
+	rf_status_root = cJSON_CreateObject();
 
-	for(int i = 0; i < cJSON_GetArraySize(arr); i++) {
-		cJSON *subitem = cJSON_GetArrayItem(arr, i)->child;
-		char *data_topic = subitem->string;
+	// Create sensor statuses
+	ph_control_status = cJSON_CreateNumber(0);
+	ec_control_status = cJSON_CreateNumber(0);
+	water_temp_control_status = cJSON_CreateNumber(0);
+	cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
+	cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
+	cJSON_AddItemToObject(control_status_root, "water_temp_control", water_temp_control_status);
 
-		if(strcmp("ph", data_topic) == 0) {
-			ESP_LOGI(TAG, "pH data received");
-			ph_update_settings(subitem);
-		} else if(strcmp("ec", data_topic) == 0) {
-			ESP_LOGI(TAG, "ec data received");
-			ec_update_settings(subitem);
-		} else if(strcmp("air_temperature", data_topic) == 0) {
-			// Add air temp call when control is implemented
-			ESP_LOGI(TAG, "air temperature data received");
-		} else {
-			ESP_LOGE(TAG, "Data %s not recognized", data_topic);
-		}
+	// Create rf statuses
+	char key[3];
+	for(uint8_t i = 0; i < NUM_OUTLETS; ++i) {
+		rf_statuses[i] = cJSON_CreateNumber(0);
+
+		sprintf(key, "%d", i);
+		cJSON_AddItemToObject(rf_status_root, key, rf_statuses[i]);
 	}
 
-	cJSON_Delete(root);
+	cJSON_AddItemToObject(equipment_status_root, "rf", rf_status_root);
+	cJSON_AddItemToObject(equipment_status_root, "control", control_status_root);
 }
 
-void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
-	const char *TAG = "DATA_HANDLER";
+void publish_equipment_status() {
+	char *data = cJSON_Print(equipment_status_root); // Create data string
+	esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 1); // Publish data
+	ESP_LOGI(MQTT_TAG, "Equipment Data: %s", data);
+}
 
-	// Create dynamically allocated vars for topic and data
-	char *topic = malloc(sizeof(char) * (topic_len+1));
-	char *data = malloc(sizeof(char) * (data_len+1));
+void update_settings(char *settings) {
+	cJSON *root = cJSON_Parse(settings);
+	char* string = cJSON_Print(root);
+	ESP_LOGI(MQTT_TAG, "datavalue:\n %s\n", string);
+	cJSON *object_settings = root->child;
+	
+	char *data_topic = object_settings->string;
+	ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 
-	// Copy over topic
-	for(int i = 0; i < topic_len; i++) {
-		topic[i] = topic_in[i];
+	if(strcmp("ph", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "pH data received");
+		ph_update_settings(object_settings);
+	} else if(strcmp("ec", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "EC data received");
+		ec_update_settings(object_settings);
+	} else if(strcmp("water_temp", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Water Temperature data received");
+		water_temp_update_settings(object_settings);
+	} else if(strcmp("irrigation", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Irrigation data received");
+		update_irrigation_timings(object_settings);
+	} else if(strcmp("grow_lights", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Grow Lights data received");
+		update_grow_light_timings(object_settings);
+	} else if(strcmp("reservoir", data_topic) == 0) {
+		ESP_LOGI(MQTT_TAG, "Reservoir data received");
+		update_reservoir_settings(object_settings);
+	} else {
+		ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
 	}
-	topic[topic_len] = 0;
+	cJSON_Delete(root);
 
-	// Copy over data
-	for(int i = 0; i < data_len; i++) {
-		data[i] = data_in[i];
-	}
-	data[data_len] = 0;
-
-	ESP_LOGI(TAG, "Incoming Topic: %s", topic);
-
-	// Check topic against each subscribed topic possible
-	if(strcmp(topic, sensor_settings_topic) == 0) {
-		ESP_LOGI(TAG, "Sensor settings received");
-
-		// Update sensor settings
-		update_settings(data);
-	} else if(strcmp(topic, ota_update_topic) == 0) {
-      ESP_LOGI(TAG, "OTA update message received");
-
-      // Initiate ota
-      initiate_ota(data);
-   } else {
-		// Topic doesn't match any known topics
-		ESP_LOGE(TAG, "Topic unknown");
-	}
-
-	free(topic);
-	free(data);
+	ESP_LOGI(MQTT_TAG, "Settings updated");
+	if(!get_is_settings_received()) settings_received();
 }
 
 static void initiate_ota(const char *mqtt_data) {
@@ -516,3 +551,93 @@ void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result
    create_and_publish_ota_result(client, ota_result, ota_failure_reason);
 }
 
+void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
+   const char *TAG = "DATA_HANDLER";
+
+   // Create dynamically allocated vars for topic and data
+   char *topic = malloc(sizeof(char) * (topic_len+1));
+   char *data = malloc(sizeof(char) * (data_len+1));
+
+   // Copy over topic
+   for(int i = 0; i < topic_len; i++) {
+      topic[i] = topic_in[i];
+   }
+   topic[topic_len] = 0;
+
+   // Copy over data
+   for(int i = 0; i < data_len; i++) {
+      data[i] = data_in[i];
+   }
+   data[data_len] = 0;
+
+   ESP_LOGI(TAG, "Incoming Topic: %s", topic);
+
+   // Check topic against each subscribed topic possible
+   if(strcmp(topic, sensor_settings_topic) == 0) {
+      ESP_LOGI(TAG, "Sensor settings received");
+
+      // Update sensor settings
+      update_settings(data);
+   } else if(strcmp(topic, grow_cycle_topic) == 0) {
+      ESP_LOGI(TAG, "Grow cycle status received");
+
+      // Start/stop grow cycle according to message
+      if(data[0] == '0') stop_grow_cycle();
+      else start_grow_cycle();
+   } else if(strcmp(topic, rf_control_topic) == 0) {
+      cJSON *obj = cJSON_Parse(data);
+      obj = obj->child;
+      ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
+      control_power_outlet(atoi(obj->string), obj->valueint);
+   } else if(strcmp(topic, calibration_topic) == 0) {
+      cJSON *obj = cJSON_Parse(data);
+      update_calibration(obj); 
+   } 	else if(strcmp(topic, ota_update_topic) == 0) {
+      ESP_LOGI(TAG, "OTA update message received");
+
+      // Initiate ota
+      initiate_ota(data);
+   } else {
+      // Topic doesn't match any known topics
+      ESP_LOGE(TAG, "Topic unknown");
+   }
+
+   free(topic);
+   free(data);
+}
+
+void update_calibration(cJSON *data) {
+    cJSON *obj = data->child; 
+    char *data_string = cJSON_Print(data);
+    ESP_LOGI(MQTT_TAG, "%s", data_string);
+    if (strcmp(obj->string, "type") == 0) {
+        if (strcmp(obj->valuestring, "ph") == 0) {
+            sensor_set_calib_status(get_ph_sensor(), true);
+            ESP_LOGI(MQTT_TAG, "pH calibration received");
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
+                vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
+                ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
+            }
+        } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
+            sensor_set_calib_status(get_ec_sensor(), true);
+            ESP_LOGI(MQTT_TAG, "ec wet calibration received");
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+                ESP_LOGI(MQTT_TAG, "ec task resumed");
+            }
+        } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
+            dry_calib = true; 
+            ESP_LOGI(MQTT_TAG, "ec dry calibration received");
+            if (!get_is_grow_active()) {
+                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+                ESP_LOGI(MQTT_TAG, "ec task resumed");
+            }
+        } else {
+            ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
+        }
+    } else {
+        ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
+    }
+    cJSON_Delete(data);
+}

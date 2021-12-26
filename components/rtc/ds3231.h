@@ -26,6 +26,7 @@ extern "C" {
 #endif
 
 #define DS3231_ADDR 0x68 //!< I2C address
+#define SECONDS_PER_DAY 86400 // Number of seconds in a day
 
 /**
  * Alarms
@@ -87,7 +88,6 @@ struct timer {
  */
 struct alarm {
 	struct timer alarm_timer;
-	struct tm alarm_time;
 };
 
 /**
@@ -345,6 +345,12 @@ void init_alarm(struct alarm *alarm, void(*trigger_function)(void), bool repeat,
  * @param time when alarm should trigger
  */
 void enable_alarm(struct alarm *alarm, struct tm alarm_time);
+
+/**
+ * @brief disable alarm
+ * @param alarm struct
+ */
+void disable_alarm(struct alarm *alarm);
 
 /**
  * @brief check if alarm is done

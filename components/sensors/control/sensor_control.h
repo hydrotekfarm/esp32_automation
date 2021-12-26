@@ -5,8 +5,11 @@
 #define NUM_CHECKS 6
 
 #include <stdbool.h>
-#include <cJSON.h>
+#include <cjson.h>
+#include <nvs.h>
+
 #include "rtc.h"
+#include "nvs_manager.h"
 
 #ifndef COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
 #define COMPONENTS_SENSORS_CONTROL_SENSOR_CONTROL_H_
@@ -14,6 +17,7 @@
 // TODO separate out struct vars
 struct sensor_control {
 	char name[25];
+	cJSON *status_object;
 	bool is_control_enabled;
 	bool is_control_active;
 	bool is_doser;
@@ -37,7 +41,7 @@ struct sensor_control {
 // TODO add RME's
 
 // Initialize control structure
-void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *item, float margin_error_in);
+void init_sensor_control(struct sensor_control *control_in, char *name_in, cJSON *object_in, float margin_error_in);
 void init_doser_control(struct sensor_control *control_in);
 
 // Get enable/active statuses
@@ -67,4 +71,7 @@ void control_set_dose_percentage(struct sensor_control *control_in, float value)
 float control_get_dose_time(struct sensor_control *control_in);
 
 // Update settings using JSON string
-void control_update_settings(struct sensor_control *control_in, cJSON *item);
+void control_update_settings(struct sensor_control *control_in, cJSON *item, nvs_handle_t *handle);
+
+// Get sensor settings stored in NVS
+void control_get_nvs_settings(struct sensor_control *control_in, char *namespace);

@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <driver/gpio.h>
 
 // WiFi bits
 #define WIFI_CONNECTED_BIT (1<<0)
@@ -17,3 +18,6 @@ EventGroupHandle_t wifi_event_group;
 
 // Connect ESP32 to wifi
 bool connect_wifi();
+
+//Getter for is_wifi_connected//
+bool get_is_wifi_connected();

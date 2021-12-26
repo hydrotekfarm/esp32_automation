@@ -6,15 +6,19 @@
 #include "ds18x20.h"
 #include "sync_sensors.h"
 #include "ports.h"
+#include "ph_reading.h"
 
 struct sensor* get_water_temp_sensor() { return &water_temp_sensor; }
 
 void measure_water_temperature(void *parameter) {		// Water Temperature Measurement Task
 	const char *TAG = "Temperature_Task";
 
-	init_sensor(&water_temp_sensor, "water temp", true, false);
+	init_sensor(&water_temp_sensor, "water_temp", true, false);
 
 	ds18x20_addr_t ds18b20_address[1];
+
+	gpio_config_t temperature_gpio_config = { (BIT(TEMPERATURE_SENSOR_GPIO)), GPIO_MODE_OUTPUT };
+    gpio_config(&temperature_gpio_config);
 
 	// Scan and setup sensor
 	uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO,
@@ -43,6 +47,11 @@ void measure_water_temperature(void *parameter) {		// Water Temperature Measurem
 
 		// Sync with other sensor tasks
 		// Wait up to 10 seconds to let other tasks end
-		xEventGroupSync(sensor_event_group, WATER_TEMPERATURE_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+		if (!sensor_calib_status(get_ph_sensor())) {
+                xEventGroupSync(sensor_event_group, WATER_TEMPERATURE_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+        } else {
+			//If ph calibration on, get frequent water temp readings// 
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
 	}
 }
