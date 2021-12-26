@@ -1,7 +1,7 @@
 #include "rf_lib.h"
-#include <Freertos/freertos.h>
-#include <Freertos/task.h>
-#include <Freertos/queue.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
 
 #define RF_CODE_LENGTH 24
 #define RF_ADDRESS_LENGTH 20

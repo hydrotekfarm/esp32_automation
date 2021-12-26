@@ -34,12 +34,14 @@
 #include "led_manager.h"
 
 void boot_sequence() {
-
 	//Start Wifi led task
 	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 
 	// Start as grow cycle inactive by default
 	is_grow_active = false;
+
+	// Init ota
+	init_ota();
 
 	// Init nvs
 	init_nvs();

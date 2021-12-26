@@ -1,6 +1,6 @@
 #include <stdbool.h>
-#include <Freertos/freertos.h>
-#include <Freertos/task.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "sensor.h"
 #include "ph_sensor.h"
 

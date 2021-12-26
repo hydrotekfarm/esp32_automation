@@ -3,11 +3,13 @@
 #include <esp_event.h>
 #include <esp_log.h>
 #include <esp_err.h>
+#include <esp_system.h>
 #include <freertos/semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <cJSON.h>
 
 #include "boot.h"
 #include "ec_reading.h"
@@ -25,39 +27,52 @@
 #include "reservoir_control.h"
 #include "ports.h"
 
-void mqtt_event_handler(esp_mqtt_event_handle_t event) {
-	const char *TAG = "MQTT_Event_Handler";
-	switch (event->event_id) {
-	case MQTT_EVENT_CONNECTED:
-		ESP_LOGI(TAG, "Connected\n");
-		xSemaphoreGive(mqtt_connect_semaphore);
-		break;
-	case MQTT_EVENT_DISCONNECTED:
-		ESP_LOGI(TAG, "Disconnected\n");
-		break;
-	case MQTT_EVENT_SUBSCRIBED:
-		ESP_LOGI(TAG, "Subscribed\n");
-		break;
-	case MQTT_EVENT_UNSUBSCRIBED:
-		ESP_LOGI(TAG, "UnSubscribed\n");
-		break;
-	case MQTT_EVENT_PUBLISHED:
-		ESP_LOGI(TAG, "Published\n");
-		break;
-	case MQTT_EVENT_DATA:
-		ESP_LOGI(TAG, "Message received\n");
-		data_handler(event->topic, event->topic_len, event->data, event->data_len);
-		break;
-	case MQTT_EVENT_ERROR:
-		ESP_LOGI(TAG, "Error\n");
-		break;
-	case MQTT_EVENT_BEFORE_CONNECT:
-		ESP_LOGI(TAG, "Before Connection\n");
-		break;
-	default:
-		ESP_LOGI(TAG, "Other Command\n");
-		break;
-	}
+static void initiate_ota(const char *mqtt_data);
+static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
+static esp_err_t validate_ota_parameters(char *version, char *endpoint);
+
+extern char *url_buf;
+extern bool is_ota_success_on_bootup;
+
+esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
+   const char *TAG = "MQTT_Event_Handler";
+
+   switch (event->event_id) {
+      case MQTT_EVENT_CONNECTED:
+         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+         xSemaphoreGive(mqtt_connect_semaphore);
+         break;
+      case MQTT_EVENT_DISCONNECTED:
+         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+         break;
+
+      case MQTT_EVENT_SUBSCRIBED:
+         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_UNSUBSCRIBED:
+         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_PUBLISHED:
+         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+         break;
+      case MQTT_EVENT_DATA:
+         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+         printf("DATA=%.*s\r\n", event->data_len, event->data);
+         data_handler(event->topic, event->topic_len, event->data, event->data_len);
+         break;
+      case MQTT_EVENT_ERROR:
+         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+         break;
+      case MQTT_EVENT_BEFORE_CONNECT:
+         ESP_LOGI(TAG, "Before Connection\n");
+         break;
+      default:
+         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+         break;
+   }
+
+   return 0;
 }
 
 void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
@@ -115,10 +130,16 @@ void add_id(char *topic) {
 	strcat(topic, get_network_settings()->device_id);
 }
 
+void add_device_type(char *topic) {
+   strcat(topic, "/");
+   strcat(topic, DEVICE_TYPE);
+}
+
 void make_topics() {
-	ESP_LOGI("", "Starting make topics");
+	ESP_LOGI(MQTT_TAG, "Starting make topics");
 
 	int device_id_len = strlen(get_network_settings()->device_id);
+   int device_type_len = strlen(DEVICE_TYPE);
 
 	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
 	add_id(wifi_connect_topic);
@@ -145,10 +166,17 @@ void make_topics() {
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 
 	//Topic for Calibration//
-    init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
-    add_id(calibration_topic);
-    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+   init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
+   add_id(calibration_topic);
+   ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 
+   init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
+   add_device_type(ota_update_topic);
+   ESP_LOGI(MQTT_TAG, "OTA update topic: %s", ota_update_topic);
+
+   init_topic(&ota_done_topic, device_type_len + 1 + strlen(OTA_DONE_HEADING) + 1, OTA_DONE_HEADING);
+   add_device_type(ota_done_topic);
+   ESP_LOGI(MQTT_TAG, "OTA done topic: %s", ota_done_topic);
 }
 
 void subscribe_topics() {
@@ -157,6 +185,7 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -200,8 +229,11 @@ void mqtt_connect() {
 
 	is_mqtt_connected = true;
 
+   if (is_ota_success_on_bootup == true) {
+      printf("Publishing OTA Success result on boot up ...");
+      publish_ota_result(mqtt_client, OTA_SUCCESS, NO_FALIURE);
+   }
 }
-
 
 void create_time_json(cJSON **time_json) {
 	char time_str[TIME_STRING_LENGTH];
@@ -355,54 +387,223 @@ void update_settings(char *settings) {
 	if(!get_is_settings_received()) settings_received();
 }
 
+static void initiate_ota(const char *mqtt_data) {
+   const char *TAG = "INITIATE_OTA";
+
+   char version[FIRMWARE_VERSION_LEN], endpoint[OTA_URL_SIZE];
+   if (ESP_OK == parse_ota_parameters(mqtt_data, version, endpoint)) {
+      if (ESP_OK == validate_ota_parameters(version, endpoint)) {
+         ESP_LOGI(TAG, "FW upgrade command received over MQTT - checking for valid URL\n");
+         if (strlen(endpoint) > OTA_URL_SIZE) {
+            ESP_LOGI(TAG, "URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
+            publish_ota_result(mqtt_client, OTA_FAIL, INVALID_OTA_URL_RECEIVED);
+         }
+         else {
+            /* Copy FW upgrade URL to local buffer */
+            printf("Received URL lenght is: %d\r\n", strlen(endpoint));
+            url_buf = (char *)malloc(strlen(endpoint) + 1);
+            if (NULL == url_buf) {
+               printf("Unable to allocate memory to save received URL\r\n");
+               publish_ota_result(mqtt_client, OTA_FAIL, INVALID_OTA_URL_RECEIVED);
+            }
+            else {
+               memset(url_buf, 0x00, strlen(endpoint) + 1);
+               strncpy(url_buf, endpoint, strlen(endpoint));
+               printf("Received URL is: %s\r\n", url_buf);
+
+               /* Starting OTA thread */
+               xTaskCreate(&ota_task, "ota_task", 8192, mqtt_client, 5, NULL);
+            }
+         }
+      }
+   }
+}
+
+static esp_err_t validate_ota_parameters(char *version, char *endpoint)
+{
+   const char *TAG = "VALIDATE_OTA_PARAMETERS";
+
+   ESP_LOGI(TAG, "version: \"%s\"\n", version);
+   ESP_LOGI(TAG, "endpoint: \"%s\"\n", endpoint);
+
+   if (version == NULL || endpoint == NULL) {
+      ESP_LOGI(TAG, "Invalid parameter received");
+      return ESP_FAIL;
+   }
+
+   ESP_LOGI(TAG, "FW upgrade command received over MQTT - checking for valid URL\n");
+   if (strlen(endpoint) > OTA_URL_SIZE) {
+      ESP_LOGI(TAG, "URL length is more than valid limit of: [%d]\r\n", OTA_URL_SIZE);
+      return ESP_FAIL;
+   }
+
+   return ESP_OK;
+}
+
+static esp_err_t parse_ota_parameters(const char *buffer, char *version_buf, char *endpoint_buf)
+{
+   const char *TAG = "PARSE_OTA_PARAMETERS";
+
+   cJSON *version;
+   cJSON *endpoint;
+
+   if (buffer == NULL) {
+      ESP_LOGI(TAG, "Invalid parameter received");
+      return ESP_FAIL;
+   }
+
+   cJSON *root = cJSON_Parse(buffer);
+   if (root == NULL) {
+      ESP_LOGI(TAG, "Fail to deserialize Json");
+      return ESP_FAIL;
+   }
+
+   version = cJSON_GetObjectItemCaseSensitive(root, "version");
+   if (cJSON_IsString(version) && (version->valuestring != NULL)) {
+      strcpy(version_buf, version->valuestring);
+      ESP_LOGI(TAG, "version: \"%s\"\n", version_buf);
+   }
+
+   endpoint = cJSON_GetObjectItemCaseSensitive(root, "endpoint");
+   if (cJSON_IsString(endpoint) && (endpoint->valuestring != NULL)) {
+      strcpy(endpoint_buf, endpoint->valuestring);
+      ESP_LOGI(TAG, "endpoint: \"%s\"\n", endpoint_buf);
+   }
+   return ESP_OK;
+}
+
+static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason)
+{
+   const char *TAG = "CREATE_AND_PUBLISH_OTA_RESULT";
+   cJSON *root, *device_id, *version, *result, *error;
+
+   // Initializing json object and sensor array
+   root = cJSON_CreateObject();
+
+   // Adding Device ID
+   device_id = cJSON_CreateString(get_network_settings()->device_id);
+   cJSON_AddItemToObject(root, "device_id", device_id);
+
+   // Adding Device version
+   esp_app_desc_t running_app_info;
+   const esp_partition_t *running = esp_ota_get_running_partition();
+
+   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+      ESP_LOGI(TAG, "Running firmware version: %s", running_app_info.version);
+      version = cJSON_CreateString(running_app_info.version);
+      cJSON_AddItemToObject(root, "version", version);
+   }
+
+   if (ota_result == OTA_SUCCESS) {
+      result = cJSON_CreateString("success");
+      cJSON_AddItemToObject(root, "result", result);
+      error = cJSON_CreateString("");
+      cJSON_AddItemToObject(root, "error", error);
+   }
+   else {
+      result = cJSON_CreateString("failure");
+      cJSON_AddItemToObject(root, "result", result);
+      if (ota_failure_reason == VERSION_NOT_FOUND) {
+         error = cJSON_CreateString("version not found");
+      }
+      else if (ota_failure_reason == INVALID_OTA_URL_RECEIVED) {
+         error = cJSON_CreateString("Invalid OTA URL received");
+      }
+      else if (ota_failure_reason == HTTP_CONNECTION_FAILED) {
+         error = cJSON_CreateString("http connection failed");
+      }
+      else if (ota_failure_reason == OTA_UPDATE_FAILED) {
+         error = cJSON_CreateString("ota update failed");
+      }
+      else if (ota_failure_reason == IMAGE_FILE_LARGER_THAN_OTA_PARTITION) {
+         error = cJSON_CreateString("image file larger than ota partition");
+      }
+      else if (ota_failure_reason == OTA_WRTIE_OPERATION_FAILED) {
+         error = cJSON_CreateString("ota write operation failed");
+      }
+      else if (ota_failure_reason == IMAGE_VALIDATION_FAILED) {
+         error = cJSON_CreateString("version not found");
+      }
+      else if (ota_failure_reason == OTA_SET_BOOT_PARTITION_FAILED) {
+         error = cJSON_CreateString("version not found");
+      }
+      else{
+         error = cJSON_CreateString("version not found");
+      }
+
+      cJSON_AddItemToObject(root, "error", error);
+   }
+
+   // Creating string from JSON
+   char *data = cJSON_PrintUnformatted(root);
+
+   // Free memory
+   cJSON_Delete(root);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+
+   esp_mqtt_client_publish(client, ota_done_topic, data, 0, 1, 0);
+
+   ESP_LOGI(TAG, "ota_failed message publish successful, Message: %s", data);
+}
+
+void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason) {
+   create_and_publish_ota_result(client, ota_result, ota_failure_reason);
+}
+
 void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t data_len) {
-    const char *TAG = "DATA_HANDLER";
+   const char *TAG = "DATA_HANDLER";
 
-    // Create dynamically allocated vars for topic and data
-    char *topic = malloc(sizeof(char) * (topic_len+1));
-    char *data = malloc(sizeof(char) * (data_len+1));
+   // Create dynamically allocated vars for topic and data
+   char *topic = malloc(sizeof(char) * (topic_len+1));
+   char *data = malloc(sizeof(char) * (data_len+1));
 
-    // Copy over topic
-    for(int i = 0; i < topic_len; i++) {
-        topic[i] = topic_in[i];
-    }
-    topic[topic_len] = 0;
+   // Copy over topic
+   for(int i = 0; i < topic_len; i++) {
+      topic[i] = topic_in[i];
+   }
+   topic[topic_len] = 0;
 
-    // Copy over data
-    for(int i = 0; i < data_len; i++) {
-        data[i] = data_in[i];
-    }
-    data[data_len] = 0;
+   // Copy over data
+   for(int i = 0; i < data_len; i++) {
+      data[i] = data_in[i];
+   }
+   data[data_len] = 0;
 
-    ESP_LOGI(TAG, "Incoming Topic: %s", topic);
+   ESP_LOGI(TAG, "Incoming Topic: %s", topic);
 
-    // Check topic against each subscribed topic possible
-    if(strcmp(topic, sensor_settings_topic) == 0) {
-        ESP_LOGI(TAG, "Sensor settings received");
+   // Check topic against each subscribed topic possible
+   if(strcmp(topic, sensor_settings_topic) == 0) {
+      ESP_LOGI(TAG, "Sensor settings received");
 
-        // Update sensor settings
-        update_settings(data);
-    } else if(strcmp(topic, grow_cycle_topic) == 0) {
-        ESP_LOGI(TAG, "Grow cycle status received");
+      // Update sensor settings
+      update_settings(data);
+   } else if(strcmp(topic, grow_cycle_topic) == 0) {
+      ESP_LOGI(TAG, "Grow cycle status received");
 
-        // Start/stop grow cycle according to message
-        if(data[0] == '0') stop_grow_cycle();
-        else start_grow_cycle();
-    } else if(strcmp(topic, rf_control_topic) == 0) {
-        cJSON *obj = cJSON_Parse(data);
-        obj = obj->child;
-        ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
-        control_power_outlet(atoi(obj->string), obj->valueint);
-    } else if(strcmp(topic, calibration_topic) == 0) {
-        cJSON *obj = cJSON_Parse(data);
-        update_calibration(obj); 
-    } else {
-        // Topic doesn't match any known topics
-        ESP_LOGE(TAG, "Topic unknown");
-    }
+      // Start/stop grow cycle according to message
+      if(data[0] == '0') stop_grow_cycle();
+      else start_grow_cycle();
+   } else if(strcmp(topic, rf_control_topic) == 0) {
+      cJSON *obj = cJSON_Parse(data);
+      obj = obj->child;
+      ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
+      control_power_outlet(atoi(obj->string), obj->valueint);
+   } else if(strcmp(topic, calibration_topic) == 0) {
+      cJSON *obj = cJSON_Parse(data);
+      update_calibration(obj); 
+   } 	else if(strcmp(topic, ota_update_topic) == 0) {
+      ESP_LOGI(TAG, "OTA update message received");
 
-    free(topic);
-    free(data);
+      // Initiate ota
+      initiate_ota(data);
+   } else {
+      // Topic doesn't match any known topics
+      ESP_LOGE(TAG, "Topic unknown");
+   }
+
+   free(topic);
+   free(data);
 }
 
 void update_calibration(cJSON *data) {
