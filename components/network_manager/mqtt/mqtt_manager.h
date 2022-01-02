@@ -27,6 +27,8 @@
 #define CALIBRATION_HEADING "calibration"
 #define OTA_UPDATE_HEADING "ota_update"
 #define OTA_DONE_HEADING "ota_done"
+#define VERSION_REQUEST_HEADING "version_request"
+#define VERSION_RESULT_HEADING "version_result"
 
 /**
  * OTA Result
@@ -70,6 +72,8 @@ char *sensor_data_topic;
 char *sensor_settings_topic;
 char *ota_update_topic;
 char *ota_done_topic;
+char *version_request_topic;
+char *version_result_topic;
 char *equipment_status_topic;
 char *grow_cycle_topic;
 char *rf_control_topic;
