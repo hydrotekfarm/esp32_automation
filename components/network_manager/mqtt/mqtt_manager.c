@@ -30,6 +30,7 @@
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
 static esp_err_t validate_ota_parameters(char *version, char *endpoint);
+static void publish_firmware_version();
 
 extern char *url_buf;
 extern bool is_ota_success_on_bootup;
@@ -159,7 +160,7 @@ void make_topics() {
 
 	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
 	add_id(grow_cycle_topic);
-	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", grow_cycle_topic);
+	ESP_LOGI(MQTT_TAG, "Grow cycle topic: %s", grow_cycle_topic);
 
 	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
 	add_id(rf_control_topic);
@@ -177,6 +178,14 @@ void make_topics() {
    init_topic(&ota_done_topic, device_type_len + 1 + strlen(OTA_DONE_HEADING) + 1, OTA_DONE_HEADING);
    add_device_type(ota_done_topic);
    ESP_LOGI(MQTT_TAG, "OTA done topic: %s", ota_done_topic);
+
+   init_topic(&version_request_topic, device_type_len + 1 + strlen(VERSION_REQUEST_HEADING) + 1, VERSION_REQUEST_HEADING);
+   add_device_type(version_request_topic);
+   ESP_LOGI(MQTT_TAG, "Version request topic: %s", version_request_topic);
+
+   init_topic(&version_result_topic, device_type_len + 1 + strlen(VERSION_RESULT_HEADING) + 1, VERSION_RESULT_HEADING);
+   add_device_type(version_result_topic);
+   ESP_LOGI(MQTT_TAG, "Version result topic: %s", version_result_topic);
 }
 
 void subscribe_topics() {
@@ -186,6 +195,7 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
 	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -574,14 +584,12 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 
    // Check topic against each subscribed topic possible
    if(strcmp(topic, sensor_settings_topic) == 0) {
-      ESP_LOGI(TAG, "Sensor settings received");
-
       // Update sensor settings
+      ESP_LOGI(TAG, "Sensor settings received");
       update_settings(data);
    } else if(strcmp(topic, grow_cycle_topic) == 0) {
-      ESP_LOGI(TAG, "Grow cycle status received");
-
       // Start/stop grow cycle according to message
+      ESP_LOGI(TAG, "Grow cycle status received");
       if(data[0] == '0') stop_grow_cycle();
       else start_grow_cycle();
    } else if(strcmp(topic, rf_control_topic) == 0) {
@@ -593,10 +601,13 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *obj = cJSON_Parse(data);
       update_calibration(obj); 
    } 	else if(strcmp(topic, ota_update_topic) == 0) {
-      ESP_LOGI(TAG, "OTA update message received");
-
       // Initiate ota
+      ESP_LOGI(TAG, "OTA update message received");
       initiate_ota(data);
+   } else if(strcmp(topic, version_request_topic) == 0) {
+      // Send back firmware version
+      ESP_LOGI(TAG, "Firmware version requested");
+      publish_firmware_version();
    } else {
       // Topic doesn't match any known topics
       ESP_LOGE(TAG, "Topic unknown");
@@ -604,6 +615,27 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 
    free(topic);
    free(data);
+}
+
+static void publish_firmware_version() {
+   cJSON *root, *device_id, *version;
+   root = cJSON_CreateObject();
+
+   // Adding Device ID
+   device_id = cJSON_CreateString(get_network_settings()->device_id);
+   cJSON_AddItemToObject(root, "device_id", device_id);
+
+   // Adding version
+   char firmware_version[FIRMWARE_VERSION_LEN];
+   if(get_firmware_version(firmware_version)) {
+      version = cJSON_CreateString(firmware_version);
+   } else {
+      version = cJSON_CreateString("error");
+   }
+   cJSON_AddItemToObject(root, "version", version);
+
+   esp_mqtt_client_publish(mqtt_client, version_result_topic, cJSON_PrintUnformatted(root), 0, 1, 0);
+   cJSON_Delete(root);
 }
 
 void update_calibration(cJSON *data) {
