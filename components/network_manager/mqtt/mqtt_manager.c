@@ -26,11 +26,13 @@
 #include "wifi_connect.h"
 #include "reservoir_control.h"
 #include "ports.h"
+#include "test_hardware.h"
 
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
 static esp_err_t validate_ota_parameters(char *version, char *endpoint);
 static void publish_firmware_version();
+    
 
 extern char *url_buf;
 extern bool is_ota_success_on_bootup;
@@ -166,10 +168,34 @@ void make_topics() {
 	add_id(rf_control_topic);
 	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 
-	//Topic for Calibration//
+	//Topic for Calibration//   
    init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
    add_id(calibration_topic);
    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+
+   init_topic(&test_motor_topic, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
+   add_id(test_motor_topic);
+   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_topic);
+
+   init_topic(&test_ph_topic, device_id_len + 1 + strlen(TEST_PH_HEADING) + 1, TEST_PH_HEADING);
+   add_id(test_ph_topic);
+   ESP_LOGI(MQTT_TAG, "Test ph topic: %s", test_ph_topic);
+
+   init_topic(&test_lights_topic, device_id_len + 1 + strlen(TEST_LIGHTS_HEADING) + 1, TEST_LIGHTS_HEADING);
+   add_id(test_lights_topic);
+   ESP_LOGI(MQTT_TAG, "Test lights topic: %s", test_lights_topic);
+
+   init_topic(&test_temperature_topic, device_id_len + 1 + strlen(TEST_TEMPERATURE_HEADING) + 1, TEST_TEMPERATURE_HEADING);
+   add_id(test_temperature_topic);
+   ESP_LOGI(MQTT_TAG, "Test water temperature topic: %s",test_temperature_topic);
+
+   init_topic(&test_ec_topic, device_id_len + 1 + strlen(TEST_EC_HEADING) + 1, TEST_EC_HEADING);
+   add_id(test_ec_topic);
+   ESP_LOGI(MQTT_TAG, "Test ec topic: %s", test_ph_topic);   
+
+   init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
+   add_id(test_rf_topic);
+   ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
 
    init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
    add_device_type(ota_update_topic);
@@ -196,6 +222,12 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_motor_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_lights_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_ph_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_temperature_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_ec_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_rf_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
@@ -312,6 +344,9 @@ void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing 
 
 		// Publish data to MQTT broker using topic and data
 		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
+
+      
+
 
 		ESP_LOGI(MQTT_TAG, "Sensor data: %s", data);
 
@@ -608,7 +643,36 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       // Send back firmware version
       ESP_LOGI(TAG, "Firmware version requested");
       publish_firmware_version();
-   } else {
+   } else if(strcmp(topic, test_motor_topic) == 0) {
+      int pump_status;
+      cJSON *root  = cJSON_Parse(data);  
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (switch_status->valueint != NULL) {
+         pump_status = switch_status->valueint;   
+         ESP_LOGI(TAG, ": \"%s\"\n",pump_status);
+      }
+      ESP_LOGI(TAG, "Received the test motor message");
+      test_motor(pump);
+   } else if(strcmp(topic, test_lights_topic) == 0){
+      cJSON *choice = cJSON_Parse(data);
+      cJSON *object = choice->child;
+      int light = object->valueint;
+      ESP_LOGI(TAG,"Received the test lights message");
+      test_lights(light);
+   } else if(strcmp(topic, test_ph_topic) == 0){
+      ESP_LOGI(TAG, "Received the test PH message");
+      test_ph();
+   }else if(strcmp(topic, test_temperature_topic) == 0){
+      ESP_LOGI(TAG, "Received the test Water TEmperature message");
+      test_water_temperature();
+   }else if(strcmp(topic, test_ec_topic) == 0){
+      ESP_LOGI(TAG, "Received the test EC message");
+      test_ec();
+   }else if(strcmp(topic, test_rf_topic) == 0){
+      ESP_LOGI(TAG,"Received the test RF message");
+      test_rf();
+   }else {
       // Topic doesn't match any known topics
       ESP_LOGE(TAG, "Topic unknown");
    }
@@ -639,7 +703,7 @@ static void publish_firmware_version() {
 }
 
 void update_calibration(cJSON *data) {
-    cJSON *obj = data->child; 
+    cJSON *obj = data->child;  
     char *data_string = cJSON_Print(data);
     ESP_LOGI(MQTT_TAG, "%s", data_string);
     if (strcmp(obj->string, "type") == 0) {
@@ -672,4 +736,21 @@ void update_calibration(cJSON *data) {
         ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
     }
     cJSON_Delete(data);
+}
+
+void publish_pump_status(int choice , char error_status[]){
+   cJSON *temp, *ch , *stat;
+   temp = cJSON_CreateObject();
+
+   ch = cJSON_CreateString(choice->ch);
+   cJSON_AddItemToObject(temp, "Choice", ch);
+
+   stat = cJSON_CreateString(error_status->stat);
+   cJSON_AddItemToObject(temp, "Status", stat);
+
+   char *data = cJSON_PrintUnformatted(temp);
+   cJSON_Delete(temp);
+
+   esp_mqtt_client_publish(, ota_done_topic, data, 0, 1, 0);
+
 }

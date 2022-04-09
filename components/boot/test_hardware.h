@@ -9,3 +9,5 @@ void test_ec();
 void test_mcp23017();
 void test_rf();
 void test_water_temperature();
+void test_motor(int choice);
+void test_lights(int ch);

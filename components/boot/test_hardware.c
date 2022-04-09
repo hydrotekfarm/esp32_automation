@@ -158,3 +158,100 @@ void test_water_temperature() {
 	}
 }
 
+void test_motor(int choice,char status[]){
+    const char *TAG = "TEST_MOTOR";
+    printf("\n");
+    ESP_LOGI(TAG, "Testing the motor");
+    printf("-------------------------------------------------\n");
+    switch (choice)
+    {
+    case 1 : 
+        ESP_LOGI(TAG,"This is Motor_1");
+        if(status == "ON")
+        {
+            if(set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
+            {
+               publish_pump_status();      
+            }else
+            {
+               esp_mqtt_client_publish(mqtt_client, test_motor_topic, data , 0, PUBLISH_DATA_QOS, 1);
+            } 
+        }else
+            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO); 
+        break;
+
+    case 2 : ESP_LOGI(TAG,"This is Motor_2");
+            if(status == "ON")
+            set_gpio_on(EC_NUTRIENT_2_PUMP_GPIO);
+            else
+            set_gpio_off(EC_NUTRIENT_2_PUMP_GPIO);
+        break;    
+    
+    case 3 : ESP_LOGI(TAG,"This is Motor_3");
+            if(status == "ON")
+            set_gpio_on(EC_NUTRIENT_3_PUMP_GPIO);
+            else
+            set_gpio_off(EC_NUTRIENT_3_PUMP_GPIO); 
+        break;
+
+    case 4 : ESP_LOGI(TAG,"This is Motor_4");
+            if()
+            set_gpio_on(EC_NUTRIENT_4_PUMP_GPIO);
+            else
+            set_gpio_off(EC_NUTRIENT_4_PUMP_GPIO); 
+        break;
+
+    case 5 : ESP_LOGI(TAG,"This is Motor_5");
+            if(status)
+            set_gpio_on(EC_NUTRIENT_5_PUMP_GPIO);
+            else
+            set_gpio_off(EC_NUTRIENT_5_PUMP_GPIO); 
+        break; 
+
+    default: ESP_LOGI(TAG,"There is no such motor");
+        break;
+    }
+}
+
+void test_lights(int ch){
+    const char *TAG = "TEST_LIGHTS";
+    printf("\n");
+    ESP_LOGI(TAG, "Testing the lights");
+    printf("-------------------------------------------------\n");
+    switch (ch)
+    {
+    case 1 : ESP_LOGI(TAG,"Light_1 is on");
+          /*  set_gpio_on();
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            set_gpio_off(); */
+        break;
+
+    case 2 : ESP_LOGI(TAG,"Light_2 is on");
+           /* set_gpio_on();
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            set_gpio_off(); */
+        break;    
+    
+    case 3 : ESP_LOGI(TAG,"Light_3 is on");
+           /* set_gpio_on();
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            set_gpio_off(); */
+         break;
+
+    case 4 : ESP_LOGI(TAG,"Light_4 is on");
+           /* set_gpio_on();
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            set_gpio_off(); */
+        break;
+
+    case 5 : ESP_LOGI(TAG,"Light_5 is on");
+           /* set_gpio_on();
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            set_gpio_off(); */
+        break; 
+
+    default: ESP_LOGI(TAG,"There is no such light");
+        break;
+    }
+}
+

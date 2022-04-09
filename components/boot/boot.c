@@ -49,11 +49,11 @@ void boot_sequence() {
 	// Initialize deep sleep
 	init_power_button();
 
-	// Initialize hard reset and start hard reset task
+	/* Initialize hard reset and start hard reset task
 	init_reset_semaphore();
 	init_hard_reset_button();
 	xTaskCreatePinnedToCore(hard_reset, "hard_reset_task", 2500, NULL, HARD_RESET_TASK_PRIORITY, &hard_reset_task_handle, 0);
-
+*/
 	// Init connections
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());

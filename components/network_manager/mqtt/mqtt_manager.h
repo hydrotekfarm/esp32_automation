@@ -29,6 +29,12 @@
 #define OTA_DONE_HEADING "ota_done"
 #define VERSION_REQUEST_HEADING "version_request"
 #define VERSION_RESULT_HEADING "version_result"
+#define TEST_MOTOR_HEADING "test_motor"
+#define TEST_LIGHTS_HEADING "test_lights"
+#define TEST_PH_HEADING "test_ph"
+#define TEST_TEMPERATURE_HEADING "test_water_temperature"
+#define TEST_EC_HEADING "test_ec"
+#define TEST_RF_HEADING "test_rf"
 
 /**
  * OTA Result
@@ -78,6 +84,12 @@ char *equipment_status_topic;
 char *grow_cycle_topic;
 char *rf_control_topic;
 char *calibration_topic; 
+char *test_motor_topic;
+char *test_lights_topic;
+char *test_ph_topic;
+char *test_temperature_topic;
+char *test_ec_topic;
+char *test_rf_topic;
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 
@@ -129,5 +141,8 @@ void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result
 
 //Update calibration settings
 void update_calibration(cJSON *obj);
+
+//Publish status for motors
+void publish_pump_status(int choice, char error_status[]);
 
 #endif
