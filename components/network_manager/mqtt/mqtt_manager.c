@@ -645,34 +645,43 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       publish_firmware_version();
    } else if(strcmp(topic, test_motor_topic) == 0) {
       int pump_status;
+      cJSON *choice;
+      cJSON *switch_status;
       cJSON *root  = cJSON_Parse(data);  
       choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
-      if (switch_status->valueint != NULL) {
+      if (switch_status->valueint == 0 || switch_status->valueint == 1 || switch_status->valueint == -1) {
          pump_status = switch_status->valueint;   
-         ESP_LOGI(TAG, ": \"%s\"\n",pump_status);
+         ESP_LOGI(TAG, "%d\n",pump_status);
       }
       ESP_LOGI(TAG, "Received the test motor message");
-      test_motor(pump);
+      test_motor(choice->valueint,pump_status);
    } else if(strcmp(topic, test_lights_topic) == 0){
-      cJSON *choice = cJSON_Parse(data);
-      cJSON *object = choice->child;
-      int light = object->valueint;
+      int light_status;
+      cJSON *choice;
+      cJSON *switch_status;
+      cJSON *object = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(object, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(object, "switch_status");
+      if(switch_status->valueint == 0 || switch_status->valueint == 1 || switch_status->valueint == -1){
+         light_status = switch_status->valueint;
+         ESP_LOGI(TAG, "%d\n",light_status);
+      }
       ESP_LOGI(TAG,"Received the test lights message");
-      test_lights(light);
+      test_lights(choice->valueint,light_status);
    } else if(strcmp(topic, test_ph_topic) == 0){
       ESP_LOGI(TAG, "Received the test PH message");
       test_ph();
-   }else if(strcmp(topic, test_temperature_topic) == 0){
+   } else if(strcmp(topic, test_temperature_topic) == 0){
       ESP_LOGI(TAG, "Received the test Water TEmperature message");
       test_water_temperature();
-   }else if(strcmp(topic, test_ec_topic) == 0){
+   } else if(strcmp(topic, test_ec_topic) == 0){
       ESP_LOGI(TAG, "Received the test EC message");
       test_ec();
-   }else if(strcmp(topic, test_rf_topic) == 0){
+   } else if(strcmp(topic, test_rf_topic) == 0){
       ESP_LOGI(TAG,"Received the test RF message");
       test_rf();
-   }else {
+   } else {
       // Topic doesn't match any known topics
       ESP_LOGE(TAG, "Topic unknown");
    }
@@ -738,19 +747,46 @@ void update_calibration(cJSON *data) {
     cJSON_Delete(data);
 }
 
-void publish_pump_status(int choice , char error_status[]){
-   cJSON *temp, *ch , *stat;
-   temp = cJSON_CreateObject();
+void publish_pump_status(int publish_motor_choice , int publish_status){
+   const char *TAG = "PUBLISH_PUMP_STATUS";
+   cJSON *temp_obj;
+   temp_obj = cJSON_CreateObject();
 
-   ch = cJSON_CreateString(choice->ch);
-   cJSON_AddItemToObject(temp, "Choice", ch);
+   //ch = cJSON_Create(choice->ch);
+   cJSON_AddNumberToObject(temp_obj, "Choice", publish_motor_choice);
 
-   stat = cJSON_CreateString(error_status->stat);
-   cJSON_AddItemToObject(temp, "Status", stat);
+   //stat = cJSON_CreateString(error_status->stat);
+   cJSON_AddNumberToObject(temp_obj, "Status", publish_status);
 
-   char *data = cJSON_PrintUnformatted(temp);
-   cJSON_Delete(temp);
+   char *data = cJSON_PrintUnformatted(temp_obj);
+   
 
-   esp_mqtt_client_publish(, ota_done_topic, data, 0, 1, 0);
+   ESP_LOGI(TAG, "Message: %s", data);
 
+   esp_mqtt_client_publish(mqtt_client,test_motor_topic, data, 0, 1, 0);
+   cJSON_Delete(temp_obj);
+
+   ESP_LOGI(TAG, "Message publish successful, Message: %s", data);
+}
+
+void publish_light_status(int publish_light_choice, int publish_status)
+{
+   const char *TAG = "PUBLISH_LIGHT_STATUS";
+   cJSON *info;
+   info = cJSON_CreateObject();
+
+   // choice = cJSON_Create(publish_choice->choice);
+   cJSON_AddNumberToObject(info, "Choice", publish_light_choice);
+
+   // stat = cJSON_CreateString(status->stat);
+   cJSON_AddNumberToObject(info, "Status", publish_status);
+
+   char *data = cJSON_PrintUnformatted(info);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+
+   esp_mqtt_client_publish(mqtt_client,test_lights_topic, data, 0, 1, 0);
+   cJSON_Delete(info);
+
+   ESP_LOGI(TAG, "Message publish successful, Message: %s", data);
 }

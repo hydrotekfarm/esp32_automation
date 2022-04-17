@@ -143,6 +143,9 @@ void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result
 void update_calibration(cJSON *obj);
 
 //Publish status for motors
-void publish_pump_status(int choice, char error_status[]);
+void publish_pump_status(int publish_motor_choice, int publish_status);
+
+//Publish status for lights
+void publish_light_status(int publish_light_choice, int publish_status);
 
 #endif

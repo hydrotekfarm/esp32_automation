@@ -32,5 +32,5 @@ mcp23x17_t ports_dev;
 void init_ports();
 
 // Set gpio on and off
-void set_gpio_on(int gpio);
-void set_gpio_off(int gpio);
+esp_err_t set_gpio_on(int gpio);
+esp_err_t set_gpio_off(int gpio);
