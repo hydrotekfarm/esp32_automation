@@ -7,10 +7,12 @@
 #include "ds18x20.h"
 #include "esp_log.h"
 
-
 #define DEVICE_ON 1
 #define DEVICE_OFF 0
 #define DEVICE_ERROR -1
+
+void publish_pump_status(int publish_motor_choice , int publish_status);
+void publish_light_status(int publish_light_choice, int publish_status);
 
 ph_sensor_t ph_dev;
 ec_sensor_t ec_dev;

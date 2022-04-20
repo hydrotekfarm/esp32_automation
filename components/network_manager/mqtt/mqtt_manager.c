@@ -644,7 +644,7 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       ESP_LOGI(TAG, "Firmware version requested");
       publish_firmware_version();
    } else if(strcmp(topic, test_motor_topic) == 0) {
-      int pump_status;
+      int pump_status = 0;
       cJSON *choice;
       cJSON *switch_status;
       cJSON *root  = cJSON_Parse(data);  
@@ -657,7 +657,7 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       ESP_LOGI(TAG, "Received the test motor message");
       test_motor(choice->valueint,pump_status);
    } else if(strcmp(topic, test_lights_topic) == 0){
-      int light_status;
+      int light_status = 0;
       cJSON *choice;
       cJSON *switch_status;
       cJSON *object = cJSON_Parse(data);
