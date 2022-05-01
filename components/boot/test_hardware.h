@@ -11,3 +11,7 @@ void test_rf();
 void test_water_temperature();
 void test_motor(int motor_choice, int motor_status);
 void test_lights(int light_choice, int light_status);
+
+#define DEVICE_ON 1
+#define DEVICE_OFF 0
+#define DEVICE_ERROR -1

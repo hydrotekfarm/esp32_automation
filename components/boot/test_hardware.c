@@ -7,10 +7,6 @@
 #include "ds18x20.h"
 #include "esp_log.h"
 
-#define DEVICE_ON 1
-#define DEVICE_OFF 0
-#define DEVICE_ERROR -1
-
 void publish_pump_status(int publish_motor_choice , int publish_status);
 void publish_light_status(int publish_light_choice, int publish_status);
 
@@ -168,112 +164,38 @@ void test_water_temperature() {
 void test_motor(int motor_choice, int motor_status)
 {
     const char *TAG = "TEST_MOTOR";
-
     printf("\n");
     ESP_LOGI(TAG, "Testing the motor");
     printf("-------------------------------------------------\n");
-    switch (motor_choice)
+    int motor[5];
+    motor[0] = EC_NUTRIENT_1_PUMP_GPIO;
+    motor[1] = EC_NUTRIENT_2_PUMP_GPIO;
+    motor[2] = EC_NUTRIENT_3_PUMP_GPIO;
+    motor[3] = EC_NUTRIENT_4_PUMP_GPIO;
+    motor[4] = EC_NUTRIENT_5_PUMP_GPIO;
+
+    ESP_LOGI(TAG, "This is Motor_%d", motor_choice);
+    if (motor_status == DEVICE_ON)
     {
-    case 1:
-        ESP_LOGI(TAG, "This is Motor_1");
-        if (motor_status == DEVICE_ON)
+        if (set_gpio_on(motor[(motor_choice)-1]) == ESP_OK)
         {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_pump_status(motor_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(motor_choice, DEVICE_ERROR);
-            }
-        }
-        else
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-        publish_pump_status(motor_choice, DEVICE_OFF);
-        break;
-
-    case 2:
-        ESP_LOGI(TAG, "This is Motor_2");
-        if (motor_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_pump_status(motor_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(motor_choice, DEVICE_ERROR);
-            }
+            publish_pump_status(motor_choice, DEVICE_ON);
         }
         else
         {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
+            publish_pump_status(motor_choice, DEVICE_ERROR);
+        }
+    }
+    else
+    {   
+        if (set_gpio_off(motor[(motor_choice)-1]) == ESP_OK)
+        {
             publish_pump_status(motor_choice, DEVICE_OFF);
         }
-        break;
-
-    case 3:
-        ESP_LOGI(TAG, "This is Motor_3");
-        if (motor_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_pump_status(motor_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(motor_choice, DEVICE_ERROR);
-            }
-        }
         else
         {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_pump_status(motor_choice, DEVICE_OFF);
+            publish_pump_status(motor_choice, DEVICE_ERROR);
         }
-        break;
-
-    case 4:
-        ESP_LOGI(TAG, "This is Motor_4");
-        if (motor_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_pump_status(motor_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(motor_choice, DEVICE_ERROR);
-            }
-        }
-        else
-        {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_pump_status(motor_choice, DEVICE_OFF);
-        }
-        break;
-    case 5:
-        ESP_LOGI(TAG, "This is Motor_5");
-        if (motor_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_pump_status(motor_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(motor_choice, DEVICE_ERROR);
-            }
-        }
-        else
-        {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_pump_status(motor_choice, DEVICE_OFF);
-        }
-        break;
-
-    default:
-        ESP_LOGI(TAG, "There is no such motor");
-        break;
     }
 }
 
@@ -283,109 +205,33 @@ void test_lights(int light_choice, int light_status)
     printf("\n");
     ESP_LOGI(TAG, "Testing the lights");
     printf("-------------------------------------------------\n");
-    switch (light_choice)
+    int light[5];
+    light[0] = ;
+    light[1] = ;
+    light[2] = ;
+    light[3] = ;
+    light[4] = ;
+
+    if (light_choice == DEVICE_ON)
     {
-    case 1:
-        ESP_LOGI(TAG, "This is Light_1");
-        if (light_status == DEVICE_ON)
+        if (set_gpio_on(motor[(motor_choice)-1]) == ESP_OK)
         {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_light_status(light_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_light_status(light_choice, DEVICE_ERROR);
-            }
+            publish_pump_status(light_choice, DEVICE_ON);
         }
         else
         {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_light_status(light_choice, DEVICE_OFF);
+            publish_pump_status(light_choice, DEVICE_ERROR);
         }
-        break;
-
-    case 2:
-        ESP_LOGI(TAG, "This is Light_2");
-        if (light_status == DEVICE_ON)
+    }
+    else
+    {
+        if (set_gpio_off(motor[(motor_choice)-1]) == ESP_OK)
         {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_light_status(light_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_light_status(light_choice, DEVICE_ERROR);
-            }
+            publish_pump_status(light_choice, DEVICE_OFF);
         }
         else
         {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_light_status(light_choice, DEVICE_OFF);
+            publish_pump_status(light_choice, DEVICE_ERROR);
         }
-        break;
-
-    case 3:
-        ESP_LOGI(TAG, "This is Light_3");
-        if (light_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_light_status(light_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_light_status(light_choice, DEVICE_ERROR);
-            }
-        }
-        else
-        {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_light_status(light_choice, DEVICE_OFF);
-        }
-        break;
-    case 4:
-        ESP_LOGI(TAG, "This is Light_4");
-        if (light_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_light_status(light_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_pump_status(light_choice, DEVICE_ERROR);
-            }
-        }
-        else
-        {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_light_status(light_choice, DEVICE_OFF);
-        }
-        break;
-
-    case 5:
-        ESP_LOGI(TAG, "This is Light_5");
-        if (light_status == DEVICE_ON)
-        {
-            if (set_gpio_on(EC_NUTRIENT_1_PUMP_GPIO) == ESP_OK)
-            {
-                publish_light_status(light_choice, DEVICE_ON);
-            }
-            else
-            {
-                publish_light_status(light_choice, DEVICE_ERROR);
-            }
-        }
-        else
-        {
-            set_gpio_off(EC_NUTRIENT_1_PUMP_GPIO);
-            publish_light_status(light_choice, DEVICE_OFF);
-        }
-        break;
-
-    default:
-        ESP_LOGI(TAG, "There is no such light");
-        break;
     }
 }

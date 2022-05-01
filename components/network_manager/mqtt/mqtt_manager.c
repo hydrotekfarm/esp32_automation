@@ -28,6 +28,10 @@
 #include "ports.h"
 #include "test_hardware.h"
 
+#define DEVICE_ON 1
+#define DEVICE_OFF 0
+#define DEVICE_ERROR -1
+
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
 static esp_err_t validate_ota_parameters(char *version, char *endpoint);
@@ -650,10 +654,10 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *root  = cJSON_Parse(data);  
       choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
-      if (switch_status->valueint == 0 || switch_status->valueint == 1 || switch_status->valueint == -1) {
+      /*if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON) {
          pump_status = switch_status->valueint;   
          ESP_LOGI(TAG, "%d\n",pump_status);
-      }
+      }*/
       ESP_LOGI(TAG, "Received the test motor message");
       test_motor(choice->valueint,pump_status);
    } else if(strcmp(topic, test_lights_topic) == 0){
@@ -663,7 +667,7 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *object = cJSON_Parse(data);
       choice = cJSON_GetObjectItemCaseSensitive(object, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(object, "switch_status");
-      if(switch_status->valueint == 0 || switch_status->valueint == 1 || switch_status->valueint == -1){
+      if(switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON){
          light_status = switch_status->valueint;
          ESP_LOGI(TAG, "%d\n",light_status);
       }
@@ -765,8 +769,6 @@ void publish_pump_status(int publish_motor_choice , int publish_status){
 
    esp_mqtt_client_publish(mqtt_client,test_motor_topic, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
-
-   ESP_LOGI(TAG, "Message publish successful, Message: %s", data);
 }
 
 void publish_light_status(int publish_light_choice, int publish_status)
@@ -787,6 +789,4 @@ void publish_light_status(int publish_light_choice, int publish_status)
 
    esp_mqtt_client_publish(mqtt_client,test_lights_topic, data, 0, 1, 0);
    cJSON_Delete(info);
-
-   ESP_LOGI(TAG, "Message publish successful, Message: %s", data);
 }

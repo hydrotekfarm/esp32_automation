@@ -36,6 +36,10 @@
 #define TEST_EC_HEADING "test_ec"
 #define TEST_RF_HEADING "test_rf"
 
+#define DEVICE_ON 1
+#define DEVICE_OFF 0
+#define DEVICE_ERROR -1
+
 /**
  * OTA Result
  */
