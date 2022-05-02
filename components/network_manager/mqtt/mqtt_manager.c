@@ -654,10 +654,6 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *root  = cJSON_Parse(data);  
       choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
-      /*if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON) {
-         pump_status = switch_status->valueint;   
-         ESP_LOGI(TAG, "%d\n",pump_status);
-      }*/
       ESP_LOGI(TAG, "Received the test motor message");
       test_motor(choice->valueint,pump_status);
    } else if(strcmp(topic, test_lights_topic) == 0){

@@ -205,33 +205,20 @@ void test_lights(int light_choice, int light_status)
     printf("\n");
     ESP_LOGI(TAG, "Testing the lights");
     printf("-------------------------------------------------\n");
-    int light[5];
-    light[0] = ;
-    light[1] = ;
-    light[2] = ;
-    light[3] = ;
-    light[4] = ;
 
-    if (light_choice == DEVICE_ON)
+    char *light = grow_lights_address[light_choice];
+
+    struct rf_message rf_msg;
+    rf_msg.rf_address_ptr = light;
+    rf_msg.state = light_status;
+    int result = xQueueSend(rf_transmitter_queue, &rf_msg, pdMS_TO_TICKS(20000));
+
+    if (result == pdTRUE)
     {
-        if (set_gpio_on(motor[(motor_choice)-1]) == ESP_OK)
-        {
-            publish_pump_status(light_choice, DEVICE_ON);
-        }
-        else
-        {
-            publish_pump_status(light_choice, DEVICE_ERROR);
-        }
+        publish_light_status(light_choice, light_status);
     }
     else
     {
-        if (set_gpio_off(motor[(motor_choice)-1]) == ESP_OK)
-        {
-            publish_pump_status(light_choice, DEVICE_OFF);
-        }
-        else
-        {
-            publish_pump_status(light_choice, DEVICE_ERROR);
-        }
+        publish_light_status(light_choice, DEVICE_ERROR);
     }
 }
