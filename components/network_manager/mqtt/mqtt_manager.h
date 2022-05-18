@@ -31,6 +31,12 @@
 #define VERSION_RESULT_HEADING "version_result"
 #define TEST_MOTOR_HEADING "test_motor"
 #define TEST_LIGHTS_HEADING "test_lights"
+#define TEST_WATER_COOLER_HEADING "test_water_cooler"
+#define TEST_WATER_HEATER_HEADING "test_water_heater"
+#define TEST_WATER_IN_HEADING "test_water_in"
+#define TEST_WATER_OUT_HEADING "test_water_out"
+#define TEST_IRRIGATION_HEADING "test_irrigation"
+#define TEST_FLOAT_SWITCH_HEADING "test_flaot_switch"
 #define TEST_PH_HEADING "test_ph"
 #define TEST_TEMPERATURE_HEADING "test_water_temperature"
 #define TEST_EC_HEADING "test_ec"
@@ -90,10 +96,16 @@ char *rf_control_topic;
 char *calibration_topic; 
 char *test_motor_topic;
 char *test_lights_topic;
+char *test_water_cooler_topic;
+char *test_water_heater_topic;
+char *test_water_in_topic;
+char *test_water_out_topic;
+char *test_irrigation_topic;
 char *test_ph_topic;
 char *test_temperature_topic;
 char *test_ec_topic;
 char *test_rf_topic;
+char *test_float_switch_topic;
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 
@@ -152,4 +164,30 @@ void publish_pump_status(int publish_motor_choice, int publish_status);
 //Publish status for lights
 void publish_light_status(int publish_light_choice, int publish_status);
 
+//Publish status for water cooler
+void publish_water_cooler_status(int publish_cooler_status);
+
+//Publish status for water heater
+void publish_water_heater_status(int publish_heater_status);
+
+//Publish status for resorvior water in
+void publish_water_in_status(int publish_in_status);
+
+//Publish status for resorvior water out
+void publish_water_out_status(int publish_out_status);
+
+//Publish status for irrigation
+void publish_irrigation_status(int publish_irrig_status);
+
+//Publish status for float switches
+void publish_float_switch_status(int float_switch_type , int float_switch_status);
+
+//Publish status for ph
+void publish_ph_status(int ph_status);
+
+//Publish status for EC
+void publish_ec_status(int ec_status);
+
+//Publish status for water temperature
+void publish_water_temperature_status(int publish_temperature_status); 
 #endif
