@@ -7,6 +7,7 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include "ports.h"
+#include "../cloud_logger/udp_logging.h"
 
 #include "network_settings.h"
 
@@ -21,6 +22,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,		// WiFi 
 		ESP_LOGI(TAG, "got IP:%s", ip4addr_ntoa(&event->ip_info.ip));
 		retryNumber = 0;
 		is_wifi_connected = true; 
+		udp_logging_init(HOST_IP_ADDR, PORT, udp_logging_vprintf );
 		xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
 	} else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
 		ESP_ERROR_CHECK(esp_wifi_connect());
