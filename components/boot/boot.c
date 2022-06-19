@@ -34,6 +34,9 @@
 #include "led_manager.h"
 
 void boot_sequence() {
+
+	nvs_clear();
+
 	//Start Wifi led task
 	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
 

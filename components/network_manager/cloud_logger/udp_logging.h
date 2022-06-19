@@ -13,8 +13,8 @@
 //  limitations under the License.
 
 #define UDP_LOGGING_MAX_PAYLOAD_LEN 2048
-#define HOST_IP_ADDR                "169.46.82.162"
-#define PORT                        12977
+// #define HOST_IP_ADDR                "169.46.82.162"
+// #define PORT                        12977
 
 #include "esp_system.h"
 #include <string.h>
