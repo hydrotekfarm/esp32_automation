@@ -14,12 +14,16 @@
 #define WIFI_PW_KEY "WIFI_PW"
 #define DEVICE_ID_KEY "DEV_ID"
 #define BROKER_IP_KEY "B_IP"
+#define LOG_IP_KEY "L_IP"
+#define LOG_PORT_KEY "L_PORT"
 
 struct Network_Settings {
 	char wifi_ssid[50];
 	char wifi_pw[50];
 	char broker_ip[20];
 	char device_id[6];
+	char log_ip[20];
+	char log_port[10];
 };
 
 #endif /* COMPONENTS_NETWORK_MANAGER_NETWORK_SETTINGS_H_ */

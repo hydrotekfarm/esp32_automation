@@ -49,6 +49,8 @@ void push_network_settings() {
 	nvs_add_string(handle, WIFI_PW_KEY, network_settings.wifi_pw);
 	nvs_add_string(handle, DEVICE_ID_KEY, network_settings.device_id);
 	nvs_add_string(handle, BROKER_IP_KEY, network_settings.broker_ip);
+	nvs_add_string(handle, LOG_IP_KEY, network_settings.log_ip);
+	nvs_add_string(handle, LOG_PORT_KEY, network_settings.log_port);
 	nvs_add_uint8(handle, INIT_PROPERTIES_KEY, network_settings_status);
 
 	nvs_commit_data(handle);
@@ -59,6 +61,8 @@ void pull_network_settings() {
 	nvs_get_string(NETWORK_SETTINGS_NVS_NAMESPACE, WIFI_PW_KEY, network_settings.wifi_pw);
 	nvs_get_string(NETWORK_SETTINGS_NVS_NAMESPACE, DEVICE_ID_KEY, network_settings.device_id);
 	nvs_get_string(NETWORK_SETTINGS_NVS_NAMESPACE, BROKER_IP_KEY, network_settings.broker_ip);
+	nvs_get_string(NETWORK_SETTINGS_NVS_NAMESPACE, LOG_IP_KEY, network_settings.log_ip);
+	nvs_get_string(NETWORK_SETTINGS_NVS_NAMESPACE, LOG_PORT_KEY, network_settings.log_port);
 }
 
 void set_invalid_network_settings() {

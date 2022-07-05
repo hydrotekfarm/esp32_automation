@@ -25,6 +25,8 @@ static void json_parser(const char *buffer)
    const cJSON *device_id;
    const cJSON *time;
    const cJSON *broker_ip;
+   const cJSON *log_ip;
+   const cJSON *log_port;
 
    cJSON *root = cJSON_Parse(buffer);
 
@@ -62,6 +64,18 @@ static void json_parser(const char *buffer)
    {
 	   strcpy(get_network_settings()->broker_ip, broker_ip->valuestring);
 	   ESP_LOGI(TAG, "broker_ip: \"%s\"\n", broker_ip->valuestring);
+   }
+   log_ip = cJSON_GetObjectItemCaseSensitive(root, "log_ip");
+   if (cJSON_IsString(log_ip) && (log_ip->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->log_ip, log_ip->valuestring);
+	   ESP_LOGI(TAG, "log_ip: \"%s\"\n", get_network_settings()->log_ip);
+   }
+   log_port = cJSON_GetObjectItemCaseSensitive(root, "log_port");
+   if (cJSON_IsString(log_port) && (log_port->valuestring != NULL))
+   {
+	   strcpy(get_network_settings()->log_port, log_port->valuestring);
+	   ESP_LOGI(TAG, "log_port: \"%s\"\n", get_network_settings()->log_port);
    }
 }
 
