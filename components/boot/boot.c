@@ -35,7 +35,7 @@
 
 void boot_sequence() {
 
-	nvs_clear();
+	ESP_LOGE("", "Testing OTA ===============================================================================================");
 
 	//Start Wifi led task
 	xTaskCreatePinnedToCore(wifi_led, "led_task", 2500, NULL, LED_TASK_PRIORITY, &led_task_handle, 0);
