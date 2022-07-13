@@ -56,17 +56,17 @@ void test_hardware() {
 
     if(is_mcp23017) test_mcp23017();
     if(is_rf) test_rf();
-   /* if(is_ph) test_ph();
+    if(is_ph) test_ph();
     if(is_ec) test_ec();
-    if(is_water_temperature) test_water_temperature();
-    if(is_motor) test_motor();
-    if(is_lights) test_lights();
-    if(is_water_cooler) test_water_cooler();
-    if(is_water_heater) test_water_heater();
-    if(is_water_in) test_water_in();
-    if(is_water_out) test_water_out();
-    if(is_irrigation) test_irrigation();
-    if(is_float_switch) test_float_switch();*/
+  //  if(is_water_temperature) test_water_temperature();
+   // if(is_motor) test_motor();
+   // if(is_lights) test_lights();
+   // if(is_water_cooler) test_water_cooler();
+   // if(is_water_heater) test_water_heater();
+   // if(is_water_in) test_water_in();
+   // if(is_water_out) test_water_out();
+   // if(is_irrigation) test_irrigation();
+    //if(is_float_switch) test_float_switch();
 
     printf("\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware Complete");
@@ -140,7 +140,7 @@ void test_rf() {
     }
 }
 
-void test_ph(int ph_status) {
+void test_ph() {
     printf("\n");
     ESP_LOGI("PH_TEST", "Testing pH Sensor");
     printf("-------------------------------------------------\n");
@@ -149,7 +149,7 @@ void test_ph(int ph_status) {
         float ph_reading = 0;
         read_ph(&ph_dev, &ph_reading);
         ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-        publish_ph_status(ph_status);
+      //  publish_ph_status(ph_status); 
         vTaskDelay(pdMS_TO_TICKS(1500));
     }
 //    calibrate_ph(&ph_dev, 24);
@@ -158,11 +158,11 @@ void test_ph(int ph_status) {
         float ph_reading = 0;
         read_ph(&ph_dev, &ph_reading);
         ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-        publish_ph_status(ph_status);
+       // publish_ph_status(ph_status); 
     }
 }
 
-void test_ec(int ec_status) {
+void test_ec() {
     printf("\n");
     ESP_LOGI("EC_TEST", "Testing EC Sensor");
     printf("-------------------------------------------------\n");
@@ -170,7 +170,7 @@ void test_ec(int ec_status) {
         float ec_reading = 0;
         read_ec(&ec_dev, &ec_reading);
         ESP_LOGI("EC_TEST", "EC Reading: %f", ec_reading);
-        publish_ec_status(ec_status);
+      //  publish_ec_status(ec_status);
     }
 }
 

@@ -4,8 +4,8 @@ void init_ph();
 void init_ec();
 void init_water_temperature();
 
-void test_ph(int ph_status);
-void test_ec(int ec_status);
+void test_ph();
+void test_ec();
 void test_mcp23017();
 void test_rf();
 void test_water_temperature(int water_temperature_status);
