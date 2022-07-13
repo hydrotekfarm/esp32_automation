@@ -177,9 +177,13 @@ void make_topics() {
    add_id(calibration_topic);
    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 
-   init_topic(&test_motor_topic, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
-   add_id(test_motor_topic);
-   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_topic);
+   init_topic(&test_motor_request, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
+   add_id(test_motor_request);
+   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_request);
+
+   init_topic(&test_motor_response, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
+   add_id(test_motor_response);
+   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_response);
 
    init_topic(&test_ph_topic, device_id_len + 1 + strlen(TEST_PH_HEADING) + 1, TEST_PH_HEADING);
    add_id(test_ph_topic);
@@ -209,9 +213,13 @@ void make_topics() {
    add_id(test_water_heater_topic);
    ESP_LOGI(MQTT_TAG, "Test water heater topic: %s",test_water_heater_topic);
 
-   init_topic(&test_float_switch_topic, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
-   add_id(test_float_switch_topic);
-   ESP_LOGI(MQTT_TAG, "Test float switch topic: %s",test_float_switch_topic);
+   init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
+   add_id(test_fs_request);
+   ESP_LOGI(MQTT_TAG, "Test float switch topic: %s",test_fs_request);
+
+   init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
+   add_id(test_fs_response);
+   ESP_LOGI(MQTT_TAG, "Test float switch topic: %s",test_fs_response);
 
    init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
    add_device_type(ota_update_topic);
@@ -238,11 +246,11 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_motor_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_motor_request, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_lights_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_water_cooler_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_water_heater_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_float_switch_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_fs_request, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_ph_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_temperature_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_ec_topic, SUBSCRIBE_DATA_QOS);
@@ -679,8 +687,9 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       ESP_LOGI(TAG, "Firmware version requested");
       publish_firmware_version();
    }
-   else if (strcmp(topic, test_motor_topic) == 0)
+   else if (strcmp(topic, test_motor_request) == 0)
    {
+      ESP_LOGI(TAG, "ENTERED TEST MOTOR TOPIC");
       int pump_status = 0;
       cJSON *choice;
       cJSON *switch_status;
@@ -809,7 +818,7 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
          ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
       }
    }
-   else if (strcmp(topic, test_float_switch_topic) == 0)
+   else if (strcmp(topic, test_fs_request) == 0)
    {
       int float_switch_status = 0;
       cJSON *choice;
@@ -972,7 +981,7 @@ void publish_pump_status(int publish_motor_choice , int publish_status){
 
    ESP_LOGI(TAG, "Message: %s", data);
 
-   esp_mqtt_client_publish(mqtt_client,test_motor_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client,test_motor_request, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
 }
 
@@ -1076,7 +1085,7 @@ void publish_float_switch_status(int float_switch_type , int float_switch_status
 
    ESP_LOGI(TAG, "Message: %s", data);
 
-   esp_mqtt_client_publish(mqtt_client,test_float_switch_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client,test_fs_request, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
 }
 

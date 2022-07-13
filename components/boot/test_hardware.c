@@ -56,7 +56,7 @@ void test_hardware() {
 
     if(is_mcp23017) test_mcp23017();
     if(is_rf) test_rf();
-    if(is_ph) test_ph();
+   /* if(is_ph) test_ph();
     if(is_ec) test_ec();
     if(is_water_temperature) test_water_temperature();
     if(is_motor) test_motor();
@@ -66,7 +66,7 @@ void test_hardware() {
     if(is_water_in) test_water_in();
     if(is_water_out) test_water_out();
     if(is_irrigation) test_irrigation();
-    if(is_float_switch) test_float_switch();
+    if(is_float_switch) test_float_switch();*/
 
     printf("\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware Complete");
