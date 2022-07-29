@@ -322,7 +322,7 @@ void test_sensor(int choice, int switch_status)
     printf("-------------------------------------------------\n");
     enum sensors
     {
-        PH,
+        PH = 1 ,
         EC,
         WATER_TEMP
     };
@@ -375,21 +375,25 @@ void test_sensor(int choice, int switch_status)
                 {
                     ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
                     publish_water_temperature_status(DEVICE_ON);
+                    break;
                 }
                 else if (error == ESP_ERR_INVALID_RESPONSE)
                 {
                     ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
                     publish_water_temperature_status(DEVICE_ERROR);
+                    break;
                 }
                 else if (error == ESP_ERR_INVALID_CRC)
                 {
                     ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
                     publish_water_temperature_status(DEVICE_ERROR);
+                    break;
                 }
                 else
                 {
                     ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
                     publish_water_temperature_status(DEVICE_ERROR);
+                    break;
                 }
             }
         }

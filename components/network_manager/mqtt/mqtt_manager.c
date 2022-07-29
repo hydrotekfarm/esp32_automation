@@ -181,27 +181,28 @@ void make_topics() {
 
    init_topic(&test_motor_request, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
    add_id(test_motor_request);
-   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_request);
-
+   ESP_LOGI(MQTT_TAG, "Test motor request topic: %s", test_motor_request);
+   
    init_topic(&test_motor_response, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
    add_id(test_motor_response);
-   ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_response);
+
+   ESP_LOGI(MQTT_TAG, "Test motor response topic: %s", test_motor_response);
 
    init_topic(&test_outlet_request, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
    add_id(test_outlet_request);
-   ESP_LOGI(MQTT_TAG, "Test outlet topic: %s", test_outlet_request);
+   ESP_LOGI(MQTT_TAG, "Test outlet request topic: %s", test_outlet_request);
    
    init_topic(&test_outlet_response, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
    add_id(test_outlet_response);
-   ESP_LOGI(MQTT_TAG, "Test outlet topic: %s", test_outlet_response); 
+   ESP_LOGI(MQTT_TAG, "Test outlet response topic: %s", test_outlet_response); 
   
    init_topic(&test_sensor_request, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
    add_id(test_sensor_request);
-   ESP_LOGI(MQTT_TAG, "Test sensor topic: %s", test_sensor_request);
+   ESP_LOGI(MQTT_TAG, "Test sensor request topic: %s", test_sensor_request);
    
    init_topic(&test_sensor_response, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
    add_id(test_sensor_response);
-   ESP_LOGI(MQTT_TAG, "Test sensor topic: %s", test_sensor_response); 
+   ESP_LOGI(MQTT_TAG, "Test sensor response topic: %s", test_sensor_response); 
 
    init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
    add_id(test_rf_topic);
@@ -209,11 +210,11 @@ void make_topics() {
 
    init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
    add_id(test_fs_request);
-   ESP_LOGI(MQTT_TAG, "Test float switch topic: %s",test_fs_request);
+   ESP_LOGI(MQTT_TAG, "Test float switch request topic: %s",test_fs_request);
 
    init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
    add_id(test_fs_response);
-   ESP_LOGI(MQTT_TAG, "Test float switch topic: %s",test_fs_response);
+   ESP_LOGI(MQTT_TAG, "Test float switch response topic: %s",test_fs_response);
 
    init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
    add_device_type(ota_update_topic);
@@ -881,14 +882,17 @@ void update_calibration(cJSON *data)
 
 void publish_pump_status(int publish_motor_choice , int publish_status){
    const char *TAG = "PUBLISH_PUMP_STATUS";
-   cJSON *temp_obj;
+   cJSON *temp_obj, *choice=NULL, *status=NULL;
    temp_obj = cJSON_CreateObject();
+   
+   choice = cJSON_CreateNumber(publish_motor_choice);
+   status = cJSON_CreateNumber(publish_status);
 
    //ch = cJSON_Create(choice->ch);
-   cJSON_AddNumberToObject(temp_obj, "Choice", publish_motor_choice);
+   cJSON_AddItemToObject(temp_obj, "Choice", choice);
 
    //stat = cJSON_CreateString(error_status->stat);
-   cJSON_AddNumberToObject(temp_obj, "Status", publish_status);
+   cJSON_AddItemToObject(temp_obj, "Status", status);
 
    char *data = cJSON_PrintUnformatted(temp_obj);
    
@@ -902,12 +906,14 @@ void publish_pump_status(int publish_motor_choice , int publish_status){
 void publish_light_status(int publish_light_choice, int publish_status)
 {
    const char *TAG = "PUBLISH_LIGHT_STATUS";
-   cJSON *info;
+   cJSON *info, *choice=NULL, *status=NULL;
    info = cJSON_CreateObject();
+   choice = cJSON_CreateNumber(publish_light_choice);
+   status = cJSON_CreateNumber(publish_status);
 
-   cJSON_AddNumberToObject(info, "Choice", publish_light_choice);
+   cJSON_AddItemToObject(info, "Choice", choice);
 
-   cJSON_AddNumberToObject(info, "Status", publish_status);
+   cJSON_AddItemToObject(info, "Status", status);
    char *data = cJSON_PrintUnformatted(info);
 
    ESP_LOGI(TAG, "Message: %s", data);
@@ -918,10 +924,11 @@ void publish_light_status(int publish_light_choice, int publish_status)
 void publish_water_cooler_status(int publish_cooler_status)
 {
    const char *TAG = "PUBLISH_WATER_COOLER";
-   cJSON *root;
+   cJSON *root, *status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(publish_cooler_status);
 
-   cJSON_AddItemToObject(root,"Status",publish_cooler_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -932,10 +939,11 @@ void publish_water_cooler_status(int publish_cooler_status)
 void publish_water_heater_status(int publish_heater_status)
 {
    const char *TAG = "PUBLISH_WATER_HEATER";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(publish_heater_status);
 
-   cJSON_AddItemToObject(root,"Status",publish_heater_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -946,10 +954,11 @@ void publish_water_heater_status(int publish_heater_status)
 void publish_water_in_status(int publish_in_status)
 {
    const char *TAG = "PUBLISH_WATER_IN";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(publish_in_status);
 
-   cJSON_AddItemToObject(root,"Status",publish_in_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -960,10 +969,11 @@ void publish_water_in_status(int publish_in_status)
 void publish_water_out_status(int publish_out_status)
 {
    const char *TAG = "PUBLISH_WATER_OUT";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(publish_out_status);
 
-   cJSON_AddItemToObject(root,"Status",publish_out_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -974,10 +984,11 @@ void publish_water_out_status(int publish_out_status)
 void publish_irrigation_status(int publish_irrig_status)
 {
    const char *TAG = "PUBLISH_IRRIGATION";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
 
-   cJSON_AddItemToObject(root,"Status",publish_irrig_status);
+
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -987,12 +998,14 @@ void publish_irrigation_status(int publish_irrig_status)
 
 void publish_float_switch_status(int float_switch_type , int float_switch_status){
    const char *TAG = "PUBLISH_FLOAT SWITCH_STATUS";
-   cJSON *temp_obj;
+   cJSON *temp_obj, *type=NULL, *status=NULL;
    temp_obj = cJSON_CreateObject();
+   type=cJSON_CreateNumber(float_switch_type);
+   status=cJSON_CreateNumber(float_switch_status);
+  
+   cJSON_AddItemToObject(temp_obj, "Type", type);
 
-   cJSON_AddNumberToObject(temp_obj, "Type", float_switch_type);
-
-   cJSON_AddNumberToObject(temp_obj, "Status", float_switch_status);
+   cJSON_AddItemToObject(temp_obj, "Status", status);
 
    char *data = cJSON_PrintUnformatted(temp_obj);
    
@@ -1006,10 +1019,11 @@ void publish_float_switch_status(int float_switch_type , int float_switch_status
 void publish_ph_status(int ph_status)
 {
    const char *TAG = "PUBLISH_PH";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(ph_status);
 
-   cJSON_AddItemToObject(root,"Status",ph_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -1020,10 +1034,11 @@ void publish_ph_status(int ph_status)
 void publish_ec_status(int ec_status)
 {
    const char *TAG = "PUBLISH_EC";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(ec_status);
 
-   cJSON_AddItemToObject(root,"Status", ec_status);
+   cJSON_AddItemToObject(root,"Status", status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
@@ -1034,10 +1049,11 @@ void publish_ec_status(int ec_status)
 void publish_water_temperature_status(int publish_temperature_status)
 {
    const char *TAG = "PUBLISH_WATER_TEMPERATURE";
-   cJSON *root;
+   cJSON *root,*status=NULL;
    root = cJSON_CreateObject();
+   status = cJSON_CreateNumber(publish_temperature_status);
 
-   cJSON_AddItemToObject(root,"Status",publish_temperature_status);
+   cJSON_AddItemToObject(root,"Status",status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
