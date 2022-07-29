@@ -31,6 +31,8 @@
 #define DEVICE_ON 1
 #define DEVICE_OFF 0
 #define DEVICE_ERROR -1
+#define FLOAT_UP 1
+#define FLOAT_DOWN 0
 
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
@@ -147,7 +149,7 @@ void make_topics() {
 
 	int device_id_len = strlen(get_network_settings()->device_id);
    int device_type_len = strlen(DEVICE_TYPE);
-
+   
 	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
 	add_id(wifi_connect_topic);
 	ESP_LOGI(MQTT_TAG, "Wifi Topic: %s", wifi_connect_topic);
@@ -185,33 +187,25 @@ void make_topics() {
    add_id(test_motor_response);
    ESP_LOGI(MQTT_TAG, "Test motor topic: %s", test_motor_response);
 
-   init_topic(&test_ph_topic, device_id_len + 1 + strlen(TEST_PH_HEADING) + 1, TEST_PH_HEADING);
-   add_id(test_ph_topic);
-   ESP_LOGI(MQTT_TAG, "Test ph topic: %s", test_ph_topic);
-
-   init_topic(&test_lights_topic, device_id_len + 1 + strlen(TEST_LIGHTS_HEADING) + 1, TEST_LIGHTS_HEADING);
-   add_id(test_lights_topic);
-   ESP_LOGI(MQTT_TAG, "Test lights topic: %s", test_lights_topic);
-
-   init_topic(&test_temperature_topic, device_id_len + 1 + strlen(TEST_TEMPERATURE_HEADING) + 1, TEST_TEMPERATURE_HEADING);
-   add_id(test_temperature_topic);
-   ESP_LOGI(MQTT_TAG, "Test water temperature topic: %s",test_temperature_topic);
-
-   init_topic(&test_ec_topic, device_id_len + 1 + strlen(TEST_EC_HEADING) + 1, TEST_EC_HEADING);
-   add_id(test_ec_topic);
-   ESP_LOGI(MQTT_TAG, "Test ec topic: %s", test_ph_topic);   
+   init_topic(&test_outlet_request, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
+   add_id(test_outlet_request);
+   ESP_LOGI(MQTT_TAG, "Test outlet topic: %s", test_outlet_request);
+   
+   init_topic(&test_outlet_response, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
+   add_id(test_outlet_response);
+   ESP_LOGI(MQTT_TAG, "Test outlet topic: %s", test_outlet_response); 
+  
+   init_topic(&test_sensor_request, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
+   add_id(test_sensor_request);
+   ESP_LOGI(MQTT_TAG, "Test sensor topic: %s", test_sensor_request);
+   
+   init_topic(&test_sensor_response, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
+   add_id(test_sensor_response);
+   ESP_LOGI(MQTT_TAG, "Test sensor topic: %s", test_sensor_response); 
 
    init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
    add_id(test_rf_topic);
    ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
-
-   init_topic(&test_water_cooler_topic, device_id_len + 1 + strlen(TEST_WATER_COOLER_HEADING) + 1, TEST_WATER_COOLER_HEADING);
-   add_id(test_water_cooler_topic);
-   ESP_LOGI(MQTT_TAG, "Test water cooler topic: %s",test_water_cooler_topic);
-
-   init_topic(&test_water_heater_topic, device_id_len + 1 + strlen(TEST_WATER_HEATER_HEADING) + 1, TEST_WATER_HEATER_HEADING);
-   add_id(test_water_heater_topic);
-   ESP_LOGI(MQTT_TAG, "Test water heater topic: %s",test_water_heater_topic);
 
    init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
    add_id(test_fs_request);
@@ -246,14 +240,10 @@ void subscribe_topics() {
 	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_motor_request, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_lights_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_water_cooler_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_water_heater_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_fs_request, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_ph_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_temperature_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_ec_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_motor_response, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_outlet_response, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_sensor_response, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_fs_response, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_rf_topic, SUBSCRIBE_DATA_QOS);
 }
 
@@ -687,137 +677,90 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       ESP_LOGI(TAG, "Firmware version requested");
       publish_firmware_version();
    }
+
    else if (strcmp(topic, test_motor_request) == 0)
    {
-      ESP_LOGI(TAG, "ENTERED TEST MOTOR TOPIC");
       int pump_status = 0;
       cJSON *choice;
       cJSON *switch_status;
       cJSON *root = cJSON_Parse(data);
       choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
+      if (cJSON_IsNumber(switch_status))
       {
-         pump_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test motor message");
-         ESP_LOGI(TAG, "Pump status:%d\n", pump_status);
-         test_motor(choice->valueint, pump_status);
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
+         {
+            pump_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test motor message");
+            ESP_LOGI(TAG, "Pump status:%d\n", pump_status);
+            test_motor(choice->valueint, pump_status);
+         }
+         else
+         {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
       }
       else
       {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         ESP_LOGE(TAG, "The provided status need to be an integer");
       }
    }
-   else if (strcmp(topic, test_lights_topic) == 0)
+   else if (strcmp(topic, test_outlet_request) == 0)
    {
-      int light_status = 0;
+      int outlet_status = 0;
       cJSON *choice;
       cJSON *switch_status;
-      cJSON *object = cJSON_Parse(data);
-      choice = cJSON_GetObjectItemCaseSensitive(object, "choice");
-      switch_status = cJSON_GetObjectItemCaseSensitive(object, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
+      cJSON *root = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (cJSON_IsNumber(switch_status) && cJSON_IsNumber(choice))
       {
-         light_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test lights message");
-         ESP_LOGI(TAG, "Light status:%d\n", light_status);
-         test_lights(choice->valueint, light_status);
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
+         {
+            outlet_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test outlet message");
+            ESP_LOGI(TAG, "Outlet status:%d\n", outlet_status);
+            test_outlet(choice->valueint, outlet_status);
+         }
+         else
+         {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
       }
       else
       {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         ESP_LOGE(TAG, "The provided status or choice need to be an integer");
       }
    }
-   else if (strcmp(topic, test_water_cooler_topic) == 0)
+
+   else if (strcmp(topic, test_sensor_request) == 0)
    {
-      int cooler_status = 0;
+      int sensor_status = 0;
+      cJSON *choice;
       cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
+      cJSON *root = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (cJSON_IsNumber(switch_status) && cJSON_IsNumber(choice))
       {
-         cooler_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test water cooler message");
-         ESP_LOGI(TAG, "Cooler status: %d\n", cooler_status);
-         test_water_cooler(cooler_status);
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
+         {
+            sensor_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test sensor message");
+            ESP_LOGI(TAG, "Sensor status:%d\n", sensor_status);
+            test_sensor(choice->valueint, sensor_status);
+         }
+         else
+         {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
       }
       else
       {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         ESP_LOGE(TAG, "The provided status or choice need to be an integer");
       }
    }
-   else if (strcmp(topic, test_water_heater_topic) == 0)
-   {
-      int heater_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         heater_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test water heater message");
-         ESP_LOGI(TAG, "Heater status: %d\n", heater_status); 
-         test_water_heater(heater_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }
-   }
-   else if (strcmp(topic, test_water_in_topic) == 0)
-   {
-      int in_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         in_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Reservoir water in status: %d\n", in_status);
-         ESP_LOGI(TAG, "Received the test water in message");
-         test_water_in(in_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }
-   }
-   else if (strcmp(topic, test_water_out_topic) == 0)
-   {
-      int out_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         out_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Reservoir water out status: %d\n", out_status);
-         ESP_LOGI(TAG, "Received the test water out message");
-         test_water_out(out_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }
-   }
-   else if (strcmp(topic, test_irrigation_topic) == 0)
-   {
-      int irrigation_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         irrigation_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Irrigation status: %d\n", irrigation_status);
-         ESP_LOGI(TAG, "Received the test irriagtion message");
-         test_irrigation(irrigation_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }
-   }
+
    else if (strcmp(topic, test_fs_request) == 0)
    {
       int float_switch_status = 0;
@@ -826,73 +769,26 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *obj = cJSON_Parse(data);
       choice = cJSON_GetObjectItemCaseSensitive(obj, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_ON || switch_status->valueint == DEVICE_OFF)
+      if (cJSON_IsNumber(choice) && cJSON_IsNumber(switch_status))
       {
-         float_switch_status = switch_status->valueint;
-         ESP_LOGI(TAG, "status: %d\n", float_switch_status);
-         ESP_LOGI(TAG, "Received the test float switch message");
-         test_float_switch(choice->valueint, float_switch_status);
+         if (switch_status->valueint == DEVICE_ON || switch_status->valueint == DEVICE_OFF)
+         {
+            float_switch_status = switch_status->valueint;
+            ESP_LOGI(TAG, "status: %d\n", float_switch_status);
+            ESP_LOGI(TAG, "Received the test float switch message");
+            test_float_switch(choice->valueint, float_switch_status);
+         }
+         else
+         {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
       }
       else
       {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }
-      
-   }
-   else if (strcmp(topic, test_ph_topic) == 0)
-   {
-      int ph_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         ph_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test PH message");
-         ESP_LOGI(TAG, "PH status: %d\n", ph_status);
-         test_ph(ph_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         ESP_LOGE(TAG, "Enter valid integer for choice or status ");
       }
    }
-   else if (strcmp(topic, test_temperature_topic) == 0)
-   {
-      int temperature_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         temperature_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test Water Temperature message");
-         ESP_LOGI(TAG, "Temperature status: %d\n", temperature_status);
-         test_water_temperature(temperature_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }  
-   }
-   else if (strcmp(topic, test_ec_topic) == 0)
-   {
-      int ec_status = 0;
-      cJSON *switch_status;
-      cJSON *obj = cJSON_Parse(data);
-      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
-      if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_OFF)
-      {
-         ec_status = switch_status->valueint;
-         ESP_LOGI(TAG, "Received the test EC message");
-         ESP_LOGI(TAG, "EC status: %d\n", ec_status);
-         test_ec(ec_status);
-      }
-      else
-      {
-         ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
-      }  
-   }
+   
    else if (strcmp(topic, test_rf_topic) == 0)
    {
       ESP_LOGI(TAG, "Received the test RF message");
@@ -908,7 +804,8 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
    free(data);
 }
 
-static void publish_firmware_version() {
+static void publish_firmware_version()
+{
    cJSON *root, *device_id, *version;
    root = cJSON_CreateObject();
 
@@ -918,9 +815,12 @@ static void publish_firmware_version() {
 
    // Adding version
    char firmware_version[FIRMWARE_VERSION_LEN];
-   if(get_firmware_version(firmware_version)) {
+   if (get_firmware_version(firmware_version))
+   {
       version = cJSON_CreateString(firmware_version);
-   } else {
+   }
+   else
+   {
       version = cJSON_CreateString("error");
    }
    cJSON_AddItemToObject(root, "version", version);
@@ -929,40 +829,54 @@ static void publish_firmware_version() {
    cJSON_Delete(root);
 }
 
-void update_calibration(cJSON *data) {
-    cJSON *obj = data->child;  
-    char *data_string = cJSON_Print(data);
-    ESP_LOGI(MQTT_TAG, "%s", data_string);
-    if (strcmp(obj->string, "type") == 0) {
-        if (strcmp(obj->valuestring, "ph") == 0) {
-            sensor_set_calib_status(get_ph_sensor(), true);
-            ESP_LOGI(MQTT_TAG, "pH calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
-                vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
-                ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
-            }
-        } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
-            sensor_set_calib_status(get_ec_sensor(), true);
-            ESP_LOGI(MQTT_TAG, "ec wet calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
-                ESP_LOGI(MQTT_TAG, "ec task resumed");
-            }
-        } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
-            dry_calib = true; 
-            ESP_LOGI(MQTT_TAG, "ec dry calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
-                ESP_LOGI(MQTT_TAG, "ec task resumed");
-            }
-        } else {
-            ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
-        }
-    } else {
-        ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
-    }
-    cJSON_Delete(data);
+void update_calibration(cJSON *data)
+{
+   cJSON *obj = data->child;
+   char *data_string = cJSON_Print(data);
+   ESP_LOGI(MQTT_TAG, "%s", data_string);
+   if (strcmp(obj->string, "type") == 0)
+   {
+      if (strcmp(obj->valuestring, "ph") == 0)
+      {
+         sensor_set_calib_status(get_ph_sensor(), true);
+         ESP_LOGI(MQTT_TAG, "pH calibration received");
+         if (!get_is_grow_active())
+         {
+            vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
+            vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
+            ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
+         }
+      }
+      else if (strcmp(obj->valuestring, "ec_wet") == 0)
+      {
+         sensor_set_calib_status(get_ec_sensor(), true);
+         ESP_LOGI(MQTT_TAG, "ec wet calibration received");
+         if (!get_is_grow_active())
+         {
+            vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+            ESP_LOGI(MQTT_TAG, "ec task resumed");
+         }
+      }
+      else if (strcmp(obj->valuestring, "ec_dry") == 0)
+      {
+         dry_calib = true;
+         ESP_LOGI(MQTT_TAG, "ec dry calibration received");
+         if (!get_is_grow_active())
+         {
+            vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+            ESP_LOGI(MQTT_TAG, "ec task resumed");
+         }
+      }
+      else
+      {
+         ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
+      }
+   }
+   else
+   {
+      ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
+   }
+   cJSON_Delete(data);
 }
 
 void publish_pump_status(int publish_motor_choice , int publish_status){
@@ -981,7 +895,7 @@ void publish_pump_status(int publish_motor_choice , int publish_status){
 
    ESP_LOGI(TAG, "Message: %s", data);
 
-   esp_mqtt_client_publish(mqtt_client,test_motor_request, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client,test_motor_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
 }
 
@@ -997,7 +911,7 @@ void publish_light_status(int publish_light_choice, int publish_status)
    char *data = cJSON_PrintUnformatted(info);
 
    ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_lights_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(info);
 }
 
@@ -1011,7 +925,7 @@ void publish_water_cooler_status(int publish_cooler_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_water_cooler_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1025,7 +939,7 @@ void publish_water_heater_status(int publish_heater_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_water_heater_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1039,7 +953,7 @@ void publish_water_in_status(int publish_in_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_water_in_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1053,7 +967,7 @@ void publish_water_out_status(int publish_out_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_water_out_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1067,7 +981,7 @@ void publish_irrigation_status(int publish_irrig_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_irrigation_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1085,7 +999,7 @@ void publish_float_switch_status(int float_switch_type , int float_switch_status
 
    ESP_LOGI(TAG, "Message: %s", data);
 
-   esp_mqtt_client_publish(mqtt_client,test_fs_request, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client,test_fs_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
 }
 
@@ -1099,7 +1013,7 @@ void publish_ph_status(int ph_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_ph_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1113,7 +1027,7 @@ void publish_ec_status(int ec_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_ec_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }
 
@@ -1127,6 +1041,6 @@ void publish_water_temperature_status(int publish_temperature_status)
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG,"Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_temperature_topic, data, 0, 1, 0);
+   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
 }

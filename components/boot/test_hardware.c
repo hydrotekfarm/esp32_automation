@@ -56,17 +56,6 @@ void test_hardware() {
 
     if(is_mcp23017) test_mcp23017();
     if(is_rf) test_rf();
-    if(is_ph) test_ph();
-    if(is_ec) test_ec();
-  //  if(is_water_temperature) test_water_temperature();
-   // if(is_motor) test_motor();
-   // if(is_lights) test_lights();
-   // if(is_water_cooler) test_water_cooler();
-   // if(is_water_heater) test_water_heater();
-   // if(is_water_in) test_water_in();
-   // if(is_water_out) test_water_out();
-   // if(is_irrigation) test_irrigation();
-    //if(is_float_switch) test_float_switch();
 
     printf("\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware Complete");
@@ -140,63 +129,7 @@ void test_rf() {
     }
 }
 
-void test_ph() {
-    printf("\n");
-    ESP_LOGI("PH_TEST", "Testing pH Sensor");
-    printf("-------------------------------------------------\n");
-    clear_calibration_ph(&ph_dev);
-    for(int i = 0; i < 10; i++) {
-        float ph_reading = 0;
-        read_ph(&ph_dev, &ph_reading);
-        ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-      //  publish_ph_status(ph_status); 
-        vTaskDelay(pdMS_TO_TICKS(1500));
-    }
-//    calibrate_ph(&ph_dev, 24);
-
-    for(;;) {
-        float ph_reading = 0;
-        read_ph(&ph_dev, &ph_reading);
-        ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-       // publish_ph_status(ph_status); 
-    }
-}
-
-void test_ec() {
-    printf("\n");
-    ESP_LOGI("EC_TEST", "Testing EC Sensor");
-    printf("-------------------------------------------------\n");
-    for(int i = 0; i < 5; i++) {
-        float ec_reading = 0;
-        read_ec(&ec_dev, &ec_reading);
-        ESP_LOGI("EC_TEST", "EC Reading: %f", ec_reading);
-      //  publish_ec_status(ec_status);
-    }
-}
-
-void test_water_temperature(int water_temperature_status) {
-    for (int i = 0; i < 5; i++) {
-        float water_temperature_reading = 0;
-		// Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
-		esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO, ds18b20_address[0], &water_temperature_reading);
-	
-		if (error == ESP_OK) {
-			ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
-            publish_water_temperature_status(DEVICE_ON);
-		} else if (error == ESP_ERR_INVALID_RESPONSE) {
-			ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
-            publish_water_temperature_status(DEVICE_ERROR);
-		} else if (error == ESP_ERR_INVALID_CRC) {
-			ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
-            publish_water_temperature_status(DEVICE_ERROR);
-		} else {
-			ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
-            publish_water_temperature_status(DEVICE_ERROR);
-		}
-	}
-}
-
-void test_motor(int motor_choice, int motor_status)
+void test_motor(int choice, int switch_status)
 {
     const char *TAG = "TEST_MOTOR";
     printf("\n");
@@ -209,166 +142,260 @@ void test_motor(int motor_choice, int motor_status)
     motor[3] = EC_NUTRIENT_4_PUMP_GPIO;
     motor[4] = EC_NUTRIENT_5_PUMP_GPIO;
 
-    ESP_LOGI(TAG, "This is Motor_%d", motor_choice);
-    if (motor_status == DEVICE_ON)
+    ESP_LOGI(TAG, "This is Motor_%d", choice);
+    if (switch_status == DEVICE_ON)
     {
-        if (set_gpio_on(motor[(motor_choice)-1]) == ESP_OK)
+        if (set_gpio_on(motor[(choice)-1]) == ESP_OK)
         {
-            publish_pump_status(motor_choice, DEVICE_ON);
+            publish_pump_status(choice, DEVICE_ON);
         }
         else
         {
-            publish_pump_status(motor_choice, DEVICE_ERROR);
+            publish_pump_status(choice, DEVICE_ERROR);
         }
     }
     else
     {   
-        if (set_gpio_off(motor[(motor_choice)-1]) == ESP_OK)
+        if (set_gpio_off(motor[(choice)-1]) == ESP_OK)
         {
-            publish_pump_status(motor_choice, DEVICE_OFF);
+            publish_pump_status(choice, DEVICE_OFF);
         }
         else
         {
-            publish_pump_status(motor_choice, DEVICE_ERROR);
+            publish_pump_status(choice, DEVICE_ERROR);
         }
     }
 }
 
-void test_lights(int light_choice, int light_status)
+void test_outlet(int choice, int switch_status)
 {
-    const char *TAG = "TEST_LIGHTS";
+    const char *TAG = "TEST_OUTLET";
     printf("\n");
-    ESP_LOGI(TAG, "Testing the lights");
+    ESP_LOGI(TAG, "Testing the outlet");
     printf("-------------------------------------------------\n");
-
-    char *light_address = grow_lights_address[light_choice];
-
-    struct rf_message rf_msg;
-    rf_msg.rf_address_ptr = light_address;
-    rf_msg.state = light_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_msg, pdMS_TO_TICKS(20000));
-
-    if (result == pdTRUE)
+    enum power_outlets
     {
-        publish_light_status(light_choice, light_status);
+        WATER_COOLER = 1,
+        WATER_HEATER,
+        IRRIGATION,
+        RESERVOIR_WATER_IN,
+        RESERVOIR_WATER_OUT,
+        GROW_LIGHTS
+    };
+    if (choice == WATER_COOLER)
+    {
+        const char *TAG = "TEST_WATER_COOLER";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing water cooler");
+        printf("-------------------------------------------------\n");
+        char *water_cooler = water_cooler_address;
+         
+
+        struct rf_message rf_water_cooler;
+        rf_water_cooler.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_water_cooler, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_water_cooler_status(switch_status);
+        }
+        else
+        {
+            publish_water_cooler_status(DEVICE_ERROR);
+        }
     }
-    else
+    else if (choice == WATER_HEATER)
     {
-        publish_light_status(light_choice, DEVICE_ERROR);
+        const char *TAG = "TEST_WATER_HEATER";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing water heater");
+        printf("-------------------------------------------------\n");
+        char *water_heater = water_heater_address;
+
+        struct rf_message rf_water_heater;
+        rf_water_heater.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_water_heater, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_water_heater_status(switch_status);
+        }
+        else
+        {
+            publish_water_heater_status(DEVICE_ERROR);
+        }
+    }
+    else if (choice == IRRIGATION)
+    {
+        const char *TAG = "TEST_IRRIGATION";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing irrigation");
+        printf("-------------------------------------------------\n");
+        char *irrigation = irrigation_address;
+
+        struct rf_message rf_irrigation;
+        rf_irrigation.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_irrigation, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_irrigation_status(switch_status);
+        }
+        else
+        {
+            publish_irrigation_status(DEVICE_ERROR);
+        }
+    }
+    else if (choice == RESERVOIR_WATER_IN)
+    {
+        const char *TAG = "TEST_WATER_IN";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing water in");
+        printf("-------------------------------------------------\n");
+        char *water_in = water_in_address;
+
+        struct rf_message rf_water_in;
+        rf_water_in.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_water_in, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_water_in_status(switch_status);
+        }
+        else
+        {
+            publish_water_in_status(DEVICE_ERROR);
+        }
+    }
+    else if (choice == RESERVOIR_WATER_OUT)
+    {
+        const char *TAG = "TEST_WATER_OUT";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing water out");
+        printf("-------------------------------------------------\n");
+        char *water_out = water_out_address;
+
+        struct rf_message rf_water_out;
+        rf_water_out.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_water_out, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_water_out_status(switch_status);
+        }
+        else
+        {
+            publish_water_out_status(DEVICE_ERROR);
+        }
+    }
+    else if (choice == GROW_LIGHTS)
+    {
+        const char *TAG = "TEST_LIGHTS";
+        printf("\n");
+        ESP_LOGI(TAG, "Testing the lights");
+        printf("-------------------------------------------------\n");
+
+        char *light_address = grow_lights_address[choice];
+
+        struct rf_message rf_msg;
+        rf_msg.rf_address_ptr = light_address;
+        rf_msg.state = switch_status;
+        int result = xQueueSend(rf_transmitter_queue, &rf_msg, pdMS_TO_TICKS(20000));
+
+        if (result == pdTRUE)
+        {
+            publish_light_status(choice, switch_status);
+        }
+        else
+        {
+            publish_light_status(choice, DEVICE_ERROR);
+        }
     }
 }
 
-void test_water_cooler(int water_cooler_status)
+
+void test_sensor(int choice, int switch_status)
 {
-    const char *TAG = "TEST_WATER_COOLER";
+    const char *TAG = "TEST_SENSOR";
     printf("\n");
-    ESP_LOGI(TAG, "Testing water cooler");
+    ESP_LOGI(TAG, "Testing the sensors");
     printf("-------------------------------------------------\n");
-    char *water_cooler = water_cooler_address;
-
-    struct rf_message rf_water_cooler;
-    rf_water_cooler.state = water_cooler_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_water_cooler, pdMS_TO_TICKS(20000));
-
-    if(result == pdTRUE)
+    enum sensors
     {
-        publish_water_cooler_status(water_cooler_status);
-    }
-    else
+        PH,
+        EC,
+        WATER_TEMP
+    };
+    if (choice == PH)
     {
-        publish_water_cooler_status(DEVICE_ERROR);
+        printf("\n");
+        ESP_LOGI("PH_TEST", "Testing pH Sensor");
+        printf("-------------------------------------------------\n");
+        clear_calibration_ph(&ph_dev);
+        for (int i = 0; i < 10; i++)
+        {
+            float ph_reading = 0;
+            read_ph(&ph_dev, &ph_reading);
+            ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
+            //  publish_ph_status(ph_status);
+            vTaskDelay(pdMS_TO_TICKS(1500));
+        }
+        //    calibrate_ph(&ph_dev, 24);
+
+        for (;;)
+        {
+            float ph_reading = 0;
+            read_ph(&ph_dev, &ph_reading);
+            ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
+            // publish_ph_status(ph_status);
+        }
     }
+    else if (choice == EC)
+    {
+        printf("\n");
+        ESP_LOGI("EC_TEST", "Testing EC Sensor");
+        printf("-------------------------------------------------\n");
+        for (int i = 0; i < 5; i++)
+        {
+            float ec_reading = 0;
+            read_ec(&ec_dev, &ec_reading);
+            ESP_LOGI("EC_TEST", "EC Reading: %f", ec_reading);
+            //  publish_ec_status(ec_status);
+        }
+    }    
+        else if (choice == WATER_TEMP)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                float water_temperature_reading = 0;
+                // Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
+                esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO, ds18b20_address[0], &water_temperature_reading);
+
+                if (error == ESP_OK)
+                {
+                    ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
+                    publish_water_temperature_status(DEVICE_ON);
+                }
+                else if (error == ESP_ERR_INVALID_RESPONSE)
+                {
+                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
+                    publish_water_temperature_status(DEVICE_ERROR);
+                }
+                else if (error == ESP_ERR_INVALID_CRC)
+                {
+                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
+                    publish_water_temperature_status(DEVICE_ERROR);
+                }
+                else
+                {
+                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
+                    publish_water_temperature_status(DEVICE_ERROR);
+                }
+            }
+        }
 }
 
-void test_water_heater(int water_heater_status)
-{
-    const char *TAG = "TEST_WATER_HEATER";
-    printf("\n");
-    ESP_LOGI(TAG, "Testing water heater");
-    printf("-------------------------------------------------\n");
-    char *water_heater = water_heater_address;
-
-    struct rf_message rf_water_heater;
-    rf_water_heater.state = water_heater_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_water_heater, pdMS_TO_TICKS(20000));
-
-    if(result == pdTRUE)
-    {
-        publish_water_heater_status(water_heater_status);
-    }
-    else
-    {
-        publish_water_heater_status(DEVICE_ERROR);
-    }
-}
-
-void test_water_in(int water_in_status)
-{
-    const char *TAG = "TEST_WATER_IN";
-    printf("\n");
-    ESP_LOGI(TAG, "Testing water in");
-    printf("-------------------------------------------------\n");
-    char *water_in = water_in_address;
-
-    struct rf_message rf_water_in;
-    rf_water_in.state = water_in_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_water_in, pdMS_TO_TICKS(20000));
-
-    if(result == pdTRUE)
-    {
-        publish_water_in_status(water_in_status);
-    }
-    else
-    {
-        publish_water_in_status(DEVICE_ERROR);
-    }
-}
-
-void test_water_out(int water_out_status)
-{
-    const char *TAG = "TEST_WATER_OUT";
-    printf("\n");
-    ESP_LOGI(TAG, "Testing water out");
-    printf("-------------------------------------------------\n");
-    char *water_out = water_out_address;
-
-    struct rf_message rf_water_out;
-    rf_water_out.state = water_out_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_water_out, pdMS_TO_TICKS(20000));
-
-    if(result == pdTRUE)
-    {
-        publish_water_out_status(water_out_status);
-    }
-    else
-    {
-        publish_water_out_status(DEVICE_ERROR);
-    }
-}
-
-void test_irrigation(int irrigation_status)
-{
-    const char *TAG = "TEST_IRRIGATION";
-    printf("\n");
-    ESP_LOGI(TAG, "Testing irrigation");
-    printf("-------------------------------------------------\n");
-    char *irrigation = irrigation_address;
-
-    struct rf_message rf_irrigation;
-    rf_irrigation.state = irrigation_status;
-    int result = xQueueSend(rf_transmitter_queue, &rf_irrigation, pdMS_TO_TICKS(20000));
-
-    if(result == pdTRUE)
-    {
-        publish_irrigation_status(irrigation_status);
-    }
-    else
-    {
-        publish_irrigation_status(DEVICE_ERROR);
-    }
-}
-
-void test_float_switch(int float_switch_type, int float_switch_status)
+void test_float_switch(int choice, int switch_status)
 {
     
     const char *TAG = "TEST_FLOAT_SWITCH_";
@@ -376,35 +403,35 @@ void test_float_switch(int float_switch_type, int float_switch_status)
     ESP_LOGI(TAG, "Testing float switch ");
     printf("-------------------------------------------------\n");
 
-    if (float_switch_type == FS_BOTTOM && gpio_get_level(FLOAT_SWITCH_BOTTOM_GPIO) == FS_TANK_FULL)
+    if (choice == FS_BOTTOM && gpio_get_level(FLOAT_SWITCH_BOTTOM_GPIO) == FS_TANK_FULL)
     {
-        if (float_switch_status == DEVICE_ON)
+        if (switch_status == DEVICE_ON)
         {
             gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);	
      		gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
             if (gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL) == ESP_OK)
             {
-                publish_float_switch_status(float_switch_type,DEVICE_ON);
+                publish_float_switch_status(choice,DEVICE_ON);
             }
             else
             {
-                publish_float_switch_status(float_switch_type,DEVICE_ERROR);
+                publish_float_switch_status(choice,DEVICE_ERROR);
             }
         }
     }
-    else if(float_switch_type == FS_TOP && gpio_get_level(FLOAT_SWITCH_TOP_GPIO) == FS_TANK_EMPTY)
+    else if (choice == FS_TOP && gpio_get_level(FLOAT_SWITCH_TOP_GPIO) == FS_TANK_EMPTY)
     {
-        if(float_switch_status == DEVICE_ON)
+        if(switch_status == DEVICE_ON)
         {
             gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE); 
 		    gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL);
             if (gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL) == ESP_OK)
             {
-                publish_float_switch_status(float_switch_type,DEVICE_ON);
+                publish_float_switch_status(choice,DEVICE_ON);
             }
             else
             {
-                publish_float_switch_status(float_switch_type,DEVICE_ERROR);
+                publish_float_switch_status(choice,DEVICE_ERROR);
             }
         }
     }

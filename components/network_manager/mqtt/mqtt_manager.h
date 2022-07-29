@@ -30,17 +30,11 @@
 #define VERSION_REQUEST_HEADING "version_request"
 #define VERSION_RESULT_HEADING "version_result"
 #define TEST_MOTOR_HEADING "test_motor"
-#define TEST_LIGHTS_HEADING "test_lights"
-#define TEST_WATER_COOLER_HEADING "test_water_cooler"
-#define TEST_WATER_HEATER_HEADING "test_water_heater"
-#define TEST_WATER_IN_HEADING "test_water_in"
-#define TEST_WATER_OUT_HEADING "test_water_out"
-#define TEST_IRRIGATION_HEADING "test_irrigation"
+#define TEST_OUTLET_HEADING "test_outlet"
+#define TEST_SENSOR_HEADING "test_sensor"
 #define TEST_FLOAT_SWITCH_HEADING "test_float_switch"
-#define TEST_PH_HEADING "test_ph"
-#define TEST_TEMPERATURE_HEADING "test_water_temperature"
-#define TEST_EC_HEADING "test_ec"
 #define TEST_RF_HEADING "test_rf"
+
 
 #define DEVICE_ON 1
 #define DEVICE_OFF 0
@@ -96,21 +90,13 @@ char *rf_control_topic;
 char *calibration_topic; 
 char *test_motor_request;
 char *test_motor_response;
-char *test_lights_topic;
-char *test_water_cooler_topic;
-char *test_water_heater_topic;
-char *test_water_in_topic;
-char *test_water_out_topic;
-char *test_irrigation_topic;
-char *test_ph_topic;
-char *test_temperature_topic;
-char *test_ec_topic;
+char *test_outlet_request;
+char *test_outlet_response;
+char *test_sensor_request;
+char *test_sensor_response;
 char *test_rf_topic;
 char *test_fs_request;
 char *test_fs_response;
-
- 
-
 
 SemaphoreHandle_t mqtt_connect_semaphore;
 
