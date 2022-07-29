@@ -7,20 +7,20 @@
 #include "ds18x20.h"
 #include "esp_log.h"
 
-void publish_pump_status(int publish_motor_choice , int publish_status);
+void publish_pump_status(int publish_motor_choice, int publish_status);
 void publish_light_status(int publish_light_choice, int publish_status);
 void publish_water_cooler_status(int publish_status);
 void publish_water_heater_status(int publish_status);
 void publish_water_in_status(int publish_status);
 void publish_water_out_status(int publish_status);
 void publish_irrigation_status(int publish_status);
-void publish_temperature_status(float publish_reading , int publish_status);
-void publish_float_switch_status(int float_switch_type , int float_switch_status);
+void publish_temperature_status(float publish_reading, int publish_status);
+void publish_float_switch_status(int float_switch_type, int float_switch_status);
 void publish_ph_status(int ph_status);
 void publish_ec_status(int ec_status);
-void publish_water_temperature_status(int publish_temperature_status); 
-void IRAM_ATTR top_float_switch_isr_handler(void* arg);
-void IRAM_ATTR bottom_float_switch_isr_handler(void* arg);
+void publish_water_temperature_status(int publish_temperature_status);
+void IRAM_ATTR top_float_switch_isr_handler(void *arg);
+void IRAM_ATTR bottom_float_switch_isr_handler(void *arg);
 
 ph_sensor_t ph_dev;
 ec_sensor_t ec_dev;
@@ -41,27 +41,36 @@ bool is_water_out = false;
 bool is_irrigation = false;
 bool is_float_switch = false;
 
-void test_hardware() {
+void test_hardware()
+{
     printf("\n\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware");
     gpio_set_direction(GREEN_LED, GPIO_MODE_OUTPUT);
     gpio_set_level(GREEN_LED, 1);
-    
-	ESP_ERROR_CHECK(i2cdev_init()); // Init i2cdev
-    if(is_mcp23017) init_ports();
-    if(is_rf) init_rf_protocol();
-    if(is_ph) init_ph();
-    if(is_ec) init_ec();
-    if(is_water_temperature) init_water_temperature();
 
-    if(is_mcp23017) test_mcp23017();
-    if(is_rf) test_rf();
+    ESP_ERROR_CHECK(i2cdev_init()); // Init i2cdev
+    if (is_mcp23017)
+        init_ports();
+    if (is_rf)
+        init_rf_protocol();
+    if (is_ph)
+        init_ph();
+    if (is_ec)
+        init_ec();
+    if (is_water_temperature)
+        init_water_temperature();
+
+    if (is_mcp23017)
+        test_mcp23017();
+    if (is_rf)
+        test_rf();
 
     printf("\n");
     ESP_LOGI("TEST_HARDWARE", "Testing Hardware Complete");
 }
 
-void test_mcp23017() {
+void test_mcp23017()
+{
     printf("\n");
     ESP_LOGI("MCP_23017_TEST", "Testing MCP_23017");
     printf("-------------------------------------------------\n");
@@ -88,41 +97,47 @@ void test_mcp23017() {
     set_gpio_off(EC_NUTRIENT_6_PUMP_GPIO);
 }
 
-void init_ph() {
-	memset(&ph_dev, 0, sizeof(ph_sensor_t));
-	ESP_ERROR_CHECK(ph_init(&ph_dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication
+void init_ph()
+{
+    memset(&ph_dev, 0, sizeof(ph_sensor_t));
+    ESP_ERROR_CHECK(ph_init(&ph_dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication
     ESP_ERROR_CHECK(activate_ph(&ph_dev));
 }
 
-void init_ec() {
+void init_ec()
+{
     memset(&ec_dev, 0, sizeof(ec_sensor_t));
-	ESP_ERROR_CHECK(ec_init(&ec_dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
+    ESP_ERROR_CHECK(ec_init(&ec_dev, 0, EC_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize EC I2C communication
     ESP_ERROR_CHECK(activate_ec(&ec_dev));
 }
 
-void init_water_temperature() {
-	// Scan and setup sensor
-    gpio_config_t temperature_gpio_config = { GPIO_SEL_14, GPIO_MODE_OUTPUT };
+void init_water_temperature()
+{
+    // Scan and setup sensor
+    gpio_config_t temperature_gpio_config = {GPIO_SEL_14, GPIO_MODE_OUTPUT};
     gpio_config(&temperature_gpio_config);
-    
-	uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
 
-	sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
-	vTaskDelay(pdMS_TO_TICKS(1000));
+    uint32_t sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
 
-	if(sensor_count < 1) ESP_LOGE("WATER_TEMPERATURE_TEST", "Sensor Not Found");
+    sensor_count = ds18x20_scan_devices(TEMPERATURE_SENSOR_GPIO, ds18b20_address, 1);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    if (sensor_count < 1)
+        ESP_LOGE("WATER_TEMPERATURE_TEST", "Sensor Not Found");
 }
 
-void test_rf() {
+void test_rf()
+{
     printf("\n");
     ESP_LOGI("RF_TEST", "Testing RF Transmitter");
     printf("-------------------------------------------------\n");
     // address: any 20 digit binary, state (on/off): (0011, 1100)
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++)
+    {
         ESP_LOGI("RF_TEST", "Turning Power Outlet On");
         send_message("00010100010101010011", "0011");
         vTaskDelay(pdMS_TO_TICKS(1000));
-        
+
         ESP_LOGI("RF_TEST", "Turning Power Outlet Off");
         send_message("00010100010101010011", "1100");
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -155,7 +170,7 @@ void test_motor(int choice, int switch_status)
         }
     }
     else
-    {   
+    {
         if (set_gpio_off(motor[(choice)-1]) == ESP_OK)
         {
             publish_pump_status(choice, DEVICE_OFF);
@@ -189,7 +204,6 @@ void test_outlet(int choice, int switch_status)
         ESP_LOGI(TAG, "Testing water cooler");
         printf("-------------------------------------------------\n");
         char *water_cooler = water_cooler_address;
-         
 
         struct rf_message rf_water_cooler;
         rf_water_cooler.state = switch_status;
@@ -313,7 +327,6 @@ void test_outlet(int choice, int switch_status)
     }
 }
 
-
 void test_sensor(int choice, int switch_status)
 {
     const char *TAG = "TEST_SENSOR";
@@ -322,7 +335,7 @@ void test_sensor(int choice, int switch_status)
     printf("-------------------------------------------------\n");
     enum sensors
     {
-        PH = 1 ,
+        PH = 1,
         EC,
         WATER_TEMP
     };
@@ -362,46 +375,46 @@ void test_sensor(int choice, int switch_status)
             ESP_LOGI("EC_TEST", "EC Reading: %f", ec_reading);
             //  publish_ec_status(ec_status);
         }
-    }    
-        else if (choice == WATER_TEMP)
+    }
+    else if (choice == WATER_TEMP)
+    {
+        for (int i = 0; i < 5; i++)
         {
-            for (int i = 0; i < 5; i++)
-            {
-                float water_temperature_reading = 0;
-                // Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
-                esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO, ds18b20_address[0], &water_temperature_reading);
+            float water_temperature_reading = 0;
+            // Perform Temperature Calculation and Read Temperature; vTaskDelay in the source code of this function
+            esp_err_t error = ds18x20_measure_and_read(TEMPERATURE_SENSOR_GPIO, ds18b20_address[0], &water_temperature_reading);
 
-                if (error == ESP_OK)
-                {
-                    ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
-                    publish_water_temperature_status(DEVICE_ON);
-                    break;
-                }
-                else if (error == ESP_ERR_INVALID_RESPONSE)
-                {
-                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
-                    publish_water_temperature_status(DEVICE_ERROR);
-                    break;
-                }
-                else if (error == ESP_ERR_INVALID_CRC)
-                {
-                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
-                    publish_water_temperature_status(DEVICE_ERROR);
-                    break;
-                }
-                else
-                {
-                    ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
-                    publish_water_temperature_status(DEVICE_ERROR);
-                    break;
-                }
+            if (error == ESP_OK)
+            {
+                ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
+                publish_water_temperature_status(DEVICE_ON);
+                break;
+            }
+            else if (error == ESP_ERR_INVALID_RESPONSE)
+            {
+                ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
+                publish_water_temperature_status(DEVICE_ERROR);
+                break;
+            }
+            else if (error == ESP_ERR_INVALID_CRC)
+            {
+                ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
+                publish_water_temperature_status(DEVICE_ERROR);
+                break;
+            }
+            else
+            {
+                ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
+                publish_water_temperature_status(DEVICE_ERROR);
+                break;
             }
         }
+    }
 }
 
 void test_float_switch(int choice, int switch_status)
 {
-    
+
     const char *TAG = "TEST_FLOAT_SWITCH_";
     printf("\n");
     ESP_LOGI(TAG, "Testing float switch ");
@@ -411,39 +424,36 @@ void test_float_switch(int choice, int switch_status)
     {
         if (switch_status == DEVICE_ON)
         {
-            gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);	
-     		gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
+            gpio_set_intr_type(FLOAT_SWITCH_BOTTOM_GPIO, GPIO_INTR_NEGEDGE);
+            gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL);
             if (gpio_isr_handler_add(FLOAT_SWITCH_BOTTOM_GPIO, bottom_float_switch_isr_handler, NULL) == ESP_OK)
             {
-                publish_float_switch_status(choice,DEVICE_ON);
+                publish_float_switch_status(choice, DEVICE_ON);
             }
             else
             {
-                publish_float_switch_status(choice,DEVICE_ERROR);
+                publish_float_switch_status(choice, DEVICE_ERROR);
             }
         }
     }
     else if (choice == FS_TOP && gpio_get_level(FLOAT_SWITCH_TOP_GPIO) == FS_TANK_EMPTY)
     {
-        if(switch_status == DEVICE_ON)
+        if (switch_status == DEVICE_ON)
         {
-            gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE); 
-		    gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL);
+            gpio_set_intr_type(FLOAT_SWITCH_TOP_GPIO, GPIO_INTR_POSEDGE);
+            gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL);
             if (gpio_isr_handler_add(FLOAT_SWITCH_TOP_GPIO, top_float_switch_isr_handler, NULL) == ESP_OK)
             {
-                publish_float_switch_status(choice,DEVICE_ON);
+                publish_float_switch_status(choice, DEVICE_ON);
             }
             else
             {
-                publish_float_switch_status(choice,DEVICE_ERROR);
+                publish_float_switch_status(choice, DEVICE_ERROR);
             }
         }
     }
     else
     {
-        ESP_LOGE(TAG,"Invalid float switch type");
+        ESP_LOGE(TAG, "Invalid float switch type");
     }
 }
-
-
-    
