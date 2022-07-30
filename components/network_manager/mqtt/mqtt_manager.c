@@ -191,28 +191,27 @@ void make_topics()
    add_id(calibration_topic);
    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
 
-   init_topic(&test_motor_request, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
+   init_topic(&test_motor_request, device_id_len + 1 + strlen(TEST_MOTOR_REQUEST_HEADING) + 1, TEST_MOTOR_REQUEST_HEADING);
    add_id(test_motor_request);
    ESP_LOGI(MQTT_TAG, "Test motor request topic: %s", test_motor_request);
 
-   init_topic(&test_motor_response, device_id_len + 1 + strlen(TEST_MOTOR_HEADING) + 1, TEST_MOTOR_HEADING);
+   init_topic(&test_motor_response, device_id_len + 1 + strlen(TEST_MOTOR_RESPONSE_HEADING) + 1, TEST_MOTOR_RESPONSE_HEADING);
    add_id(test_motor_response);
-
    ESP_LOGI(MQTT_TAG, "Test motor response topic: %s", test_motor_response);
 
-   init_topic(&test_outlet_request, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
+   init_topic(&test_outlet_request, device_id_len + 1 + strlen(TEST_OUTLET_REQUEST_HEADING) + 1, TEST_OUTLET_REQUEST_HEADING);
    add_id(test_outlet_request);
    ESP_LOGI(MQTT_TAG, "Test outlet request topic: %s", test_outlet_request);
 
-   init_topic(&test_outlet_response, device_id_len + 1 + strlen(TEST_OUTLET_HEADING) + 1, TEST_OUTLET_HEADING);
+   init_topic(&test_outlet_response, device_id_len + 1 + strlen(TEST_OUTLET_RESPONSE_HEADING) + 1, TEST_OUTLET_RESPONSE_HEADING);
    add_id(test_outlet_response);
    ESP_LOGI(MQTT_TAG, "Test outlet response topic: %s", test_outlet_response);
 
-   init_topic(&test_sensor_request, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
+   init_topic(&test_sensor_request, device_id_len + 1 + strlen(TEST_SENSOR_REQUEST_HEADING) + 1, TEST_SENSOR_REQUEST_HEADING);
    add_id(test_sensor_request);
    ESP_LOGI(MQTT_TAG, "Test sensor request topic: %s", test_sensor_request);
 
-   init_topic(&test_sensor_response, device_id_len + 1 + strlen(TEST_SENSOR_HEADING) + 1, TEST_SENSOR_HEADING);
+   init_topic(&test_sensor_response, device_id_len + 1 + strlen(TEST_SENSOR_RESPONSE_HEADING) + 1, TEST_SENSOR_RESPONSE_HEADING);
    add_id(test_sensor_response);
    ESP_LOGI(MQTT_TAG, "Test sensor response topic: %s", test_sensor_response);
 
@@ -220,11 +219,11 @@ void make_topics()
    add_id(test_rf_topic);
    ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
 
-   init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
+   init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FS_REQUEST_HEADING) + 1, TEST_FS_REQUEST_HEADING);
    add_id(test_fs_request);
    ESP_LOGI(MQTT_TAG, "Test float switch request topic: %s", test_fs_request);
 
-   init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FLOAT_SWITCH_HEADING) + 1, TEST_FLOAT_SWITCH_HEADING);
+   init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FS_RESPONSE_HEADING) + 1, TEST_FS_RESPONSE_HEADING);
    add_id(test_fs_response);
    ESP_LOGI(MQTT_TAG, "Test float switch response topic: %s", test_fs_response);
 
@@ -254,10 +253,10 @@ void subscribe_topics()
    esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_motor_response, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_outlet_response, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_sensor_response, SUBSCRIBE_DATA_QOS);
-   esp_mqtt_client_subscribe(mqtt_client, test_fs_response, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_motor_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_outlet_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_sensor_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_fs_request, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, test_rf_topic, SUBSCRIBE_DATA_QOS);
 }
 
@@ -944,17 +943,17 @@ void update_calibration(cJSON *data)
 void publish_pump_status(int publish_motor_choice, int publish_status)
 {
    const char *TAG = "PUBLISH_PUMP_STATUS";
-   cJSON *temp_obj, *choice = NULL, *status = NULL;
+   cJSON *temp_obj, *choice = NULL, *switch_status = NULL;
    temp_obj = cJSON_CreateObject();
 
    choice = cJSON_CreateNumber(publish_motor_choice);
-   status = cJSON_CreateNumber(publish_status);
+   switch_status = cJSON_CreateNumber(publish_status);
 
    // ch = cJSON_Create(choice->ch);
-   cJSON_AddItemToObject(temp_obj, "Choice", choice);
+   cJSON_AddItemToObject(temp_obj, "choice", choice);
 
    // stat = cJSON_CreateString(error_status->stat);
-   cJSON_AddItemToObject(temp_obj, "Status", status);
+   cJSON_AddItemToObject(temp_obj, "switch_status", switch_status);
 
    char *data = cJSON_PrintUnformatted(temp_obj);
 
@@ -962,111 +961,118 @@ void publish_pump_status(int publish_motor_choice, int publish_status)
 
    esp_mqtt_client_publish(mqtt_client, test_motor_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
+  //cJSON_Delete(data);
 }
 
 void publish_light_status(int publish_light_choice, int publish_status)
 {
    const char *TAG = "PUBLISH_LIGHT_STATUS";
-   cJSON *info, *choice = NULL, *status = NULL;
+   cJSON *info, *choice = NULL, *switch_status = NULL;
    info = cJSON_CreateObject();
    choice = cJSON_CreateNumber(publish_light_choice);
-   status = cJSON_CreateNumber(publish_status);
+   switch_status = cJSON_CreateNumber(publish_status);
 
-   cJSON_AddItemToObject(info, "Choice", choice);
+   cJSON_AddItemToObject(info, "choice", choice);
 
-   cJSON_AddItemToObject(info, "Status", status);
+   cJSON_AddItemToObject(info, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(info);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(info);
+   //cJSON_Delete(data);
 }
 
 void publish_water_cooler_status(int publish_cooler_status)
 {
    const char *TAG = "PUBLISH_WATER_COOLER";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(publish_cooler_status);
+   switch_status = cJSON_CreateNumber(publish_cooler_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }
 
 void publish_water_heater_status(int publish_heater_status)
 {
    const char *TAG = "PUBLISH_WATER_HEATER";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(publish_heater_status);
+   switch_status = cJSON_CreateNumber(publish_heater_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+  // cJSON_Delete(data);
 }
 
 void publish_water_in_status(int publish_in_status)
 {
    const char *TAG = "PUBLISH_WATER_IN";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(publish_in_status);
+   switch_status = cJSON_CreateNumber(publish_in_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }
 
 void publish_water_out_status(int publish_out_status)
 {
    const char *TAG = "PUBLISH_WATER_OUT";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(publish_out_status);
+   switch_status = cJSON_CreateNumber(publish_out_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }
 
 void publish_irrigation_status(int publish_irrig_status)
 {
    const char *TAG = "PUBLISH_IRRIGATION";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }
 
 void publish_float_switch_status(int float_switch_type, int float_switch_status)
 {
    const char *TAG = "PUBLISH_FLOAT SWITCH_STATUS";
-   cJSON *temp_obj, *type = NULL, *status = NULL;
+   cJSON *temp_obj, *type = NULL, *switch_status = NULL;
    temp_obj = cJSON_CreateObject();
    type = cJSON_CreateNumber(float_switch_type);
-   status = cJSON_CreateNumber(float_switch_status);
+   switch_status = cJSON_CreateNumber(float_switch_status);
 
    cJSON_AddItemToObject(temp_obj, "Type", type);
 
-   cJSON_AddItemToObject(temp_obj, "Status", status);
+   cJSON_AddItemToObject(temp_obj, "Status", switch_status);
 
    char *data = cJSON_PrintUnformatted(temp_obj);
 
@@ -1074,49 +1080,53 @@ void publish_float_switch_status(int float_switch_type, int float_switch_status)
 
    esp_mqtt_client_publish(mqtt_client, test_fs_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
+   //cJSON_Delete(data);
 }
 
 void publish_ph_status(int ph_status)
 {
    const char *TAG = "PUBLISH_PH";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(ph_status);
+   switch_status = cJSON_CreateNumber(ph_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }
 
 void publish_ec_status(int ec_status)
 {
    const char *TAG = "PUBLISH_EC";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(ec_status);
+   switch_status = cJSON_CreateNumber(ec_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
+  // cJSON_Delete(data);
 }
 
 void publish_water_temperature_status(int publish_temperature_status)
 {
    const char *TAG = "PUBLISH_WATER_TEMPERATURE";
-   cJSON *root, *status = NULL;
+   cJSON *root, *switch_status = NULL;
    root = cJSON_CreateObject();
-   status = cJSON_CreateNumber(publish_temperature_status);
+   switch_status = cJSON_CreateNumber(publish_temperature_status);
 
-   cJSON_AddItemToObject(root, "Status", status);
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   //cJSON_Delete(data);
 }

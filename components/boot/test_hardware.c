@@ -353,15 +353,7 @@ void test_sensor(int choice, int switch_status)
             //  publish_ph_status(ph_status);
             vTaskDelay(pdMS_TO_TICKS(1500));
         }
-        //    calibrate_ph(&ph_dev, 24);
-
-        for (;;)
-        {
-            float ph_reading = 0;
-            read_ph(&ph_dev, &ph_reading);
-            ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-            // publish_ph_status(ph_status);
-        }
+        
     }
     else if (choice == EC)
     {

@@ -29,10 +29,14 @@
 #define OTA_DONE_HEADING "ota_done"
 #define VERSION_REQUEST_HEADING "version_request"
 #define VERSION_RESULT_HEADING "version_result"
-#define TEST_MOTOR_HEADING "test_motor"
-#define TEST_OUTLET_HEADING "test_outlet"
-#define TEST_SENSOR_HEADING "test_sensor"
-#define TEST_FLOAT_SWITCH_HEADING "test_float_switch"
+#define TEST_MOTOR_REQUEST_HEADING "test_motor_request"
+#define TEST_MOTOR_RESPONSE_HEADING "test_motor_response"
+#define TEST_OUTLET_REQUEST_HEADING "test_outlet_request"
+#define TEST_OUTLET_RESPONSE_HEADING "test_outlet_response"
+#define TEST_SENSOR_REQUEST_HEADING "test_sensor_request"
+#define TEST_SENSOR_RESPONSE_HEADING "test_sensor_response"
+#define TEST_FS_REQUEST_HEADING "test_fs_request"
+#define TEST_FS_RESPONSE_HEADING "test_fs_response"
 #define TEST_RF_HEADING "test_rf"
 
 #define DEVICE_ON 1
