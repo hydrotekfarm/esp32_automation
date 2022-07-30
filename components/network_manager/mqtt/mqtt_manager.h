@@ -6,7 +6,7 @@
 #include <mqtt_client.h>
 #include <cjson.h>
 #include <string.h>
-#include <driver/gpio.h> 
+#include <driver/gpio.h>
 
 #include "rf_transmitter.h"
 
@@ -35,7 +35,6 @@
 #define TEST_FLOAT_SWITCH_HEADING "test_float_switch"
 #define TEST_RF_HEADING "test_rf"
 
-
 #define DEVICE_ON 1
 #define DEVICE_OFF 0
 #define DEVICE_ERROR -1
@@ -43,15 +42,17 @@
 /**
  * OTA Result
  */
-typedef enum {
-    OTA_SUCCESS   = 0,//!< No alarms
-    OTA_FAIL          //!< First alarm
+typedef enum
+{
+    OTA_SUCCESS = 0, //!< No alarms
+    OTA_FAIL         //!< First alarm
 } ota_result_t;
 
 /**
  * OTA Failure Reason
  */
-typedef enum {
+typedef enum
+{
     VERSION_NOT_FOUND = 0,
     INVALID_OTA_URL_RECEIVED,
     HTTP_CONNECTION_FAILED,
@@ -87,7 +88,7 @@ char *version_result_topic;
 char *equipment_status_topic;
 char *grow_cycle_topic;
 char *rf_control_topic;
-char *calibration_topic; 
+char *calibration_topic;
 char *test_motor_request;
 char *test_motor_response;
 char *test_outlet_request;
@@ -108,7 +109,6 @@ cJSON *ec_control_status;
 cJSON *water_temp_control_status;
 cJSON *rf_status_root;
 cJSON *rf_statuses[NUM_OUTLETS];
-
 
 // Get JSON objects
 cJSON *get_ph_control_status();
@@ -146,39 +146,39 @@ void create_settings_data_topic();
 // OTA result publish message
 void publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason);
 
-//Update calibration settings
+// Update calibration settings
 void update_calibration(cJSON *obj);
 
-//Publish status for motors
+// Publish status for motors
 void publish_pump_status(int publish_motor_choice, int publish_status);
 
-//Publish status for lights
+// Publish status for lights
 void publish_light_status(int publish_light_choice, int publish_status);
 
-//Publish status for water cooler
+// Publish status for water cooler
 void publish_water_cooler_status(int publish_cooler_status);
 
-//Publish status for water heater
+// Publish status for water heater
 void publish_water_heater_status(int publish_heater_status);
 
-//Publish status for resorvior water in
+// Publish status for resorvior water in
 void publish_water_in_status(int publish_in_status);
 
-//Publish status for resorvior water out
+// Publish status for resorvior water out
 void publish_water_out_status(int publish_out_status);
 
-//Publish status for irrigation
+// Publish status for irrigation
 void publish_irrigation_status(int publish_irrig_status);
 
-//Publish status for float switches
-void publish_float_switch_status(int float_switch_type , int float_switch_status);
+// Publish status for float switches
+void publish_float_switch_status(int float_switch_type, int float_switch_status);
 
-//Publish status for ph
+// Publish status for ph
 void publish_ph_status(int ph_status);
 
-//Publish status for EC
+// Publish status for EC
 void publish_ec_status(int ec_status);
 
-//Publish status for water temperature
-void publish_water_temperature_status(int publish_temperature_status); 
+// Publish status for water temperature
+void publish_water_temperature_status(int publish_temperature_status);
 #endif
