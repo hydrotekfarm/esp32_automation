@@ -27,7 +27,7 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 	is_ec_activated = false;
 
-	ESP_ERROR_CHECK(activate_ec(&ec_dev));
+	// ESP_ERROR_CHECK(activate_ec(&ec_dev));
 
 	is_ec_activated = true; 
 

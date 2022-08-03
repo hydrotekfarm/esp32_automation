@@ -27,7 +27,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 	is_ph_activated = false;
 
-	ESP_ERROR_CHECK(activate_ph(&ph_dev));
+	// ESP_ERROR_CHECK(activate_ph(&ph_dev));
 
 	is_ph_activated = true;
 
