@@ -27,7 +27,13 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 	is_ec_activated = false;
 
-	// ESP_ERROR_CHECK(activate_ec(&ec_dev));
+	if(activate_ec(&ec_dev) == ESP_OK) {			// Activate EC sensor
+		is_ec_activated = true;
+		ESP_LOGI(TAG, "EC sensor activated");
+	}
+	else {
+		ESP_LOGE(TAG, "EC sensor not activated");
+	}
 
 	is_ec_activated = true; 
 
