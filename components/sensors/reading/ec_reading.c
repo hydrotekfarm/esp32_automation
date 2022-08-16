@@ -8,15 +8,16 @@
 #include "water_temp_reading.h"
 #include <stdbool.h>
 
-struct sensor* get_ec_sensor() { return &ec_sensor; }
+struct sensor *get_ec_sensor() { return &ec_sensor; }
 
-ec_sensor_t* get_ec_dev() {return &ec_dev; }
+ec_sensor_t *get_ec_dev() { return &ec_dev; }
 
-bool get_is_ec_activated() {return is_ec_activated; }
+bool get_is_ec_activated() { return is_ec_activated; }
 
-void set_is_ec_activated(bool is_active) {is_ec_activated = is_active;}
+void set_is_ec_activated(bool is_active) { is_ec_activated = is_active; }
 
-void measure_ec(void *parameter) {				// EC Sensor Measurement Task
+void measure_ec(void *parameter)
+{ // EC Sensor Measurement Task
 	const char *TAG = "EC_Task";
 
 	init_sensor(&ec_sensor, "ec", true, false);
@@ -27,48 +28,54 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 	is_ec_activated = false;
 
-	if(activate_ec(&ec_dev) == ESP_OK) {			// Activate EC sensor
-		is_ec_activated = true;
-		ESP_LOGI(TAG, "EC sensor activated");
-	}
-	else {
+	if (activate_ec(&ec_dev) != ESP_OK)
+	{ // Activate EC sensor
 		ESP_LOGE(TAG, "EC sensor not activated");
 	}
+	else
+	{
+		is_ec_activated = true;
 
-	is_ec_activated = true; 
-
-	for (;;) {
-		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
-			ESP_LOGI(TAG, "EC Wet Calibration Started");
-            calibrate_sensor(&ec_sensor, &calibrate_ec, &ec_dev);
-            sensor_set_calib_status(&ec_sensor, false);
-            if (!get_is_grow_active()) {
-                ESP_LOGI(TAG, "EC task Suspended");
-                vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
-            }
-            ESP_LOGI(TAG, "EC Wet Calibration Completed");
-
-		} if(dry_calib) {
-			ESP_LOGI(TAG, "EC Dry Calibration Started");
-            calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &ec_dev);
-            dry_calib = false;
-            if (!get_is_grow_active()) {
-                ESP_LOGI(TAG, "EC task Suspended");
-                vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
-            }
-            ESP_LOGI(TAG, "EC Dry Calibration Completed");
-
-		} else {		// EC sensor is Active
-			if (!get_is_ec_activated()) {
-				ESP_ERROR_CHECK(activate_ec(&ec_dev));
-				is_ec_activated = true;
+		for (;;)
+		{
+			if (sensor_calib_status(&ec_sensor))
+			{ // Calibration Mode is activated
+				ESP_LOGI(TAG, "EC Wet Calibration Started");
+				calibrate_sensor(&ec_sensor, &calibrate_ec, &ec_dev);
+				sensor_set_calib_status(&ec_sensor, false);
+				if (!get_is_grow_active())
+				{
+					ESP_LOGI(TAG, "EC task Suspended");
+					vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
+				}
+				ESP_LOGI(TAG, "EC Wet Calibration Completed");
 			}
-			read_ec_with_temperature(&ec_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));
-			ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));
+			if (dry_calib)
+			{
+				ESP_LOGI(TAG, "EC Dry Calibration Started");
+				calibrate_sensor(&ec_sensor, &calibrate_ec_dry, &ec_dev);
+				dry_calib = false;
+				if (!get_is_grow_active())
+				{
+					ESP_LOGI(TAG, "EC task Suspended");
+					vTaskSuspend(*sensor_get_task_handle(&ec_sensor));
+				}
+				ESP_LOGI(TAG, "EC Dry Calibration Completed");
+			}
+			else
+			{ // EC sensor is Active
+				if (!get_is_ec_activated())
+				{
+					ESP_ERROR_CHECK(activate_ec(&ec_dev));
+					is_ec_activated = true;
+				}
+				read_ec_with_temperature(&ec_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));
+				ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));
 
-			// Sync with other sensor tasks
-			// Wait up to 10 seconds to let other tasks end
-			xEventGroupSync(sensor_event_group, EC_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+				// Sync with other sensor tasks
+				// Wait up to 10 seconds to let other tasks end
+				xEventGroupSync(sensor_event_group, EC_BIT, sensor_sync_bits, pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+			}
 		}
 	}
 }

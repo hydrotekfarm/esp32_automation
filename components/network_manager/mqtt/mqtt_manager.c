@@ -961,118 +961,38 @@ void publish_pump_status(int publish_motor_choice, int publish_status)
 
    esp_mqtt_client_publish(mqtt_client, test_motor_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
-  //cJSON_Delete(data);
+ 
 }
 
-void publish_light_status(int publish_light_choice, int publish_status)
+void publish_power_outlet_status(int outlet_choice, int outlet_status)
 {
-   const char *TAG = "PUBLISH_LIGHT_STATUS";
-   cJSON *info, *choice = NULL, *switch_status = NULL;
-   info = cJSON_CreateObject();
-   choice = cJSON_CreateNumber(publish_light_choice);
-   switch_status = cJSON_CreateNumber(publish_status);
-
-   cJSON_AddItemToObject(info, "choice", choice);
-
-   cJSON_AddItemToObject(info, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(info);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
-   cJSON_Delete(info);
-   //cJSON_Delete(data);
-}
-
-void publish_water_cooler_status(int publish_cooler_status)
-{
-   const char *TAG = "PUBLISH_WATER_COOLER";
-   cJSON *root, *switch_status = NULL;
+   const char *TAG = "PUBLISH_POWER_OUTLET";
+   cJSON *root, *switch_status = NULL ,*choice = NULL;
    root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(publish_cooler_status);
+   choice = cJSON_CreateNumber(outlet_choice);
+   switch_status = cJSON_CreateNumber(outlet_status);
 
    cJSON_AddItemToObject(root, "switch_status", switch_status);
+   cJSON_AddItemToObject(root, "choice", choice);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
-   //cJSON_Delete(data);
+  
 }
 
-void publish_water_heater_status(int publish_heater_status)
-{
-   const char *TAG = "PUBLISH_WATER_HEATER";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(publish_heater_status);
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-  // cJSON_Delete(data);
-}
-
-void publish_water_in_status(int publish_in_status)
-{
-   const char *TAG = "PUBLISH_WATER_IN";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(publish_in_status);
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-   //cJSON_Delete(data);
-}
-
-void publish_water_out_status(int publish_out_status)
-{
-   const char *TAG = "PUBLISH_WATER_OUT";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(publish_out_status);
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-   //cJSON_Delete(data);
-}
-
-void publish_irrigation_status(int publish_irrig_status)
-{
-   const char *TAG = "PUBLISH_IRRIGATION";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-   //cJSON_Delete(data);
-}
-
-void publish_float_switch_status(int float_switch_type, int float_switch_status)
+void publish_float_switch_status(int float_switch_choice, int float_switch_status)
 {
    const char *TAG = "PUBLISH_FLOAT SWITCH_STATUS";
-   cJSON *temp_obj, *type = NULL, *switch_status = NULL;
+   cJSON *temp_obj, *choice = NULL, *switch_status = NULL;
    temp_obj = cJSON_CreateObject();
-   type = cJSON_CreateNumber(float_switch_type);
+   choice = cJSON_CreateNumber(float_switch_choice);
    switch_status = cJSON_CreateNumber(float_switch_status);
 
-   cJSON_AddItemToObject(temp_obj, "Type", type);
+   cJSON_AddItemToObject(temp_obj, "choice", choice);
 
-   cJSON_AddItemToObject(temp_obj, "Status", switch_status);
+   cJSON_AddItemToObject(temp_obj, "switch_status", switch_status);
 
    char *data = cJSON_PrintUnformatted(temp_obj);
 
@@ -1080,53 +1000,23 @@ void publish_float_switch_status(int float_switch_type, int float_switch_status)
 
    esp_mqtt_client_publish(mqtt_client, test_fs_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
-   //cJSON_Delete(data);
+  
 }
 
-void publish_ph_status(int ph_status)
+void publish_sensor_status(int sensor_choice, int sensor_status)
 {
-   const char *TAG = "PUBLISH_PH";
-   cJSON *root, *switch_status = NULL;
+   const char *TAG = "PUBLISH_SENSOR_STATUS";
+   cJSON *root, *switch_status = NULL, *choice = NULL;
    root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(ph_status);
+   choice = cJSON_CreateNumber(sensor_choice);
+   switch_status = cJSON_CreateNumber(sensor_status);
 
    cJSON_AddItemToObject(root, "switch_status", switch_status);
+   cJSON_AddItemToObject(root, "choice", choice);
    char *data = cJSON_PrintUnformatted(root);
 
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
-   //cJSON_Delete(data);
-}
-
-void publish_ec_status(int ec_status)
-{
-   const char *TAG = "PUBLISH_EC";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(ec_status);
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-  // cJSON_Delete(data);
-}
-
-void publish_water_temperature_status(int publish_temperature_status)
-{
-   const char *TAG = "PUBLISH_WATER_TEMPERATURE";
-   cJSON *root, *switch_status = NULL;
-   root = cJSON_CreateObject();
-   switch_status = cJSON_CreateNumber(publish_temperature_status);
-
-   cJSON_AddItemToObject(root, "switch_status", switch_status);
-   char *data = cJSON_PrintUnformatted(root);
-
-   ESP_LOGI(TAG, "Message: %s", data);
-   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
-   cJSON_Delete(root);
-   //cJSON_Delete(data);
+  
 }

@@ -8,17 +8,9 @@
 #include "esp_log.h"
 
 void publish_pump_status(int publish_motor_choice, int publish_status);
-void publish_light_status(int publish_light_choice, int publish_status);
-void publish_water_cooler_status(int publish_status);
-void publish_water_heater_status(int publish_status);
-void publish_water_in_status(int publish_status);
-void publish_water_out_status(int publish_status);
-void publish_irrigation_status(int publish_status);
-void publish_temperature_status(float publish_reading, int publish_status);
-void publish_float_switch_status(int float_switch_type, int float_switch_status);
-void publish_ph_status(int ph_status);
-void publish_ec_status(int ec_status);
-void publish_water_temperature_status(int publish_temperature_status);
+void publish_power_outlet_status(int outlet_choice, int outlet_status);
+void publish_float_switch_status(int float_switch_choice, int float_switch_status);
+void publish_sensor_status(int sensor_choice, int sensor_status);
 void IRAM_ATTR top_float_switch_isr_handler(void *arg);
 void IRAM_ATTR bottom_float_switch_isr_handler(void *arg);
 
@@ -211,11 +203,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_water_cooler_status(switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_water_cooler_status(DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
     else if (choice == WATER_HEATER)
@@ -232,11 +224,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_water_heater_status(switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_water_heater_status(DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
     else if (choice == IRRIGATION)
@@ -253,11 +245,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_irrigation_status(switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_irrigation_status(DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
     else if (choice == RESERVOIR_WATER_IN)
@@ -274,11 +266,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_water_in_status(switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_water_in_status(DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
     else if (choice == RESERVOIR_WATER_OUT)
@@ -295,11 +287,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_water_out_status(switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_water_out_status(DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
     else if (choice == GROW_LIGHTS)
@@ -318,11 +310,11 @@ void test_outlet(int choice, int switch_status)
 
         if (result == pdTRUE)
         {
-            publish_light_status(choice, switch_status);
+            publish_power_outlet_status(choice, switch_status);
         }
         else
         {
-            publish_light_status(choice, DEVICE_ERROR);
+            publish_power_outlet_status(choice, DEVICE_ERROR);
         }
     }
 }
@@ -350,10 +342,9 @@ void test_sensor(int choice, int switch_status)
             float ph_reading = 0;
             read_ph(&ph_dev, &ph_reading);
             ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
-            //  publish_ph_status(ph_status);
+            publish_sensor_status(choice, switch_status);
             vTaskDelay(pdMS_TO_TICKS(1500));
         }
-        
     }
     else if (choice == EC)
     {
@@ -365,7 +356,7 @@ void test_sensor(int choice, int switch_status)
             float ec_reading = 0;
             read_ec(&ec_dev, &ec_reading);
             ESP_LOGI("EC_TEST", "EC Reading: %f", ec_reading);
-            //  publish_ec_status(ec_status);
+            publish_sensor_status(choice, switch_status);
         }
     }
     else if (choice == WATER_TEMP)
@@ -379,25 +370,25 @@ void test_sensor(int choice, int switch_status)
             if (error == ESP_OK)
             {
                 ESP_LOGI("WATER_TEMPERATURE_TEST", "temperature: %f\n", water_temperature_reading);
-                publish_water_temperature_status(DEVICE_ON);
+                publish_sensor_status(choice, DEVICE_ON);
                 break;
             }
             else if (error == ESP_ERR_INVALID_RESPONSE)
             {
                 ESP_LOGE("WATER_TEMPERATURE_TEST", "Temperature Sensor Not Connected\n");
-                publish_water_temperature_status(DEVICE_ERROR);
+                publish_sensor_status(choice, DEVICE_ERROR);
                 break;
             }
             else if (error == ESP_ERR_INVALID_CRC)
             {
                 ESP_LOGE("WATER_TEMPERATURE_TEST", "Invalid CRC, Try Again\n");
-                publish_water_temperature_status(DEVICE_ERROR);
+                publish_sensor_status(choice, DEVICE_ERROR);
                 break;
             }
             else
             {
                 ESP_LOGE("WATER_TEMPERATURE_TEST", "Unknown Error\n");
-                publish_water_temperature_status(DEVICE_ERROR);
+                publish_sensor_status(choice, DEVICE_ERROR);
                 break;
             }
         }
