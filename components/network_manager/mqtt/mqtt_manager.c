@@ -961,6 +961,8 @@ void publish_pump_status(int publish_motor_choice, int publish_status)
 
    esp_mqtt_client_publish(mqtt_client, test_motor_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
+   free(data);
+   
  
 }
 
@@ -979,6 +981,7 @@ void publish_power_outlet_status(int outlet_choice, int outlet_status)
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   free(data);
   
 }
 
@@ -1000,6 +1003,7 @@ void publish_float_switch_status(int float_switch_choice, int float_switch_statu
 
    esp_mqtt_client_publish(mqtt_client, test_fs_response, data, 0, 1, 0);
    cJSON_Delete(temp_obj);
+   free(data);
   
 }
 
@@ -1018,5 +1022,6 @@ void publish_sensor_status(int sensor_choice, int sensor_status)
    ESP_LOGI(TAG, "Message: %s", data);
    esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
    cJSON_Delete(root);
+   free(data);
   
 }
