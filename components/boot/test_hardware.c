@@ -10,7 +10,7 @@
 void publish_pump_status(int publish_motor_choice, int publish_status);
 void publish_power_outlet_status(int outlet_choice, int outlet_status);
 void publish_float_switch_status(int float_switch_choice, int float_switch_status);
-void publish_sensor_status(int sensor_choice, int sensor_status);
+void publish_sensor_status(char sensor_choice[], int sensor_status);
 void IRAM_ATTR top_float_switch_isr_handler(void *arg);
 void IRAM_ATTR bottom_float_switch_isr_handler(void *arg);
 
@@ -182,7 +182,7 @@ void test_outlet(int choice, int switch_status)
     printf("-------------------------------------------------\n");
     enum power_outlets
     {
-        WATER_COOLER = 1,
+        WATER_COOLER ,
         WATER_HEATER,
         IRRIGATION,
         RESERVOIR_WATER_IN,
@@ -319,19 +319,15 @@ void test_outlet(int choice, int switch_status)
     }
 }
 
-void test_sensor(int choice, int switch_status)
+void test_sensor( char choice[], int switch_status)
 {
     const char *TAG = "TEST_SENSOR";
     printf("\n");
     ESP_LOGI(TAG, "Testing the sensors");
     printf("-------------------------------------------------\n");
-    enum sensors
-    {
-        PH = 1,
-        EC,
-        WATER_TEMP
-    };
-    if (choice == PH)
+
+    
+    if (strcmp(choice, "ph") == 0)
     {
         printf("\n");
         ESP_LOGI("PH_TEST", "Testing pH Sensor");
@@ -346,7 +342,7 @@ void test_sensor(int choice, int switch_status)
             vTaskDelay(pdMS_TO_TICKS(1500));
         }
     }
-    else if (choice == EC)
+    else if (strcmp(choice, "ec") == 0)
     {
         printf("\n");
         ESP_LOGI("EC_TEST", "Testing EC Sensor");
@@ -359,7 +355,7 @@ void test_sensor(int choice, int switch_status)
             publish_sensor_status(choice, switch_status);
         }
     }
-    else if (choice == WATER_TEMP)
+    else if (strcmp(choice, "water_temp") == 0)
     {
         for (int i = 0; i < 5; i++)
         {

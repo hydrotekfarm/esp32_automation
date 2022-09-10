@@ -163,5 +163,5 @@ void publish_power_outlet_status(int outlet_choice, int outlet_status);
 void publish_float_switch_status(int float_switch_choice, int float_switch_status);
 
 // Publish status for sensor
-void publish_sensor_status(int sensor_choice, int sensor_status);
+void publish_sensor_status(char sensor_choice[], int sensor_status);
 #endif

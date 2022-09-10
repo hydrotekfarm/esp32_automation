@@ -802,14 +802,14 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
       cJSON *root = cJSON_Parse(data);
       choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
       switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
-      if (cJSON_IsNumber(switch_status) && cJSON_IsNumber(choice))
+      if (cJSON_IsNumber(switch_status) )
       {
          if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)
          {
             sensor_status = switch_status->valueint;
             ESP_LOGI(TAG, "Received the test sensor message");
             ESP_LOGI(TAG, "Sensor status:%d\n", sensor_status);
-            test_sensor(choice->valueint, sensor_status);
+            test_sensor(choice->valuestring, sensor_status);
          }
          else
          {
@@ -1007,12 +1007,12 @@ void publish_float_switch_status(int float_switch_choice, int float_switch_statu
   
 }
 
-void publish_sensor_status(int sensor_choice, int sensor_status)
+void publish_sensor_status(char sensor_choice[], int sensor_status)
 {
    const char *TAG = "PUBLISH_SENSOR_STATUS";
    cJSON *root, *switch_status = NULL, *choice = NULL;
    root = cJSON_CreateObject();
-   choice = cJSON_CreateNumber(sensor_choice);
+   choice = cJSON_CreateString(sensor_choice);
    switch_status = cJSON_CreateNumber(sensor_status);
 
    cJSON_AddItemToObject(root, "switch_status", switch_status);

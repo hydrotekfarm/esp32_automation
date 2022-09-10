@@ -26,10 +26,11 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 	ESP_ERROR_CHECK(ph_init(&ph_dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication
 
-	// is_ph_activated = false;
 
-	// ESP_ERROR_CHECK(activate_ph(&ph_dev));
-	activate_ph(&ph_dev);
+	is_ph_activated = false;
+
+	ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ph(&ph_dev));
+
 	is_ph_activated = true;
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
@@ -46,7 +47,7 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
             ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
 			if (!get_is_ph_activated()) {
-				activate_ph(&ph_dev);
+				ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ph(&ph_dev));
 				is_ph_activated = true;
 			}
 			read_ph_with_temperature(&ph_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ph_sensor));
@@ -56,4 +57,6 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 		}
 	}
 }
+
+
 
