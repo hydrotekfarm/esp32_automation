@@ -28,10 +28,23 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 
 	is_ph_activated = false;
+	
+	start = clock();
+    while(!get_is_ph_activated() && (exec_time < 0.1)) {
+        if(activate_ph(&ph_dev)==ESP_OK) {
+            is_ph_activated = true;
+			ESP_LOGI(TAG, "PH activated");
+			break;
+				
+        }
+		ESP_LOGE(TAG, "PH not activated");
+		end = clock();
+		exec_time = (end-start)/CLOCKS_PER_SEC;
+		ESP_LOGE(TAG, "PH exec time: %f", exec_time);
+    }
+ 	
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ph(&ph_dev));
-
-	is_ph_activated = true;
+	
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
 	for (;;) {
@@ -47,8 +60,19 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
             ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
 			if (!get_is_ph_activated()) {
-				ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ph(&ph_dev));
-				is_ph_activated = true;
+				start = clock();
+				while(!get_is_ph_activated() && (exec_time < 0.1)) {
+					if(activate_ph(&ph_dev)==ESP_OK) {
+						is_ph_activated = true;
+						ESP_LOGI(TAG, "PH activated");
+						break;
+							
+					}
+					ESP_LOGE(TAG, "PH not activated");
+					end = clock();
+					exec_time = (end-start)/CLOCKS_PER_SEC;
+				}
+				
 			}
 			read_ph_with_temperature(&ph_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ph_sensor));
 			ESP_LOGI(TAG, "PH: %f", sensor_get_value(&ph_sensor));

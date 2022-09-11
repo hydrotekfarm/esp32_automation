@@ -27,10 +27,21 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 
 	is_ec_activated = false;
+    
+	start = clock();
+	while(!get_is_ec_activated() && (exec_time < 0.1) ) {
+		if(activate_ec(&ec_dev)==ESP_OK) {
+			is_ec_activated = true;
+			ESP_LOGI(TAG, "EC activated");
+			break;
+		}
+		ESP_LOGE(TAG, "EC not activated");
+		end = clock();
+		exec_time = (end-start)/CLOCKS_PER_SEC;
+		ESP_LOGE(TAG, "EC exec time: %f", exec_time);
+	}
+	
 
-	ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ec(&ec_dev));
-
-	is_ec_activated = true; 
 
 	for (;;) {
 		if(sensor_calib_status(&ec_sensor)) { // Calibration Mode is activated
@@ -55,8 +66,17 @@ void measure_ec(void *parameter) {				// EC Sensor Measurement Task
 
 		} else {		// EC sensor is Active
 			if (!get_is_ec_activated()) {
-				ESP_ERROR_CHECK_WITHOUT_ABORT(activate_ec(&ec_dev));
-				is_ec_activated = true;
+				start = clock();
+				while(!get_is_ec_activated() && (exec_time < 0.1) ) {
+					if(activate_ec(&ec_dev)==ESP_OK) {
+						is_ec_activated = true;
+						ESP_LOGI(TAG, "EC activated");
+						break;
+					}
+					ESP_LOGE(TAG, "EC not activated");
+					end = clock();
+					exec_time = (end-start)/CLOCKS_PER_SEC;
+	}
 			}
 			read_ec_with_temperature(&ec_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ec_sensor));
 			ESP_LOGI(TAG, "EC: %f", sensor_get_value(&ec_sensor));
