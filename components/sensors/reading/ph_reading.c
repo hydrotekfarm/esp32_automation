@@ -24,23 +24,26 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
 
 	memset(&ph_dev, 0, sizeof(ph_sensor_t));
 
-	ESP_ERROR_CHECK(ph_init(&ph_dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO)); // Initialize PH I2C communication
-
+	if(ph_init(&ph_dev, 0, PH_ADDR_BASE, SDA_GPIO, SCL_GPIO==ESP_OK)) {  // Initialize PH I2C communication
+     
+		ESP_LOGI(TAG, "PH Sensor Initialized");
+	}
+	else {
+		ESP_LOGE(TAG, "PH Sensor Initialization Failed");
+		
+	}
 
 	is_ph_activated = false;
 	
-	start = clock();
-    while(!get_is_ph_activated() && (exec_time < 0.1)) {
+    while(!get_is_ph_activated()) {
         if(activate_ph(&ph_dev)==ESP_OK) {
             is_ph_activated = true;
 			ESP_LOGI(TAG, "PH activated");
 			break;
-				
-        }
+		}
 		ESP_LOGE(TAG, "PH not activated");
-		end = clock();
-		exec_time = (end-start)/CLOCKS_PER_SEC;
-		ESP_LOGE(TAG, "PH exec time: %f", exec_time);
+		vTaskDelay(pdMS_TO_TICKS(10000));
+		
     }
  	
 
@@ -60,20 +63,16 @@ void measure_ph(void *parameter) {		// pH Sensor Measurement Task
             ESP_LOGE(TAG, "PH Calibration Completed");
 		} else {
 			if (!get_is_ph_activated()) {
-				start = clock();
-				while(!get_is_ph_activated() && (exec_time < 0.1)) {
+ 				while(!get_is_ph_activated()) {
 					if(activate_ph(&ph_dev)==ESP_OK) {
 						is_ph_activated = true;
 						ESP_LOGI(TAG, "PH activated");
 						break;
-							
 					}
 					ESP_LOGE(TAG, "PH not activated");
-					end = clock();
-					exec_time = (end-start)/CLOCKS_PER_SEC;
-				}
-				
-			}
+					vTaskDelay(pdMS_TO_TICKS(10000));
+ 				}
+ 	 		}
 			read_ph_with_temperature(&ph_dev, sensor_get_value(get_water_temp_sensor()), sensor_get_address_value(&ph_sensor));
 			ESP_LOGI(TAG, "PH: %f", sensor_get_value(&ph_sensor));
 			// Sync with other sensor tasks and wait up to 10 seconds to let other tasks end
