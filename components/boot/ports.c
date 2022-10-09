@@ -19,11 +19,11 @@ void init_ports() {
 	set_gpio_off(PH_DOWN_PUMP_GPIO);
 }
 
-void set_gpio_on(int gpio) {
-	mcp23x17_set_level(&ports_dev, gpio, 1);
+esp_err_t set_gpio_on(int gpio) {
+	return mcp23x17_set_level(&ports_dev, gpio, 1);
 }
-void set_gpio_off(int gpio) {
-	mcp23x17_set_level(&ports_dev, gpio, 0);
+esp_err_t set_gpio_off(int gpio) {
+	return mcp23x17_set_level(&ports_dev, gpio, 0);	
 }
 
 

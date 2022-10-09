@@ -26,6 +26,13 @@
 #include "wifi_connect.h"
 #include "reservoir_control.h"
 #include "ports.h"
+#include "test_hardware.h"
+
+#define DEVICE_ON 1
+#define DEVICE_OFF 0
+#define DEVICE_ERROR -1
+#define FLOAT_UP 1
+#define FLOAT_DOWN 0
 
 static void initiate_ota(const char *mqtt_data);
 static esp_err_t parse_ota_parameters(const char *buffer, char *version, char *endpoint);
@@ -39,96 +46,101 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
    const char *TAG = "MQTT_Event_Handler";
 
    switch (event->event_id) {
-      case MQTT_EVENT_CONNECTED:
-         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-         xSemaphoreGive(mqtt_connect_semaphore);
-         break;
-      case MQTT_EVENT_DISCONNECTED:
-         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-         break;
+   
+   case MQTT_EVENT_CONNECTED:
+      ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+      xSemaphoreGive(mqtt_connect_semaphore);
+      break;
+   case MQTT_EVENT_DISCONNECTED:
+      ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+      break;
 
-      case MQTT_EVENT_SUBSCRIBED:
-         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-         break;
-      case MQTT_EVENT_UNSUBSCRIBED:
-         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-         break;
-      case MQTT_EVENT_PUBLISHED:
-         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-         break;
-      case MQTT_EVENT_DATA:
-         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-         printf("DATA=%.*s\r\n", event->data_len, event->data);
-         data_handler(event->topic, event->topic_len, event->data, event->data_len);
-         break;
-      case MQTT_EVENT_ERROR:
-         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-         break;
-      case MQTT_EVENT_BEFORE_CONNECT:
-         ESP_LOGI(TAG, "Before Connection\n");
-         break;
-      default:
-         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
-         break;
+   case MQTT_EVENT_SUBSCRIBED:
+      ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+      break;
+   case MQTT_EVENT_UNSUBSCRIBED:
+      ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+      break;
+   case MQTT_EVENT_PUBLISHED:
+      ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+      break;
+   case MQTT_EVENT_DATA:
+      ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+      printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+      printf("DATA=%.*s\r\n", event->data_len, event->data);
+      data_handler(event->topic, event->topic_len, event->data, event->data_len);
+      break;
+   case MQTT_EVENT_ERROR:
+      ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+      break;
+   case MQTT_EVENT_BEFORE_CONNECT:
+      ESP_LOGI(TAG, "Before Connection\n");
+      break;
+   default:
+      ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+      break;
    }
 
    return 0;
 }
 
-void create_str(char** str, char* init_str) { // Create method to allocate memory and assign initial value to string
-	*str = malloc(strlen(init_str) * sizeof(char)); // Assign memory based on size of initial value
-	if(!(*str)) { // Restart if memory alloc fails
-		ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
-		restart_esp32();
-	}
-	strcpy(*str, init_str); // Copy initial value into string
+void create_str(char **str, char *init_str) {                                                  // Create method to allocate memory and assign initial value to string
+   *str = malloc(strlen(init_str) * sizeof(char)); // Assign memory based on size of initial value
+   if (!(*str)) {
+      // Restart if memory alloc fails
+      ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
+      restart_esp32();
+   }
+   strcpy(*str, init_str); // Copy initial value into string
 }
-void append_str(char** str, char* str_to_add) { // Create method to reallocate and append string to already allocated string
-	*str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1); // Reallocate data based on existing and new string size
-	if(!(*str)) { // Restart if memory alloc fails
-		ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
-		restart_esp32();
-	}
-	strcat(*str, str_to_add); // Concatenate strings
+void append_str(char **str, char *str_to_add) {                                                                                // Create method to reallocate and append string to already allocated string
+   *str = realloc(*str, (strlen(*str) + strlen(str_to_add)) * sizeof(char) + 1); // Reallocate data based on existing and new string size
+   if (!(*str)) {
+      // Restart if memory alloc fails
+      ESP_LOGE("", "Memory allocation failed. Restarting ESP32");
+      restart_esp32();
+   }
+   strcat(*str, str_to_add); // Concatenate strings
 }
 
 // Add sensor data to JSON entry
-void add_entry(char** data, bool* first, char* name, float num) {
-	// Add a comma to the beginning of every entry except the first
-	if(*first) *first = false;
-	else append_str(data, ",");
+void add_entry(char **data, bool *first, char *name, float num) {
+   // Add a comma to the beginning of every entry except the first
+   if (*first)
+      *first = false;
+   else
+      append_str(data, ",");
 
-	// Convert float data into string
-	char value[8];
-	snprintf(value, sizeof(value), "%.2f", num);
+   // Convert float data into string
+   char value[8];
+   snprintf(value, sizeof(value), "%.2f", num);
 
-	// Create entry string
-	char *entry = NULL;
-	create_str(&entry, "{ \"name\": \"");
+   // Create entry string
+   char *entry = NULL;
+   create_str(&entry, "{ \"name\": \"");
 
-	// Create entry using key, value, and other JSON syntax
-	append_str(&entry, name);
-	append_str(&entry, "\", \"value\": \"");
-	append_str(&entry, value);
-	append_str(&entry, "\"}");
+   // Create entry using key, value, and other JSON syntax
+   append_str(&entry, name);
+   append_str(&entry, "\", \"value\": \"");
+   append_str(&entry, value);
+   append_str(&entry, "\"}");
 
-	// Add entry to overall JSON data
-	append_str(data, entry);
+   // Add entry to overall JSON data
+   append_str(data, entry);
 
-	// Free allocated memory
-	free(entry);
-	entry = NULL;
+   // Free allocated memory
+   free(entry);
+   entry = NULL;
 }
 
 void init_topic(char **topic, int topic_len, char *heading) {
-	*topic = malloc(sizeof(char) * topic_len);
-	strcpy(*topic, heading);
+   *topic = malloc(sizeof(char) * topic_len);
+   strcpy(*topic, heading);
 }
 
 void add_id(char *topic) {
-	strcat(topic, "/");
-	strcat(topic, get_network_settings()->device_id);
+   strcat(topic, "/");
+   strcat(topic, get_network_settings()->device_id);
 }
 
 void add_device_type(char *topic) {
@@ -137,39 +149,75 @@ void add_device_type(char *topic) {
 }
 
 void make_topics() {
-	ESP_LOGI(MQTT_TAG, "Starting make topics");
+   ESP_LOGI(MQTT_TAG, "Starting make topics");
 
-	int device_id_len = strlen(get_network_settings()->device_id);
+   int device_id_len = strlen(get_network_settings()->device_id);
    int device_type_len = strlen(DEVICE_TYPE);
 
-	init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
-	add_id(wifi_connect_topic);
-	ESP_LOGI(MQTT_TAG, "Wifi Topic: %s", wifi_connect_topic);
+   init_topic(&wifi_connect_topic, device_id_len + 1 + strlen(WIFI_CONNECT_HEADING) + 1, WIFI_CONNECT_HEADING);
+   add_id(wifi_connect_topic);
+   ESP_LOGI(MQTT_TAG, "Wifi Topic: %s", wifi_connect_topic);
 
-	init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
-	add_id(sensor_data_topic);
-	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
+   init_topic(&sensor_data_topic, device_id_len + 1 + strlen(SENSOR_DATA_HEADING) + 1, SENSOR_DATA_HEADING);
+   add_id(sensor_data_topic);
+   ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
-	init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
-	add_id(sensor_settings_topic);
-	ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", sensor_settings_topic);
+   init_topic(&sensor_settings_topic, device_id_len + 1 + strlen(SENSOR_SETTINGS_HEADING) + 1, SENSOR_SETTINGS_HEADING);
+   add_id(sensor_settings_topic);
+   ESP_LOGI(MQTT_TAG, "Sensor settings topic: %s", sensor_settings_topic);
 
-	init_topic(&equipment_status_topic, device_id_len + 1 + strlen(EQUIPMENT_STATUS_HEADING) + 1, EQUIPMENT_STATUS_HEADING);
-	add_id(equipment_status_topic);
-	ESP_LOGI(MQTT_TAG, "Equipment settings topic: %s", equipment_status_topic);
+   init_topic(&equipment_status_topic, device_id_len + 1 + strlen(EQUIPMENT_STATUS_HEADING) + 1, EQUIPMENT_STATUS_HEADING);
+   add_id(equipment_status_topic);
+   ESP_LOGI(MQTT_TAG, "Equipment settings topic: %s", equipment_status_topic);
 
-	init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
-	add_id(grow_cycle_topic);
-	ESP_LOGI(MQTT_TAG, "Grow cycle topic: %s", grow_cycle_topic);
+   init_topic(&grow_cycle_topic, device_id_len + 1 + strlen(GROW_CYCLE_HEADING) + 1, GROW_CYCLE_HEADING);
+   add_id(grow_cycle_topic);
+   ESP_LOGI(MQTT_TAG, "Grow cycle topic: %s", grow_cycle_topic);
 
-	init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
-	add_id(rf_control_topic);
-	ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
+   init_topic(&rf_control_topic, device_id_len + 1 + strlen(RF_CONTROL_HEADING) + 1, RF_CONTROL_HEADING);
+   add_id(rf_control_topic);
+   ESP_LOGI(MQTT_TAG, "RF control settings topic: %s", rf_control_topic);
 
-	//Topic for Calibration//
+   // Topic for Calibration//
    init_topic(&calibration_topic, device_id_len + 1 + strlen(CALIBRATION_HEADING) + 1, CALIBRATION_HEADING);
    add_id(calibration_topic);
    ESP_LOGI(MQTT_TAG, "Calibration sensors topic: %s", calibration_topic);
+
+   init_topic(&test_motor_request, device_id_len + 1 + strlen(TEST_MOTOR_REQUEST_HEADING) + 1, TEST_MOTOR_REQUEST_HEADING);
+   add_id(test_motor_request);
+   ESP_LOGI(MQTT_TAG, "Test motor request topic: %s", test_motor_request);
+
+   init_topic(&test_motor_response, device_id_len + 1 + strlen(TEST_MOTOR_RESPONSE_HEADING) + 1, TEST_MOTOR_RESPONSE_HEADING);
+   add_id(test_motor_response);
+   ESP_LOGI(MQTT_TAG, "Test motor response topic: %s", test_motor_response);
+
+   init_topic(&test_outlet_request, device_id_len + 1 + strlen(TEST_OUTLET_REQUEST_HEADING) + 1, TEST_OUTLET_REQUEST_HEADING);
+   add_id(test_outlet_request);
+   ESP_LOGI(MQTT_TAG, "Test outlet request topic: %s", test_outlet_request);
+
+   init_topic(&test_outlet_response, device_id_len + 1 + strlen(TEST_OUTLET_RESPONSE_HEADING) + 1, TEST_OUTLET_RESPONSE_HEADING);
+   add_id(test_outlet_response);
+   ESP_LOGI(MQTT_TAG, "Test outlet response topic: %s", test_outlet_response);
+
+   init_topic(&test_sensor_request, device_id_len + 1 + strlen(TEST_SENSOR_REQUEST_HEADING) + 1, TEST_SENSOR_REQUEST_HEADING);
+   add_id(test_sensor_request);
+   ESP_LOGI(MQTT_TAG, "Test sensor request topic: %s", test_sensor_request);
+
+   init_topic(&test_sensor_response, device_id_len + 1 + strlen(TEST_SENSOR_RESPONSE_HEADING) + 1, TEST_SENSOR_RESPONSE_HEADING);
+   add_id(test_sensor_response);
+   ESP_LOGI(MQTT_TAG, "Test sensor response topic: %s", test_sensor_response);
+
+   init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
+   add_id(test_rf_topic);
+   ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
+
+   init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FS_REQUEST_HEADING) + 1, TEST_FS_REQUEST_HEADING);
+   add_id(test_fs_request);
+   ESP_LOGI(MQTT_TAG, "Test float switch request topic: %s", test_fs_request);
+
+   init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FS_RESPONSE_HEADING) + 1, TEST_FS_RESPONSE_HEADING);
+   add_id(test_fs_response);
+   ESP_LOGI(MQTT_TAG, "Test float switch response topic: %s", test_fs_response);
 
    init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
    add_device_type(ota_update_topic);
@@ -189,55 +237,59 @@ void make_topics() {
 }
 
 void subscribe_topics() {
-	// Subscribe to topics
-	esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
-	esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
-	esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
-	esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
+   // Subscribe to topics
+   esp_mqtt_client_subscribe(mqtt_client, sensor_settings_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, grow_cycle_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, rf_control_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, calibration_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, ota_update_topic, SUBSCRIBE_DATA_QOS);
    esp_mqtt_client_subscribe(mqtt_client, version_request_topic, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_motor_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_outlet_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_sensor_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_fs_request, SUBSCRIBE_DATA_QOS);
+   esp_mqtt_client_subscribe(mqtt_client, test_rf_topic, SUBSCRIBE_DATA_QOS);
 }
 
 void init_mqtt() {
-	// Set broker configuration
-	esp_mqtt_client_config_t mqtt_cfg = {
-			.host = get_network_settings()->broker_ip,
-			.port = 1883,
-			.event_handle = mqtt_event_handler
-	};
+   // Set broker configuration
+   esp_mqtt_client_config_t mqtt_cfg = {
+       .host = get_network_settings()->broker_ip,
+       .port = 1883,
+       .event_handle = mqtt_event_handler};
 
-	// Create MQTT client
-	mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+   // Create MQTT client
+   mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 
-	// Dynamically create topics
-	make_topics();
+   // Dynamically create topics
+   make_topics();
 
-	// Create equipment status JSON
-	init_equipment_status();
+   // Create equipment status JSON
+   init_equipment_status();
 }
 
 void mqtt_connect() {
-	// First check if wifi is connected
-	if(!is_wifi_connected) {
-		is_mqtt_connected = false;
-		return;
-	}
+   // First check if wifi is connected
+   if (!is_wifi_connected) {
+      is_mqtt_connected = false;
+      return;
+   }
 
-	// Connect mqtt
-	mqtt_connect_semaphore = xSemaphoreCreateBinary();
-	esp_mqtt_client_start(mqtt_client);
-	xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); //  add approximate time to connect to mqtt
+   // Connect mqtt
+   mqtt_connect_semaphore = xSemaphoreCreateBinary();
+   esp_mqtt_client_start(mqtt_client);
+   xSemaphoreTake(mqtt_connect_semaphore, portMAX_DELAY); //  add approximate time to connect to mqtt
 
-	// Subscribe to topics
-	subscribe_topics();
+   // Subscribe to topics
+   subscribe_topics();
 
-	// Send connect success message (must be retain message)
-	esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
+   // Send connect success message (must be retain message)
+   esp_mqtt_client_publish(mqtt_client, wifi_connect_topic, "1", 0, PUBLISH_DATA_QOS, 1);
 
-	// Send equipment statuses
-	publish_equipment_status();
+   // Send equipment statuses
+   publish_equipment_status();
 
-	is_mqtt_connected = true;
+   is_mqtt_connected = true;
 
    if (is_ota_success_on_bootup == true) {
       printf("Publishing OTA Success result on boot up ...");
@@ -246,158 +298,168 @@ void mqtt_connect() {
 }
 
 void create_time_json(cJSON **time_json) {
-	char time_str[TIME_STRING_LENGTH];
+   char time_str[TIME_STRING_LENGTH];
 
-	struct tm time;
-	get_date_time(&time);
+   struct tm time;
+   get_date_time(&time);
 
-	sprintf(time_str, "%.4d", time.tm_year + 1900);
-	strcat(time_str, "-");
-	sprintf(time_str + 5, "%.2d", time.tm_mon + 1); // convert from (0 to 11) to (1 to 12)
-	strcat(time_str, "-");
-	sprintf(time_str + 8, "%.2d", time.tm_mday);
-	strcat(time_str, "T");
-	sprintf(time_str + 11, "%.2d", time.tm_hour);
-	strcat(time_str, ":");
-	sprintf(time_str + 14, "%.2d", time.tm_min);
-	strcat(time_str, ":");
-	sprintf(time_str + 17, "%.2d", time.tm_sec);
-	strcat(time_str, "Z");
+   sprintf(time_str, "%.4d", time.tm_year + 1900);
+   strcat(time_str, "-");
+   sprintf(time_str + 5, "%.2d", time.tm_mon + 1); // convert from (0 to 11) to (1 to 12)
+   strcat(time_str, "-");
+   sprintf(time_str + 8, "%.2d", time.tm_mday);
+   strcat(time_str, "T");
+   sprintf(time_str + 11, "%.2d", time.tm_hour);
+   strcat(time_str, ":");
+   sprintf(time_str + 14, "%.2d", time.tm_min);
+   strcat(time_str, ":");
+   sprintf(time_str + 17, "%.2d", time.tm_sec);
+   strcat(time_str, "Z");
 
-	*time_json = cJSON_CreateString(time_str);
+   *time_json = cJSON_CreateString(time_str);
 }
 
-void publish_sensor_data(void *parameter) {			// MQTT Setup and Data Publishing Task
-	ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
+void publish_sensor_data(void *parameter) {
+    // MQTT Setup and Data Publishing Task
+   ESP_LOGI(MQTT_TAG, "Sensor data topic: %s", sensor_data_topic);
 
-	for (;;) {
-		if(!is_mqtt_connected) {
-			ESP_LOGE(MQTT_TAG, "Wifi not connected, cannot send MQTT data");
+   for (;;) {
+      if (!is_mqtt_connected) {
+         ESP_LOGE(MQTT_TAG, "Wifi not connected, cannot send MQTT data");
 
-			// Wait for delay period and try again
-			vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-			continue;
-		}
+         // Wait for delay period and try again
+         vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+         continue;
+      }
 
-		cJSON *root, *time, *sensor_arr, *sensor;
+      cJSON *root, *time, *sensor_arr, *sensor;
 
-		// Initializing json object and sensor array
-		root = cJSON_CreateObject();
-		sensor_arr = cJSON_CreateArray();
+      // Initializing json object and sensor array
+      root = cJSON_CreateObject();
+      sensor_arr = cJSON_CreateArray();
 
-		// Adding time
-		create_time_json(&time);
-		cJSON_AddItemToObject(root, "time", time);
+      // Adding time
+      create_time_json(&time);
+      cJSON_AddItemToObject(root, "time", time);
 
-		// Adding water temperature
-		sensor_get_json(get_water_temp_sensor(), &sensor);
-		cJSON_AddItemToArray(sensor_arr, sensor);
+      // Adding water temperature
+      sensor_get_json(get_water_temp_sensor(), &sensor);
+      cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Adding ec
-		sensor_get_json(get_ec_sensor(), &sensor);
-		cJSON_AddItemToArray(sensor_arr, sensor);
+      // Adding ec
+      sensor_get_json(get_ec_sensor(), &sensor);
+      cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Adding pH
-		sensor_get_json(get_ph_sensor(), &sensor);
-		cJSON_AddItemToArray(sensor_arr, sensor);
+      // Adding pH
+      sensor_get_json(get_ph_sensor(), &sensor);
+      cJSON_AddItemToArray(sensor_arr, sensor);
 
-		// Adding array to object
-		cJSON_AddItemToObject(root, "sensors", sensor_arr);
+      // Adding array to object
+      cJSON_AddItemToObject(root, "sensors", sensor_arr);
 
-		// Creating string from JSON
-		char *data = cJSON_PrintUnformatted(root);
+      // Creating string from JSON
+      char *data = cJSON_PrintUnformatted(root);
 
-		// Free memory
-		cJSON_Delete(root);
+      // Free memory
+      cJSON_Delete(root);
 
-		// Publish data to MQTT broker using topic and data
-		esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
+      // Publish data to MQTT broker using topic and data
+      esp_mqtt_client_publish(mqtt_client, sensor_data_topic, data, 0, PUBLISH_DATA_QOS, 0);
 
-		ESP_LOGI(MQTT_TAG, "Sensor data: %s", data);
+      ESP_LOGI(MQTT_TAG, "Sensor data: %s", data);
 
-		// Publish data every sensor reading
-		vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
-	}
+      // Publish data every sensor reading
+      vTaskDelay(pdMS_TO_TICKS(SENSOR_MEASUREMENT_PERIOD));
+   }
 
-	free(wifi_connect_topic);
-	free(sensor_data_topic);
-	free(sensor_settings_topic);
+   free(wifi_connect_topic);
+   free(sensor_data_topic);
+   free(sensor_settings_topic);
 }
 
-cJSON* get_ph_control_status() { return ph_control_status; }
-cJSON* get_ec_control_status() { return ec_control_status; }
-cJSON* get_water_temp_control_status() { return water_temp_control_status; }
+cJSON *get_ph_control_status() { return ph_control_status; }
+cJSON *get_ec_control_status() { return ec_control_status; }
+cJSON *get_water_temp_control_status() { return water_temp_control_status; }
 cJSON **get_rf_statuses() { return rf_statuses; }
 
 void init_equipment_status() {
-	equipment_status_root = cJSON_CreateObject();
-	control_status_root = cJSON_CreateObject();
-	rf_status_root = cJSON_CreateObject();
+   equipment_status_root = cJSON_CreateObject();
+   control_status_root = cJSON_CreateObject();
+   rf_status_root = cJSON_CreateObject();
 
-	// Create sensor statuses
-	ph_control_status = cJSON_CreateNumber(0);
-	ec_control_status = cJSON_CreateNumber(0);
-	water_temp_control_status = cJSON_CreateNumber(0);
-	cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
-	cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
-	cJSON_AddItemToObject(control_status_root, "water_temp_control", water_temp_control_status);
+   // Create sensor statuses
+   ph_control_status = cJSON_CreateNumber(0);
+   ec_control_status = cJSON_CreateNumber(0);
+   water_temp_control_status = cJSON_CreateNumber(0);
+   cJSON_AddItemToObject(control_status_root, "ph_control", ph_control_status);
+   cJSON_AddItemToObject(control_status_root, "ec_control", ec_control_status);
+   cJSON_AddItemToObject(control_status_root, "water_temp_control", water_temp_control_status);
 
-	// Create rf statuses
-	char key[3];
-	for(uint8_t i = 0; i < NUM_OUTLETS; ++i) {
-		rf_statuses[i] = cJSON_CreateNumber(0);
+   // Create rf statuses
+   char key[3];
+   for (uint8_t i = 0; i < NUM_OUTLETS; ++i) {
+      rf_statuses[i] = cJSON_CreateNumber(0);
 
-		sprintf(key, "%d", i);
-		cJSON_AddItemToObject(rf_status_root, key, rf_statuses[i]);
-	}
+      sprintf(key, "%d", i);
+      cJSON_AddItemToObject(rf_status_root, key, rf_statuses[i]);
+   }
 
-	cJSON_AddItemToObject(equipment_status_root, "rf", rf_status_root);
-	cJSON_AddItemToObject(equipment_status_root, "control", control_status_root);
+   cJSON_AddItemToObject(equipment_status_root, "rf", rf_status_root);
+   cJSON_AddItemToObject(equipment_status_root, "control", control_status_root);
 }
 
 void publish_equipment_status() {
-	char *data = cJSON_Print(equipment_status_root); // Create data string
-	esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 1); // Publish data
-	ESP_LOGI(MQTT_TAG, "Equipment Data: %s", data);
+   char *data = cJSON_Print(equipment_status_root);                                            // Create data string
+   esp_mqtt_client_publish(mqtt_client, equipment_status_topic, data, 0, PUBLISH_DATA_QOS, 1); // Publish data
+   ESP_LOGI(MQTT_TAG, "Equipment Data: %s", data);
 }
 
-void update_settings(char *settings) {
-	cJSON *root = cJSON_Parse(settings);
-	char* string = cJSON_Print(root);
-	ESP_LOGI(MQTT_TAG, "datavalue:\n %s\n", string);
-	cJSON *object_settings = root->child;
-	
-	char *data_topic = object_settings->string;
-	ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
+void update_settings(char *settings)
+{
+   cJSON *root = cJSON_Parse(settings);
+   char *string = cJSON_Print(root);
+   ESP_LOGI(MQTT_TAG, "datavalue:\n %s\n", string);
+   cJSON *object_settings = root->child;
 
-	if(strcmp("ph", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "pH data received");
-		ph_update_settings(object_settings);
-	} else if(strcmp("ec", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "EC data received");
-		ec_update_settings(object_settings);
-	} else if(strcmp("water_temp", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "Water Temperature data received");
-		water_temp_update_settings(object_settings);
-	} else if(strcmp("irrigation", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "Irrigation data received");
-		update_irrigation_timings(object_settings);
-	} else if(strcmp("grow_lights", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "Grow Lights data received");
-		update_grow_light_timings(object_settings);
-	} else if(strcmp("reservoir", data_topic) == 0) {
-		ESP_LOGI(MQTT_TAG, "Reservoir data received");
-		update_reservoir_settings(object_settings);
-	} else {
-		ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
-	}
-	cJSON_Delete(root);
+   char *data_topic = object_settings->string;
+   ESP_LOGI(MQTT_TAG, "datatopic: %s\n", data_topic);
 
-	ESP_LOGI(MQTT_TAG, "Settings updated");
-	if(!get_is_settings_received()) settings_received();
+   if (strcmp("ph", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "pH data received");
+      ph_update_settings(object_settings);
+   }
+   else if (strcmp("ec", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "EC data received");
+      ec_update_settings(object_settings);
+   }
+   else if (strcmp("water_temp", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "Water Temperature data received");
+      water_temp_update_settings(object_settings);
+   }
+   else if (strcmp("irrigation", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "Irrigation data received");
+      update_irrigation_timings(object_settings);
+   }
+   else if (strcmp("grow_lights", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "Grow Lights data received");
+      update_grow_light_timings(object_settings);
+   }
+   else if (strcmp("reservoir", data_topic) == 0) {
+      ESP_LOGI(MQTT_TAG, "Reservoir data received");
+      update_reservoir_settings(object_settings);
+   }
+   else {
+      ESP_LOGE(MQTT_TAG, "Data %s not recognized", data_topic);
+   }
+   cJSON_Delete(root);
+
+   ESP_LOGI(MQTT_TAG, "Settings updated");
+   if (!get_is_settings_received())
+      settings_received();
 }
 
-static void initiate_ota(const char *mqtt_data) {
+static void initiate_ota(const char *mqtt_data)
+{
    const char *TAG = "INITIATE_OTA";
 
    char version[FIRMWARE_VERSION_LEN], endpoint[OTA_URL_SIZE];
@@ -429,8 +491,7 @@ static void initiate_ota(const char *mqtt_data) {
    }
 }
 
-static esp_err_t validate_ota_parameters(char *version, char *endpoint)
-{
+static esp_err_t validate_ota_parameters(char *version, char *endpoint) {
    const char *TAG = "VALIDATE_OTA_PARAMETERS";
 
    ESP_LOGI(TAG, "version: \"%s\"\n", version);
@@ -450,8 +511,7 @@ static esp_err_t validate_ota_parameters(char *version, char *endpoint)
    return ESP_OK;
 }
 
-static esp_err_t parse_ota_parameters(const char *buffer, char *version_buf, char *endpoint_buf)
-{
+static esp_err_t parse_ota_parameters(const char *buffer, char *version_buf, char *endpoint_buf) {
    const char *TAG = "PARSE_OTA_PARAMETERS";
 
    cJSON *version;
@@ -482,8 +542,7 @@ static esp_err_t parse_ota_parameters(const char *buffer, char *version_buf, cha
    return ESP_OK;
 }
 
-static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason)
-{
+static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_result_t ota_result, ota_failure_reason_t ota_failure_reason) {
    const char *TAG = "CREATE_AND_PUBLISH_OTA_RESULT";
    cJSON *root, *device_id, *version, *result, *error;
 
@@ -537,7 +596,7 @@ static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_r
       else if (ota_failure_reason == OTA_SET_BOOT_PARTITION_FAILED) {
          error = cJSON_CreateString("version not found");
       }
-      else{
+      else {
          error = cJSON_CreateString("version not found");
       }
 
@@ -565,17 +624,17 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
    const char *TAG = "DATA_HANDLER";
 
    // Create dynamically allocated vars for topic and data
-   char *topic = malloc(sizeof(char) * (topic_len+1));
-   char *data = malloc(sizeof(char) * (data_len+1));
+   char *topic = malloc(sizeof(char) * (topic_len + 1));
+   char *data = malloc(sizeof(char) * (data_len + 1));
 
    // Copy over topic
-   for(int i = 0; i < topic_len; i++) {
+   for (int i = 0; i < topic_len; i++) {
       topic[i] = topic_in[i];
    }
    topic[topic_len] = 0;
 
    // Copy over data
-   for(int i = 0; i < data_len; i++) {
+   for (int i = 0; i < data_len; i++) {
       data[i] = data_in[i];
    }
    data[data_len] = 0;
@@ -583,32 +642,136 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
    ESP_LOGI(TAG, "Incoming Topic: %s", topic);
 
    // Check topic against each subscribed topic possible
-   if(strcmp(topic, sensor_settings_topic) == 0) {
+   if (strcmp(topic, sensor_settings_topic) == 0) {
       // Update sensor settings
       ESP_LOGI(TAG, "Sensor settings received");
       update_settings(data);
-   } else if(strcmp(topic, grow_cycle_topic) == 0) {
+   }
+   else if (strcmp(topic, grow_cycle_topic) == 0) {
       // Start/stop grow cycle according to message
       ESP_LOGI(TAG, "Grow cycle status received");
-      if(data[0] == '0') stop_grow_cycle();
-      else start_grow_cycle();
-   } else if(strcmp(topic, rf_control_topic) == 0) {
+      if (data[0] == '0')
+         stop_grow_cycle();
+      else
+         start_grow_cycle();
+   }
+   else if (strcmp(topic, rf_control_topic) == 0) {
       cJSON *obj = cJSON_Parse(data);
       obj = obj->child;
       ESP_LOGI(TAG, "RF id number %d: RF state: %d", atoi(obj->string), obj->valueint);
       control_power_outlet(atoi(obj->string), obj->valueint);
-   } else if(strcmp(topic, calibration_topic) == 0) {
+   }
+   else if (strcmp(topic, calibration_topic) == 0) {
       cJSON *obj = cJSON_Parse(data);
-      update_calibration(obj); 
-   } 	else if(strcmp(topic, ota_update_topic) == 0) {
+      update_calibration(obj);
+   } 
+   else if (strcmp(topic, ota_update_topic) == 0) {
       // Initiate ota
       ESP_LOGI(TAG, "OTA update message received");
       initiate_ota(data);
-   } else if(strcmp(topic, version_request_topic) == 0) {
+   }
+   else if (strcmp(topic, version_request_topic) == 0) {
       // Send back firmware version
       ESP_LOGI(TAG, "Firmware version requested");
       publish_firmware_version();
-   } else {
+   }
+
+   else if (strcmp(topic, test_motor_request) == 0) {
+      int pump_status = 0;
+      cJSON *choice;
+      cJSON *switch_status;
+      cJSON *root = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (cJSON_IsNumber(switch_status)) {
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON)  {
+            pump_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test motor message");
+            ESP_LOGI(TAG, "Pump status:%d\n", pump_status);
+            test_motor(choice->valueint, pump_status);
+         }
+         else {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
+      }
+      else {
+         ESP_LOGE(TAG, "The provided status need to be an integer");
+      }
+   }
+   else if (strcmp(topic, test_outlet_request) == 0) {
+      int outlet_status = 0;
+      cJSON *choice;
+      cJSON *switch_status;
+      cJSON *root = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (cJSON_IsNumber(switch_status) && cJSON_IsNumber(choice)) {
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON) {
+            outlet_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test outlet message");
+            ESP_LOGI(TAG, "Outlet status:%d\n", outlet_status);
+            test_outlet(choice->valueint, outlet_status);
+         }
+         else {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
+      }
+      else {
+         ESP_LOGE(TAG, "The provided status or choice need to be an integer");
+      }
+   }
+
+   else if (strcmp(topic, test_sensor_request) == 0) {
+      int sensor_status = 0;
+      cJSON *choice;
+      cJSON *switch_status;
+      cJSON *root = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(root, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(root, "switch_status");
+      if (cJSON_IsNumber(switch_status) ) {
+         if (switch_status->valueint == DEVICE_OFF || switch_status->valueint == DEVICE_ON) {
+            sensor_status = switch_status->valueint;
+            ESP_LOGI(TAG, "Received the test sensor message");
+            ESP_LOGI(TAG, "Sensor status:%d\n", sensor_status);
+            test_sensor(choice->valuestring, sensor_status);
+         }
+         else {
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
+      }
+      else {
+         ESP_LOGE(TAG, "The provided status or choice need to be an integer");
+      }
+   }
+
+   else if (strcmp(topic, test_fs_request) == 0) {
+      int float_switch_status = 0;
+      cJSON *choice;
+      cJSON *switch_status;
+      cJSON *obj = cJSON_Parse(data);
+      choice = cJSON_GetObjectItemCaseSensitive(obj, "choice");
+      switch_status = cJSON_GetObjectItemCaseSensitive(obj, "switch_status");
+      if (cJSON_IsNumber(choice) && cJSON_IsNumber(switch_status)) {
+         if (switch_status->valueint == DEVICE_ON || switch_status->valueint == DEVICE_OFF) { 
+            float_switch_status = switch_status->valueint;
+            ESP_LOGI(TAG, "status: %d\n", float_switch_status);
+            ESP_LOGI(TAG, "Received the test float switch message");
+            test_float_switch(choice->valueint, float_switch_status);
+         }
+         else { 
+            ESP_LOGE(TAG, "Invalid device status:%d\n", switch_status->valueint);
+         }
+      }
+      else {
+         ESP_LOGE(TAG, "Enter valid integer for choice or status ");
+      }
+   }
+
+   else if (strcmp(topic, test_rf_topic) == 0) {
+      ESP_LOGI(TAG, "Received the test RF message");
+      test_rf();
+   }
+   else {
       // Topic doesn't match any known topics
       ESP_LOGE(TAG, "Topic unknown");
    }
@@ -618,6 +781,7 @@ void data_handler(char *topic_in, uint32_t topic_len, char *data_in, uint32_t da
 }
 
 static void publish_firmware_version() {
+
    cJSON *root, *device_id, *version;
    root = cJSON_CreateObject();
 
@@ -627,9 +791,10 @@ static void publish_firmware_version() {
 
    // Adding version
    char firmware_version[FIRMWARE_VERSION_LEN];
-   if(get_firmware_version(firmware_version)) {
+   if (get_firmware_version(firmware_version)) {
       version = cJSON_CreateString(firmware_version);
-   } else {
+   }
+   else {
       version = cJSON_CreateString("error");
    }
    cJSON_AddItemToObject(root, "version", version);
@@ -639,37 +804,123 @@ static void publish_firmware_version() {
 }
 
 void update_calibration(cJSON *data) {
-    cJSON *obj = data->child; 
-    char *data_string = cJSON_Print(data);
-    ESP_LOGI(MQTT_TAG, "%s", data_string);
-    if (strcmp(obj->string, "type") == 0) {
-        if (strcmp(obj->valuestring, "ph") == 0) {
-            sensor_set_calib_status(get_ph_sensor(), true);
-            ESP_LOGI(MQTT_TAG, "pH calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
-                vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
-                ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
-            }
-        } else if (strcmp(obj->valuestring, "ec_wet") == 0) {
-            sensor_set_calib_status(get_ec_sensor(), true);
-            ESP_LOGI(MQTT_TAG, "ec wet calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
-                ESP_LOGI(MQTT_TAG, "ec task resumed");
-            }
-        } else if (strcmp(obj->valuestring, "ec_dry") == 0) {
-            dry_calib = true; 
-            ESP_LOGI(MQTT_TAG, "ec dry calibration received");
-            if (!get_is_grow_active()) {
-                vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
-                ESP_LOGI(MQTT_TAG, "ec task resumed");
-            }
-        } else {
-            ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
-        }
-    } else {
-        ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
-    }
-    cJSON_Delete(data);
+   cJSON *obj = data->child;
+   char *data_string = cJSON_Print(data);
+   ESP_LOGI(MQTT_TAG, "%s", data_string);
+   if (strcmp(obj->string, "type") == 0) {
+      if (strcmp(obj->valuestring, "ph") == 0) {
+         sensor_set_calib_status(get_ph_sensor(), true);
+         ESP_LOGI(MQTT_TAG, "pH calibration received");
+         if (!get_is_grow_active()) {
+            vTaskResume(*sensor_get_task_handle(get_water_temp_sensor()));
+            vTaskResume(*sensor_get_task_handle(get_ph_sensor()));
+            ESP_LOGI(MQTT_TAG, "pH and water_temp task resumed");
+         }
+      }
+      else if (strcmp(obj->valuestring, "ec_wet") == 0) {
+         sensor_set_calib_status(get_ec_sensor(), true);
+         ESP_LOGI(MQTT_TAG, "ec wet calibration received");
+         if (!get_is_grow_active()) {
+            vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+            ESP_LOGI(MQTT_TAG, "ec task resumed");
+         }
+      }
+      else if (strcmp(obj->valuestring, "ec_dry") == 0) {
+         dry_calib = true;
+         ESP_LOGI(MQTT_TAG, "ec dry calibration received");
+         if (!get_is_grow_active()){
+            vTaskResume(*sensor_get_task_handle(get_ec_sensor()));
+            ESP_LOGI(MQTT_TAG, "ec task resumed");
+         }
+      }
+      else {
+         ESP_LOGE(MQTT_TAG, "Invalid Value Recieved");
+      }
+   }
+   else {
+      ESP_LOGE(MQTT_TAG, "Invalid Key Recieved, Expected Key: type");
+   }
+   cJSON_Delete(data);
+}
+
+void publish_pump_status(int publish_motor_choice, int publish_status) {
+   const char *TAG = "PUBLISH_PUMP_STATUS";
+   cJSON *temp_obj, *choice = NULL, *switch_status = NULL;
+   temp_obj = cJSON_CreateObject();
+
+   choice = cJSON_CreateNumber(publish_motor_choice);
+   switch_status = cJSON_CreateNumber(publish_status);
+
+   // ch = cJSON_Create(choice->ch);
+   cJSON_AddItemToObject(temp_obj, "choice", choice);
+
+   // stat = cJSON_CreateString(error_status->stat);
+   cJSON_AddItemToObject(temp_obj, "switch_status", switch_status);
+
+   char *data = cJSON_PrintUnformatted(temp_obj);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+
+   esp_mqtt_client_publish(mqtt_client, test_motor_response, data, 0, 1, 0);
+   cJSON_Delete(temp_obj);
+   free(data);
+   
+ 
+}
+
+void publish_power_outlet_status(int outlet_choice, int outlet_status) {
+   const char *TAG = "PUBLISH_POWER_OUTLET";
+   cJSON *root, *switch_status = NULL ,*choice = NULL;
+   root = cJSON_CreateObject();
+   choice = cJSON_CreateNumber(outlet_choice);
+   switch_status = cJSON_CreateNumber(outlet_status);
+
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
+   cJSON_AddItemToObject(root, "choice", choice);
+   char *data = cJSON_PrintUnformatted(root);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+   esp_mqtt_client_publish(mqtt_client, test_outlet_response, data, 0, 1, 0);
+   cJSON_Delete(root);
+   free(data);
+  
+}
+
+void publish_float_switch_status(int float_switch_choice, int float_switch_status) {
+   const char *TAG = "PUBLISH_FLOAT SWITCH_STATUS";
+   cJSON *temp_obj, *choice = NULL, *switch_status = NULL;
+   temp_obj = cJSON_CreateObject();
+   choice = cJSON_CreateNumber(float_switch_choice);
+   switch_status = cJSON_CreateNumber(float_switch_status);
+
+   cJSON_AddItemToObject(temp_obj, "choice", choice);
+
+   cJSON_AddItemToObject(temp_obj, "switch_status", switch_status);
+
+   char *data = cJSON_PrintUnformatted(temp_obj);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+
+   esp_mqtt_client_publish(mqtt_client, test_fs_response, data, 0, 1, 0);
+   cJSON_Delete(temp_obj);
+   free(data);
+  
+}
+
+void publish_sensor_status(char sensor_choice[], int sensor_status) {
+   const char *TAG = "PUBLISH_SENSOR_STATUS";
+   cJSON *root, *switch_status = NULL, *choice = NULL;
+   root = cJSON_CreateObject();
+   choice = cJSON_CreateString(sensor_choice);
+   switch_status = cJSON_CreateNumber(sensor_status);
+
+   cJSON_AddItemToObject(root, "switch_status", switch_status);
+   cJSON_AddItemToObject(root, "choice", choice);
+   char *data = cJSON_PrintUnformatted(root);
+
+   ESP_LOGI(TAG, "Message: %s", data);
+   esp_mqtt_client_publish(mqtt_client, test_sensor_response, data, 0, 1, 0);
+   cJSON_Delete(root);
+   free(data);
+  
 }

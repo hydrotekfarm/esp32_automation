@@ -3,6 +3,7 @@
 #include <freertos/task.h>
 #include "sensor.h"
 #include "ph_sensor.h"
+#include "time.h"
 
 struct sensor ph_sensor;
 
@@ -26,4 +27,5 @@ ph_sensor_t* get_ph_dev();
 // Measures water ph
 void measure_ph();
 
-
+// to calculate time delay 
+double start, end, exec_time;

@@ -17,7 +17,7 @@
 
 
 // MCP23017 GPIO Expansion Ports
-#define EC_NUTRIENT_1_PUMP_GPIO 	5
+#define EC_NUTRIENT_1_PUMP_GPIO     5
 #define EC_NUTRIENT_2_PUMP_GPIO 	4
 #define EC_NUTRIENT_3_PUMP_GPIO 	3
 #define EC_NUTRIENT_4_PUMP_GPIO 	2
@@ -32,5 +32,5 @@ mcp23x17_t ports_dev;
 void init_ports();
 
 // Set gpio on and off
-void set_gpio_on(int gpio);
-void set_gpio_off(int gpio);
+esp_err_t set_gpio_on(int gpio);
+esp_err_t set_gpio_off(int gpio);
