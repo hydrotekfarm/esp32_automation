@@ -156,33 +156,12 @@ void update_calibration(cJSON *obj);
 // Publish status for motors
 void publish_pump_status(int publish_motor_choice, int publish_status);
 
-// Publish status for lights
-void publish_light_status(int publish_light_choice, int publish_status);
-
-// Publish status for water cooler
-void publish_water_cooler_status(int publish_cooler_status);
-
-// Publish status for water heater
-void publish_water_heater_status(int publish_heater_status);
-
-// Publish status for resorvior water in
-void publish_water_in_status(int publish_in_status);
-
-// Publish status for resorvior water out
-void publish_water_out_status(int publish_out_status);
-
-// Publish status for irrigation
-void publish_irrigation_status(int publish_irrig_status);
+// Publish status for power outlet
+void publish_power_outlet_status(int outlet_choice, int outlet_status);
 
 // Publish status for float switches
-void publish_float_switch_status(int float_switch_type, int float_switch_status);
+void publish_float_switch_status(int float_switch_choice, int float_switch_status);
 
-// Publish status for ph
-void publish_ph_status(int ph_status);
-
-// Publish status for EC
-void publish_ec_status(int ec_status);
-
-// Publish status for water temperature
-void publish_water_temperature_status(int publish_temperature_status);
+// Publish status for sensor
+void publish_sensor_status(char sensor_choice[], int sensor_status);
 #endif

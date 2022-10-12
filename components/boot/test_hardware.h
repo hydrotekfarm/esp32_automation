@@ -8,7 +8,7 @@ void test_mcp23017();
 void test_rf();
 void test_motor(int choice, int switch_status);
 void test_outlet(int choice, int switch_status);
-void test_sensor(int choice, int switch_status);
+void test_sensor(char choice[], int switch_status);
 void test_float_switch(int choice, int switch_status);
 
 #define DEVICE_ON 1
