@@ -65,6 +65,7 @@ typedef enum
     OTA_WRTIE_OPERATION_FAILED,
     IMAGE_VALIDATION_FAILED,
     OTA_SET_BOOT_PARTITION_FAILED,
+    OTA_VERSION_SAME,
     NO_FALIURE
 } ota_failure_reason_t;
 
