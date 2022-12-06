@@ -234,6 +234,8 @@ void make_topics() {
    init_topic(&version_result_topic, device_type_len + 1 + strlen(VERSION_RESULT_HEADING) + 1, VERSION_RESULT_HEADING);
    add_device_type(version_result_topic);
    ESP_LOGI(MQTT_TAG, "Version result topic: %s", version_result_topic);
+
+   ESP_LOGI(MQTT_TAG, "Testing OTA v3.0");
 }
 
 void subscribe_topics() {
