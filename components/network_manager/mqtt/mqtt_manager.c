@@ -207,10 +207,6 @@ void make_topics() {
    add_id(test_sensor_response);
    ESP_LOGI(MQTT_TAG, "Test sensor response topic: %s", test_sensor_response);
 
-   init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
-   add_id(test_rf_topic);
-   ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
-
    init_topic(&test_fs_request, device_id_len + 1 + strlen(TEST_FS_REQUEST_HEADING) + 1, TEST_FS_REQUEST_HEADING);
    add_id(test_fs_request);
    ESP_LOGI(MQTT_TAG, "Test float switch request topic: %s", test_fs_request);
@@ -218,6 +214,10 @@ void make_topics() {
    init_topic(&test_fs_response, device_id_len + 1 + strlen(TEST_FS_RESPONSE_HEADING) + 1, TEST_FS_RESPONSE_HEADING);
    add_id(test_fs_response);
    ESP_LOGI(MQTT_TAG, "Test float switch response topic: %s", test_fs_response);
+
+   init_topic(&test_rf_topic, device_id_len + 1 + strlen(TEST_RF_HEADING) + 1, TEST_RF_HEADING);
+   add_id(test_rf_topic);
+   ESP_LOGI(MQTT_TAG, "Test rf topic: %s", test_rf_topic);
 
    init_topic(&ota_update_topic, device_type_len + 1 + strlen(OTA_UPDATE_HEADING) + 1, OTA_UPDATE_HEADING);
    add_device_type(ota_update_topic);

@@ -297,12 +297,12 @@ void test_sensor( char choice[], int switch_status) {
         ESP_LOGI("PH_TEST", "Testing pH Sensor");
         printf("-------------------------------------------------\n");
         clear_calibration_ph(&ph_dev);
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
             float ph_reading = 0;
             read_ph(&ph_dev, &ph_reading);
             ESP_LOGI("PH_TEST", "pH Reading: %f", ph_reading);
             publish_sensor_status(choice, switch_status);
-            vTaskDelay(pdMS_TO_TICKS(1500));
+            vTaskDelay(pdMS_TO_TICKS(250));
         }
     }
     else if (strcmp(choice, "ec") == 0) {
@@ -379,5 +379,6 @@ void test_float_switch(int choice, int switch_status) {
     }
     else {
         ESP_LOGE(TAG, "Invalid float switch type");
+        publish_float_switch_status(choice, DEVICE_ERROR);
     }
 }
