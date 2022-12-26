@@ -127,12 +127,12 @@ void ota_task(void *pvParameter)
                      task_fatal_error();
                   }
                }
-               // if (memcmp(new_app_info.version, running_app_info.version, sizeof(new_app_info.version)) == 0) {
-               //    ESP_LOGW(TAG, "Current running version is the same as a new. We will not continue the update.");
-               //    http_cleanup(client);
-               //    publish_ota_result(client_mqtt, OTA_FAIL, OTA_VERSION_SAME);
-               //    task_fatal_error();
-               // }
+               if (memcmp(new_app_info.version, running_app_info.version, sizeof(new_app_info.version)) == 0) {
+                  ESP_LOGW(TAG, "Current running version is the same as a new. We will not continue the update.");
+                  http_cleanup(client);
+                  publish_ota_result(client_mqtt, OTA_FAIL, OTA_VERSION_SAME);
+                  task_fatal_error();
+               }
 
                image_header_was_checked = true;
 
