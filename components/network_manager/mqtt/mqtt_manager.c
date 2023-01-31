@@ -235,7 +235,7 @@ void make_topics() {
    add_device_type(version_result_topic);
    ESP_LOGI(MQTT_TAG, "Version result topic: %s", version_result_topic);
 
-   ESP_LOGI(MQTT_TAG, "OTA TESTING SUCCESFULL");
+   ESP_LOGI(MQTT_TAG, "testing ota with jenkins");
 }
 
 void subscribe_topics() {
