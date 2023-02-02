@@ -6,7 +6,7 @@ pipeline {
             
             steps{
                 sh "cd /c/esptest_jenkins/"
-                sh "docker run --rm -v --privileged "$(pwd):/esp32_automation" -w /project espressif/idf" 
+                sh "docker run --rm -v --privileged $(pwd):/esp32_automation -w /project espressif/idf" 
                 sh '''
                 #source /opt/esp/idf/export.sh
                 $IDF_PATH/export.sh
