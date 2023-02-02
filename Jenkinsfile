@@ -6,7 +6,7 @@ pipeline {
             
             steps{
                 sh '''
-                    docker run --rm -v $PWD:/project -w /project espressif/idf idf.py build
+                    docker run --rm -v --privileged $PWD:/project -w /project espressif/idf idf.py build
                     #source /opt/esp/idf/export.sh
                     . $IDF_PATH/export.sh
                     idf.py build
