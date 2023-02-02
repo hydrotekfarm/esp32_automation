@@ -3,11 +3,22 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                echo 'Building..'
+            agent {
+                docker {
+                    image 'espressif/idf:v4.2.2'
+                    args '--rm -v $PWD:/project -w /project'
+                    reuseNode true
+                }
+            }
+            steps{
+                sh '''
+                    #source /opt/esp/idf/export.sh
+                    . $IDF_PATH/export.sh
+                    idf.py build
+                '''
             }
         }
-        stage('Test') {
+        /* stage('Test') {
             steps {
                 echo 'Testing..'
             }
@@ -16,6 +27,6 @@ pipeline {
             steps {
                 echo 'Deploying....'
             }
-        }
+        } */
     }
 }
