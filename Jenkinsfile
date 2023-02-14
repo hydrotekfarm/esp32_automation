@@ -4,7 +4,7 @@ def IDF_TOOLS = "/c/Users/Admin/esp/esp-idf/tools"
 def IDF_PYTHON="/c/Users/Admin/.espressif/python_env/idf4.0_py3.10_env/Scripts/python.exe"
 def IDF_REQUIREMENTS="/c/Users/Admin/esp/esp-idf/requirements.txt"
 def WORK_DIR="/c/hydrotek/work/gitsrc/"
-#parameters
+
 def IMAGE_TAG = "pipe_test"
 def CLOUD_BUCKET_URL="ota-images-testing-12-11-21/fertigation/${IMAGE_TAG}/app-template.bin"
 
@@ -20,11 +20,11 @@ pipeline{
                 script{
                     sh echo "Inside embedded build and push"
                     sh """
-                     #Build
+                     
                      echo ${IMAGE_TAG} | tee ./version.txt
                      $IDF_TOOLS/idf.py build
 
-                     #Push
+                     
                      git add ./version.txt
                      git commit -m "New release created"
                      echo "git tag -a ${IMAGE_TAG} -m "New Tag: ${IMAGE_TAG}""
