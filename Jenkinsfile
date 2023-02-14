@@ -49,7 +49,7 @@ switch(project)
 pipeline{
     agent any
     stages{
-        stage(embedded_checkout){
+        stage("embedded_checkout"){
             steps{
                 script{
                     sh echo "Inside embedded checkout"
@@ -75,7 +75,7 @@ pipeline{
             }
         }
 
-        stage(embedded_build){
+        stage("embedded_build"){
             steps{
                 script{
                     sh echo "Inside embedded build and push"
@@ -97,7 +97,7 @@ pipeline{
             }
         }
 
-        stage(embedded_deploy){
+        stage("embedded_deploy"){
             steps{
                 script{
                     sh echo "Inside embedded deployment"
