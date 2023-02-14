@@ -18,20 +18,21 @@ pipeline{
         stage(embedded_build){
             steps{
                 script{
-                    sh echo "Inside embedded build and push"
-                    sh """
                      
-                     echo ${IMAGE_TAG} | tee ./version.txt
-                     $IDF_TOOLS/idf.py build
+                    sh """
+                    echo "Inside embedded build and push"
+                     
+                     echo "${IMAGE_TAG} | tee ./version.txt"
+                     "${IDF_TOOLS}"/idf.py build
 
                      
                      git add ./version.txt
                      git commit -m "New release created"
                      echo "git tag -a ${IMAGE_TAG} -m "New Tag: ${IMAGE_TAG}""
-                     git tag -a ${IMAGE_TAG} -m "New Tag: ${IMAGE_TAG}"
-                     git push origin ${IMAGE_TAG}
-                     gsutil.cmd cp ./build/app-template.bin gs://${CLOUD_BUCKET_URL}
-                     gsutil.cmd acl ch -u AllUsers:R gs://${CLOUD_BUCKET_URL}
+                     git tag -a "${IMAGE_TAG}" -m "New Tag: ${IMAGE_TAG}"
+                     git push origin "${IMAGE_TAG}"
+                     gsutil.cmd cp ./build/app-template.bin gs://"${CLOUD_BUCKET_URL}"
+                     gsutil.cmd acl ch -u AllUsers:R gs://"${CLOUD_BUCKET_URL}"
                     """
                 }
             }
