@@ -40,11 +40,14 @@ pipeline{
         stage(embedded_deploy){
             steps{
                 script{
-                    sh echo "Inside embedded deployment"
+                    sh
+                    """
+                     echo "Inside embedded deployment"
 
-                    sh pip install -r ${EMBEDDED_DEVOPS_HOME}/requirements.txt
-                	sh python ${EMBEDDED_DEVOPS_HOME}/UpdateFirestore.py $PROJECT_NAME $IMAGE_TAG https://storage.googleapis.com/${CLOUD_BUCKET_URL} ${EMBEDDED_DEVOPS_HOME}/serviceAccountKey.json
-                    sh python ${EMBEDDED_DEVOPS_HOME}/mqtt.py ${IMAGE_TAG} https://storage.googleapis.com/${CLOUD_BUCKET_URL}
+                    pip install -r "${EMBEDDED_DEVOPS_HOME}"/requirements.txt
+                	 python "${EMBEDDED_DEVOPS_HOME}/UpdateFirestore.py $PROJECT_NAME ${IMAGE_TAG} https://storage.googleapis.com/${CLOUD_BUCKET_URL} ${EMBEDDED_DEVOPS_HOME}/serviceAccountKey.json"
+                     python "${EMBEDDED_DEVOPS_HOME}/mqtt.py ${IMAGE_TAG} https://storage.googleapis.com/${CLOUD_BUCKET_URL}"
+                     """
                 }
             }
         }
