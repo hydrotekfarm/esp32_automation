@@ -23,7 +23,7 @@ pipeline{
                     echo "Inside embedded build and push"
                      
                      echo "${IMAGE_TAG} | tee ./version.txt"
-                     "${IDF_PYTHON}" "${IDF_TOOLS}"/idf.py build
+                     "${IDF_PYTHON}" "${IDF_TOOLS}"/idf.py build --batch
 
                      
                      git add ./version.txt
