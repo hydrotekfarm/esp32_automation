@@ -53,4 +53,7 @@ pipeline{
             }
         }
     }
+    environment{
+        TERM = 'xterm-color'
+    }
 }
