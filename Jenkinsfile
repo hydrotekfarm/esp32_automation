@@ -13,6 +13,9 @@ def CLOUD_BUCKET_URL="ota-images-testing-12-11-21/fertigation/${IMAGE_TAG}/app-t
 
 pipeline{
     agent any
+    environment{
+        TERM = 'xterm-color'
+    }
     stages{
 
         stage(embedded_build){
@@ -23,7 +26,7 @@ pipeline{
                     echo "Inside embedded build and push"
                      
                      echo "${IMAGE_TAG} | tee ./version.txt"
-                     "${IDF_PYTHON}" "${IDF_TOOLS}"/idf.py build --batch --quiet
+                     "${IDF_PYTHON}" "${IDF_TOOLS}"/idf.py build
 
                      
                      git add ./version.txt
@@ -52,8 +55,5 @@ pipeline{
                 }
             }
         }
-    }
-    environment{
-        TERM = 'xterm-color'
     }
 }
