@@ -129,7 +129,9 @@ void ota_task(void *pvParameter)
                }
                if (memcmp(new_app_info.version, running_app_info.version, sizeof(new_app_info.version)) == 0) {
                   ESP_LOGW(TAG, "Current running version is the same as a new. We will not continue the update.");
+                  ESP_LOGE(TAG, "New version: %.*s, running version: %.*s", 32, new_app_info.version, 32, running_app_info.version);
                   http_cleanup(client);
+                  publish_ota_result(client_mqtt, OTA_FAIL, OTA_VERSION_SAME);
                   task_fatal_error();
                }
 

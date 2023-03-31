@@ -234,6 +234,8 @@ void make_topics() {
    init_topic(&version_result_topic, device_type_len + 1 + strlen(VERSION_RESULT_HEADING) + 1, VERSION_RESULT_HEADING);
    add_device_type(version_result_topic);
    ESP_LOGI(MQTT_TAG, "Version result topic: %s", version_result_topic);
+
+   ESP_LOGI(MQTT_TAG, "testing ota with jenkins");
 }
 
 void subscribe_topics() {
@@ -472,7 +474,7 @@ static void initiate_ota(const char *mqtt_data)
          }
          else {
             /* Copy FW upgrade URL to local buffer */
-            printf("Received URL lenght is: %d\r\n", strlen(endpoint));
+            printf("Received URL length is: %d\r\n", strlen(endpoint));
             url_buf = (char *)malloc(strlen(endpoint) + 1);
             if (NULL == url_buf) {
                printf("Unable to allocate memory to save received URL\r\n");
@@ -595,6 +597,9 @@ static void create_and_publish_ota_result(esp_mqtt_client_handle_t client, ota_r
       }
       else if (ota_failure_reason == OTA_SET_BOOT_PARTITION_FAILED) {
          error = cJSON_CreateString("version not found");
+      }
+      else if (ota_failure_reason == OTA_VERSION_SAME) {
+         error = cJSON_CreateString("version is same");
       }
       else {
          error = cJSON_CreateString("version not found");
